@@ -7,8 +7,9 @@
 ## 开始修改前
 
 1. 阅读 `docs/README.md`、`project/requirements.json` 和相关 ADR。
-2. 为变更找到已有的 `REQ-xxx`；如果不存在，先新增需求 ID。
-3. 在需求台账中记录受影响的代码、测试和文档，再开始实现。
+2. 检查需求的 `authority`；不得把 `pending_confirmation` 或 `handbook_guidance` 改写为官方硬性要求。
+3. 为变更找到已有的 `REQ-xxx`；如果不存在，先新增需求 ID。
+4. 在需求台账中记录受影响的代码、测试和文档，再开始实现。
 
 ## 一次完整变更必须包含
 

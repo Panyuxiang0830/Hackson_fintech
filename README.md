@@ -41,7 +41,8 @@ The core tests use only Python's standard library, so they do not require Stream
 - No real Slack/Jira/Drive connector yet.
 - No temporal-authority conflict engine yet.
 
-See `MVP_v0_开发规格.md` for scope and acceptance criteria.
+See `docs/product/mvp-v0.md` for MVP scope, `docs/source/` for the
+Handbook baseline, and `docs/product/roadmap.md` for the implementation order.
 
 ## Project management
 

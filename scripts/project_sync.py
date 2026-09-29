@@ -13,6 +13,12 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "project" / "requirements.json"
 OUTPUT = ROOT / "docs" / "requirements.md"
 ALLOWED_STATUSES = {"planned", "in_progress", "implemented", "validated", "deferred"}
+ALLOWED_AUTHORITIES = {
+    "handbook_mandatory",
+    "handbook_guidance",
+    "team_decision",
+    "pending_confirmation",
+}
 
 
 def load_registry() -> dict:
@@ -33,6 +39,8 @@ def validate(data: dict) -> list[str]:
             errors.append(f"非法需求 ID：{requirement_id}")
         if item.get("status") not in ALLOWED_STATUSES:
             errors.append(f"{requirement_id} 使用了非法状态：{item.get('status')}")
+        if item.get("authority") not in ALLOWED_AUTHORITIES:
+            errors.append(f"{requirement_id} 使用了非法权威级别：{item.get('authority')}")
         if not item.get("acceptance_criteria"):
             errors.append(f"{requirement_id} 缺少验收标准")
 
@@ -52,14 +60,17 @@ def render(data: dict) -> str:
         "",
         f"最后更新：{data['updated_at']}",
         "",
-        "| ID | 需求 | 状态 | 代码 | 测试 |",
-        "|---|---|---|---|---|",
+        "| ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |",
+        "|---|---|---|---|---|---|",
     ]
 
     for item in data["requirements"]:
         code = "<br>".join(f"`{path}`" for path in item.get("code", [])) or "—"
         tests = "<br>".join(f"`{path}`" for path in item.get("tests", [])) or "—"
-        lines.append(f"| {item['id']} | {item['title']} | `{item['status']}` | {code} | {tests} |")
+        lines.append(
+            f"| {item['id']} | {item['title']} | `{item['authority']}` | "
+            f"`{item['status']}` | {code} | {tests} |"
+        )
 
     for item in data["requirements"]:
         lines.extend(
@@ -68,6 +79,7 @@ def render(data: dict) -> str:
                 f"## {item['id']} · {item['title']}",
                 "",
                 f"- 来源：{item['source']}",
+                f"- 权威级别：`{item['authority']}`",
                 f"- 状态：`{item['status']}`",
                 f"- 说明：{item['description']}",
                 "- 验收标准：",
@@ -117,4 +129,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
