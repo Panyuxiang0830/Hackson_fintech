@@ -48,4 +48,3 @@ P0 完成标准：五个 Handbook 场景都有自动测试和 worked example。
 - 系统架构和 trust-boundary diagram；
 - 评测结果；
 - 视频、部署、Pitch Deck 或正式报告（仅在要求确认后确定格式）。
-

@@ -1,7 +1,7 @@
 # FinTech Track Handbook 要求基线
 
-> 来源：用户提供的 Hackathon Handbook 中 “The FinTech Track - Aspire” 摘录。  
-> 入库日期：2026-09-29。  
+> 来源：用户提供的 Hackathon Handbook 中 “The FinTech Track - Aspire” 摘录。
+> 入库日期：2026-09-29。
 > 版本说明：摘录中未显示 Handbook 版本号或发布日期；若比赛邮件或提交表出现更新，以更新后的官方材料为准。
 
 ## 选定案例
@@ -51,4 +51,3 @@ Handbook 要求提交材料为每个场景提供 worked example：
 ## 明确排除的模板污染
 
 Handbook 摘录中的 “Help patients”“medications”“self-care”等医疗健康表述与 FinTech Internal Brain 案例不一致，明显属于其他赛题的模板内容。本项目不把该段作为需求，也不据此实现医疗功能。
-

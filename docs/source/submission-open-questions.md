@@ -1,7 +1,7 @@
 # 提交要求待确认清单
 
-> 状态：Open  
-> 最近核对：2026-09-29  
+> 状态：Open
+> 最近核对：2026-09-29
 > 核对来源：比赛邮件中的最新版 Handbook、登录后的 Project Submission 表、官方工作人员书面答复。
 
 在拿到明确官方字段前，下表内容不得写成“比赛必须”：
@@ -25,4 +25,3 @@
 3. 运行 `python3 scripts/project_sync.py`；
 4. 若影响实现或交付，更新 `docs/product/roadmap.md`；
 5. 通过 Pull Request 保留变更证据。
-
