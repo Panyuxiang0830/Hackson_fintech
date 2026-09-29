@@ -17,7 +17,7 @@
 | REQ-009 | LLM 安全边界 | `in_progress` | `src/answering.py`<br>`src/service.py` | `tests/test_no_leakage.py`<br>`tests/test_end_to_end.py` |
 | REQ-010 | 比赛交付与现场演示 | `in_progress` | `app.py` | `tests/test_end_to_end.py` |
 | REQ-011 | 时序和权威冲突检测 | `deferred` | — | — |
-| REQ-012 | 项目内容统一入库与 Git 协作 | `implemented` | `scripts/project_sync.py` | — |
+| REQ-012 | 项目内容统一入库与 Git 协作 | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | — |
 
 ## REQ-001 · 自然语言企业知识问答
 
@@ -219,6 +219,6 @@
 
 - 影响范围：
 
-  - 代码：`scripts/project_sync.py`
+  - 代码：`scripts/project_sync.py`, `.github/workflows/ci.yml`
   - 测试：—
   - 文档：`AGENTS.md`, `CONTRIBUTING.md`, `docs/README.md`, `docs/decisions/ADR-0001-repository-as-source-of-truth.md`

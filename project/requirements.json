@@ -180,7 +180,7 @@
         "变更通过 GitHub Pull Request 合并到 main",
         "密钥、虚拟环境和运行时日志不得提交到远程仓库"
       ],
-      "code": ["scripts/project_sync.py"],
+      "code": ["scripts/project_sync.py", ".github/workflows/ci.yml"],
       "tests": [],
       "docs": ["AGENTS.md", "CONTRIBUTING.md", "docs/README.md", "docs/decisions/ADR-0001-repository-as-source-of-truth.md"]
     }
