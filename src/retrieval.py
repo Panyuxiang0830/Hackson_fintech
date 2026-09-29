@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 
+from .freshness import FreshnessDecision
 from .models import Document, Evidence, PolicyDecision
 
 
@@ -34,6 +35,7 @@ class Retriever:
         question: str,
         authorised_documents: list[tuple[Document, PolicyDecision]],
         limit: int = 5,
+        freshness_by_id: dict[str, FreshnessDecision] | None = None,
     ) -> list[Evidence]:
         query_tokens = tokenise(question)
         scored: list[Evidence] = []
@@ -48,8 +50,20 @@ class Retriever:
             score = 2.0 * title_overlap + content_overlap + status_bonus + source_bonus
             score /= math.sqrt(max(1, len(content_tokens)))
             if score > 0:
-                scored.append(Evidence(document, round(score, 4), access_decision.reason))
+                freshness = (freshness_by_id or {}).get(document.id)
+                scored.append(
+                    Evidence(
+                        document,
+                        round(score, 4),
+                        access_decision.reason,
+                        freshness_status=freshness.status if freshness else "current",
+                        freshness_reason=(
+                            freshness.reason
+                            if freshness
+                            else "freshness metadata was not supplied to the retriever"
+                        ),
+                    )
+                )
 
         scored.sort(key=lambda item: (item.score, item.document.updated_at), reverse=True)
         return scored[:limit]
-

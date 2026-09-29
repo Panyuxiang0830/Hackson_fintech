@@ -6,4 +6,5 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 runtime/*.jsonl
+runtime/*.head.json
 !runtime/.gitkeep

@@ -62,7 +62,9 @@ class AnswerService:
 
         context = "\n\n".join(
             f"[{index}] {item.document.source} | {item.document.title} | "
-            f"updated={item.document.updated_at}\n{item.document.content}"
+            f"updated={item.document.updated_at} | source_updated={item.document.source_updated_at} | "
+            f"synced={item.document.synced_at} | freshness={item.freshness_status}\n"
+            f"{item.document.content}"
             for index, item in enumerate(evidence, start=1)
         )
         system = (
@@ -96,4 +98,3 @@ class AnswerService:
         with urllib.request.urlopen(request, timeout=30) as response:
             body = json.load(response)
         return body["choices"][0]["message"]["content"]
-

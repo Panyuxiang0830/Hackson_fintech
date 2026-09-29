@@ -57,15 +57,15 @@
       "title": "新鲜度与来源状态",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "planned",
+      "status": "implemented",
       "description": "回答必须说明证据更新时间，并在规定窗口内反映来源变化。",
       "acceptance_criteria": [
         "每条证据展示来源时间和同步时间",
-        "过期证据被标记或降权",
+        "已知过期证据在检索前被排除，延迟同步被明确标记",
         "测试覆盖更新后的状态在目标窗口内可见"
       ],
-      "code": ["src/models.py", "src/retrieval.py"],
-      "tests": [],
+      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json"],
+      "tests": ["tests/test_permission_freshness.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -73,15 +73,15 @@
       "title": "权限变更即时生效",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "planned",
+      "status": "implemented",
       "description": "用户或文档权限变化后，旧权限不能继续读取受保护内容。",
       "acceptance_criteria": [
         "演示一次用户权限撤销",
         "撤销后重新查询不返回此前可见的敏感证据",
-        "权限缓存具有明确失效策略"
+        "每次请求从当前 IdentityService 重新解析身份，不沿用调用方的旧用户对象"
       ],
-      "code": ["src/policy.py", "src/service.py"],
-      "tests": [],
+      "code": ["src/identity.py", "src/policy.py", "src/service.py", "app.py"],
+      "tests": ["tests/test_permission_freshness.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -89,7 +89,7 @@
       "title": "可查询的完整审计记录",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "in_progress",
+      "status": "implemented",
       "description": "每次请求记录身份、查询、逐文档授权决定、检索结果、最终回答和时间，并可供后续查询。",
       "acceptance_criteria": [
         "每次请求写入追加式审计记录",
@@ -98,7 +98,7 @@
         "审计展示不泄漏无权限文档标题或正文"
       ],
       "code": ["src/audit.py", "src/service.py", "app.py"],
-      "tests": ["tests/test_end_to_end.py"],
+      "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -106,7 +106,7 @@
       "title": "防篡改审计链",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "planned",
+      "status": "implemented",
       "description": "审计事件使用哈希链或等效机制，使删除和修改可以被检测。",
       "acceptance_criteria": [
         "每条事件包含前序哈希和自身哈希",
@@ -114,7 +114,7 @@
         "演示一次篡改检测"
       ],
       "code": ["src/audit.py"],
-      "tests": [],
+      "tests": ["tests/test_audit.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -122,15 +122,15 @@
       "title": "自然语言审计查询",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "planned",
+      "status": "implemented",
       "description": "授权人员可以询问谁在何时访问了哪些信息以及系统为何允许。",
       "acceptance_criteria": [
         "支持按用户、请求、时间和证据 ID 查询",
         "审计查询本身受权限控制并被审计",
         "回答包含可核对的事件引用"
       ],
-      "code": ["src/audit.py", "app.py"],
-      "tests": [],
+      "code": ["src/audit.py", "src/audit_query.py", "src/service.py", "app.py"],
+      "tests": ["tests/test_audit_query.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
