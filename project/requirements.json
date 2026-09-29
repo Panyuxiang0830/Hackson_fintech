@@ -1,28 +1,31 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
   "updated_at": "2026-09-29",
   "requirements": [
     {
       "id": "REQ-001",
-      "title": "自然语言企业知识问答",
+      "title": "跨来源自然语言问答与引用",
       "source": "FinTech track handbook",
-      "status": "implemented",
-      "description": "员工可以针对统一知识源提出自然语言问题并获得带依据的回答。",
+      "authority": "handbook_mandatory",
+      "status": "in_progress",
+      "description": "员工可以提出自然语言问题，系统从相关平台组装授权上下文并返回带来源链接的统一回答。",
       "acceptance_criteria": [
         "用户可以输入自由文本问题",
-        "回答至少引用一条有权限访问的证据",
+        "系统可以从 Confluence、Jira、Slack 和 Google Drive 的相关内容组装上下文",
+        "回答至少引用一条有权限访问的证据并提供来源链接",
         "证据不足时系统明确说明限制"
       ],
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py"],
       "tests": ["tests/test_end_to_end.py"],
-      "docs": ["README.md", "MVP_v0_开发规格.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-002",
       "title": "检索前确定性权限过滤",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "implemented",
       "description": "未经授权的文档不能进入检索候选、模型上下文或返回引用。",
       "acceptance_criteria": [
@@ -32,12 +35,13 @@
       ],
       "code": ["src/policy.py", "src/service.py"],
       "tests": ["tests/test_policy.py", "tests/test_no_leakage.py"],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-003",
       "title": "保留来源访问控制语义",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "in_progress",
       "description": "统一层必须保留来源系统的部门、角色、项目和敏感级别约束。",
       "acceptance_criteria": [
@@ -46,12 +50,13 @@
       ],
       "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json"],
       "tests": ["tests/test_policy.py"],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-004",
       "title": "新鲜度与来源状态",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "planned",
       "description": "回答必须说明证据更新时间，并在规定窗口内反映来源变化。",
       "acceptance_criteria": [
@@ -61,12 +66,13 @@
       ],
       "code": ["src/models.py", "src/retrieval.py"],
       "tests": [],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-005",
       "title": "权限变更即时生效",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "planned",
       "description": "用户或文档权限变化后，旧权限不能继续读取受保护内容。",
       "acceptance_criteria": [
@@ -76,27 +82,30 @@
       ],
       "code": ["src/policy.py", "src/service.py"],
       "tests": [],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-006",
       "title": "可查询的完整审计记录",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "in_progress",
-      "description": "每次请求记录身份、决策、证据 ID、时间和请求 ID，并可供后续查询。",
+      "description": "每次请求记录身份、查询、逐文档授权决定、检索结果、最终回答和时间，并可供后续查询。",
       "acceptance_criteria": [
         "每次请求写入追加式审计记录",
+        "记录查询、检索文档 ID、最终回答和逐文档允许/拒绝决定",
         "可以按请求 ID、用户和时间范围查询",
         "审计展示不泄漏无权限文档标题或正文"
       ],
       "code": ["src/audit.py", "src/service.py", "app.py"],
       "tests": ["tests/test_end_to_end.py"],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-007",
       "title": "防篡改审计链",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "planned",
       "description": "审计事件使用哈希链或等效机制，使删除和修改可以被检测。",
       "acceptance_criteria": [
@@ -106,12 +115,13 @@
       ],
       "code": ["src/audit.py"],
       "tests": [],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-008",
       "title": "自然语言审计查询",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "planned",
       "description": "授权人员可以询问谁在何时访问了哪些信息以及系统为何允许。",
       "acceptance_criteria": [
@@ -121,12 +131,13 @@
       ],
       "code": ["src/audit.py", "app.py"],
       "tests": [],
-      "docs": ["MVP_v0_开发规格.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-009",
       "title": "LLM 安全边界",
       "source": "FinTech track handbook",
+      "authority": "handbook_mandatory",
       "status": "in_progress",
       "description": "大模型只负责对已授权证据进行总结，不能决定权限或引用未授权内容。",
       "acceptance_criteria": [
@@ -136,27 +147,28 @@
       ],
       "code": ["src/answering.py", "src/service.py"],
       "tests": ["tests/test_no_leakage.py", "tests/test_end_to_end.py"],
-      "docs": ["README.md", "MVP_v0_开发规格.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-010",
-      "title": "比赛交付与现场演示",
+      "title": "单一案例选择与展示声明",
       "source": "FinTech track handbook",
-      "status": "in_progress",
-      "description": "交付可运行源代码、现场演示、架构图和信任边界说明。",
+      "authority": "handbook_mandatory",
+      "status": "implemented",
+      "description": "团队只选择一个案例，并在展示开头明确说明选择 Internal Brain 案例。",
       "acceptance_criteria": [
-        "评委可以按 README 启动项目",
-        "现场演示身份差异、权限变化和审计能力",
-        "提交 GitHub 源码、架构图和 trust-boundary diagram"
+        "项目只实现 Internal Brain 案例，不混入其他赛题",
+        "Presentation 开头明确写出所选案例名称"
       ],
-      "code": ["app.py"],
-      "tests": ["tests/test_end_to_end.py"],
-      "docs": ["README.md", "MVP_v0_开发规格.md", "FinTech赛题讨论与行动方案.md"]
+      "code": [],
+      "tests": [],
+      "docs": ["README.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-011",
       "title": "时序和权威冲突检测",
       "source": "team discussion",
+      "authority": "team_decision",
       "status": "deferred",
       "description": "当 Slack、Jira、文档和发布记录的状态冲突时，结合来源权威、业务时间和因果关系生成警告。",
       "acceptance_criteria": [
@@ -166,12 +178,13 @@
       ],
       "code": [],
       "tests": [],
-      "docs": ["FinTech赛题讨论与行动方案.md", "MVP_v0_开发规格.md"]
+      "docs": ["docs/product/roadmap.md", "docs/product/mvp-v0.md"]
     },
     {
       "id": "REQ-012",
       "title": "项目内容统一入库与 Git 协作",
       "source": "team discussion",
+      "authority": "team_decision",
       "status": "implemented",
       "description": "需求、文档、架构决定、代码和测试统一保存在当前项目文件夹，并通过远程 Git 仓库进行版本管理和多人协作。",
       "acceptance_criteria": [
@@ -181,8 +194,24 @@
         "密钥、虚拟环境和运行时日志不得提交到远程仓库"
       ],
       "code": ["scripts/project_sync.py", ".github/workflows/ci.yml"],
+      "tests": ["tests/test_project_sync.py"],
+      "docs": ["AGENTS.md", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md", "docs/README.md", "docs/decisions/ADR-0001-repository-as-source-of-truth.md"]
+    },
+    {
+      "id": "REQ-013",
+      "title": "交付材料与格式待确认清单",
+      "source": "handbook wording and submission form pending confirmation",
+      "authority": "pending_confirmation",
+      "status": "planned",
+      "description": "公开仓库、Demo 视频、部署链接、Pitch Deck、腾讯产品、正式报告及合规格式不得在核实前写成官方硬性要求。",
+      "acceptance_criteria": [
+        "提交前逐项核对比赛邮件中的 Handbook 和登录后的提交表",
+        "把已确认字段、格式和截止时间更新到官方来源文档",
+        "团队可以提前准备代码、Demo 和架构材料，但必须标记为团队交付策略而非官方硬性要求"
+      ],
+      "code": [],
       "tests": [],
-      "docs": ["AGENTS.md", "CONTRIBUTING.md", "docs/README.md", "docs/decisions/ADR-0001-repository-as-source-of-truth.md"]
+      "docs": ["docs/source/submission-open-questions.md", "docs/source/handbook-fintech-track.md"]
     }
   ]
 }
