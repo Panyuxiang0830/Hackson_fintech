@@ -12,7 +12,7 @@
 | REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `implemented` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json` | `tests/test_permission_freshness.py` |
 | REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py` | `tests/test_permission_freshness.py` |
 | REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py` |
-| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py` | `tests/test_audit.py` |
+| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`scripts/demo_audit_tamper.py` | `tests/test_audit.py` |
 | REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/audit_query.py`<br>`src/service.py`<br>`app.py` | `tests/test_audit_query.py` |
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py` | `tests/test_no_leakage.py`<br>`tests/test_end_to_end.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
@@ -143,7 +143,7 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`
+  - 代码：`src/audit.py`, `scripts/demo_audit_tamper.py`
   - 测试：`tests/test_audit.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 

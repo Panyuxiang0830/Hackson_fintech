@@ -35,6 +35,12 @@ python3 -m unittest discover -s tests -v
 
 The core tests use only Python's standard library, so they do not require Streamlit.
 
+Run the isolated tamper-evidence demo without touching the runtime audit log:
+
+```bash
+python3 scripts/demo_audit_tamper.py
+```
+
 ## Current limitations
 
 - Synthetic data only.

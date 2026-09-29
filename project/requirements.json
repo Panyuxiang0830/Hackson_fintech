@@ -113,7 +113,7 @@
         "验证工具能检测事件删除、重排和内容修改",
         "演示一次篡改检测"
       ],
-      "code": ["src/audit.py"],
+      "code": ["src/audit.py", "scripts/demo_audit_tamper.py"],
       "tests": ["tests/test_audit.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
