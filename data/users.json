@@ -1,0 +1,39 @@
+[
+  {
+    "id": "alice",
+    "name": "Alice Tan",
+    "department": "engineering",
+    "role": "engineer",
+    "clearance": "restricted",
+    "projects": ["payments-sg"],
+    "employment_type": "employee"
+  },
+  {
+    "id": "bob",
+    "name": "Bob Lim",
+    "department": "operations",
+    "role": "operations_analyst",
+    "clearance": "confidential",
+    "projects": ["payments-sg"],
+    "employment_type": "employee"
+  },
+  {
+    "id": "carol",
+    "name": "Carol Wong",
+    "department": "compliance",
+    "role": "compliance_officer",
+    "clearance": "restricted",
+    "projects": ["payments-sg"],
+    "employment_type": "employee"
+  },
+  {
+    "id": "dave",
+    "name": "Dave Chen",
+    "department": "engineering",
+    "role": "contractor",
+    "clearance": "internal",
+    "projects": [],
+    "employment_type": "contractor"
+  }
+]
+
