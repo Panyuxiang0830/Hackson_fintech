@@ -50,4 +50,3 @@ class IdentityService:
                 raise KeyError(f"unknown user: {user_id}") from error
             self._users[user_id] = restored
             return restored
-
