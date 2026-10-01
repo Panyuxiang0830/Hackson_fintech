@@ -110,19 +110,20 @@ MVP 不追求“企业万能知识大脑”，只证明以下三个核心价值�
 
 ```text
 1. UI 提交 user_id + question
-2. IdentityService 读取用户属性
+2. IdentityService 在请求时重新读取当前用户属性
 3. PolicyEngine 对全部文档做确定性过滤
-4. Retriever 只在过滤后的文档里检索
-5. AnswerService 将允许的证据交给 LLM
-6. LLM 返回答案和引用编号
-7. 系统校验引用只能来自允许证据
-8. AuditService 写入日志
-9. UI 展示回答、引用和权限摘要
+4. FreshnessService 排除已知源版本更新但索引尚未同步的文档
+5. Retriever 只在允许且未过期的文档里检索
+6. AnswerService 将允许的证据交给 LLM
+7. LLM 返回答案和引用编号
+8. 系统校验引用只能来自允许且未过期的证据
+9. AuditService 写入完整事件、前序哈希和事件哈希，并更新 head checkpoint
+10. UI 展示回答、引用、权限摘要和审计链状态
 ```
 
 安全不变量：
 
-> 未授权文档不能出现在 Retriever 候选、LLM Prompt、引用结果和审计详情中。
+> 未授权或已知过期的文档不能出现在 Retriever 候选、LLM Prompt 和引用结果中。普通请求者只能看到拒绝数量；逐文档允许/拒绝决定只进入受保护的合规审计记录。
 
 ## 6. 推荐技术栈
 
@@ -130,11 +131,11 @@ MVP 不追求“企业万能知识大脑”，只证明以下三个核心价值�
 
 - Python 3.12；
 - Streamlit：单页 Demo UI；
-- Pydantic：用户、文档和请求模型；
+- dataclasses：用户、文档和请求模型；
 - JSON：模拟用户和知识数据；
 - Python 内存检索：第一版使用关键词/TF-IDF；
-- JSONL：append-only 审计日志；
-- pytest：权限和泄漏测试；
+- JSONL + SHA-256 hash chain：append-only 审计日志；
+- unittest：权限、泄漏、篡改、审计查询和新鲜度测试；
 - LLM Adapter：支持 `mock` 与一个 OpenAI-compatible API。
 
 选择 Streamlit 的原因：
@@ -169,17 +170,23 @@ hackson/
 ├── src/
 │   ├── models.py
 │   ├── identity.py
+│   ├── freshness.py
 │   ├── policy.py
 │   ├── retrieval.py
 │   ├── answering.py
 │   ├── audit.py
+│   ├── audit_query.py
 │   └── service.py
 ├── tests/
+│   ├── test_audit.py
+│   ├── test_audit_query.py
 │   ├── test_policy.py
+│   ├── test_permission_freshness.py
 │   ├── test_no_leakage.py
 │   └── test_end_to_end.py
 └── runtime/
-    └── audit.jsonl
+    ├── audit-v2.jsonl
+    └── audit-v2.head.json
 ```
 
 ## 8. 团队内部最小验收标准
@@ -193,7 +200,10 @@ MVP 完成必须同时满足：
 - 可以得到带引用的答案；
 - 同题不同身份结果不同；
 - 无权限时明确拒绝或只回答允许部分；
-- 每次请求产生审计记录。
+- 每次请求产生完整且可验证的审计记录；
+- Compliance 可以按自然语言或结构化条件查询审计事件；
+- 权限撤销对下一次请求立即生效；
+- 已知过期版本不会进入检索。
 
 ### 安全
 
@@ -201,7 +211,14 @@ MVP 完成必须同时满足：
 - Contractor 的 LLM Prompt 中不出现 restricted 内容；
 - 返回引用只来自允许文档；
 - 被排除文档只显示数量，不能显示标题；
+- 修改或删除审计事件会导致完整性验证失败；
 - 权限测试全部通过。
+
+安全的篡改演示使用临时日志，不会修改真实运行记录：
+
+```bash
+python3 scripts/demo_audit_tamper.py
+```
 
 ### 可演示性
 

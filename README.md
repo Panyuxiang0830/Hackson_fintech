@@ -10,7 +10,10 @@ The MVP demonstrates one security-critical vertical slice:
 2. Ask a question about the SG Batch Payments v2.3 incident.
 3. Filter evidence before retrieval using deterministic access policies.
 4. Produce an answer with citations from authorised evidence only.
-5. Write an append-only audit record.
+5. Exclude known stale evidence before retrieval.
+6. Write a complete, hash-chained audit event.
+7. Apply live permission changes on the next query.
+8. Let compliance users query the audit trail.
 
 It uses synthetic data and runs in deterministic mock mode by default. A real OpenAI-compatible model can be connected later through environment variables.
 
@@ -32,14 +35,21 @@ python3 -m unittest discover -s tests -v
 
 The core tests use only Python's standard library, so they do not require Streamlit.
 
+Run the isolated tamper-evidence demo without touching the runtime audit log:
+
+```bash
+python3 scripts/demo_audit_tamper.py
+```
+
 ## Current limitations
 
 - Synthetic data only.
 - Fixed demo identities; this is not production authentication.
 - Lexical retrieval rather than embeddings.
 - Mock answer synthesis by default.
-- No real Slack/Jira/Drive connector yet.
+- No real Confluence/Slack/Jira/Google Drive connector yet.
 - No temporal-authority conflict engine yet.
+- The audit head checkpoint is local; production deployment would anchor it in external immutable storage.
 
 See `docs/product/mvp-v0.md` for MVP scope, `docs/source/` for the
 Handbook baseline, and `docs/product/roadmap.md` for the implementation order.

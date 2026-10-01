@@ -43,6 +43,8 @@ class Document:
     content: str
     created_at: str
     updated_at: str
+    source_updated_at: str
+    synced_at: str
     classification: str
     allowed_departments: tuple[str, ...] = field(default_factory=tuple)
     allowed_roles: tuple[str, ...] = field(default_factory=tuple)
@@ -51,13 +53,16 @@ class Document:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Document":
+        updated_at = data["updated_at"]
         return cls(
             id=data["id"],
             source=data["source"],
             title=data["title"],
             content=data["content"],
             created_at=data["created_at"],
-            updated_at=data["updated_at"],
+            updated_at=updated_at,
+            source_updated_at=data.get("source_updated_at", updated_at),
+            synced_at=data.get("synced_at", updated_at),
             classification=data["classification"],
             allowed_departments=tuple(data.get("allowed_departments", [])),
             allowed_roles=tuple(data.get("allowed_roles", [])),
@@ -77,6 +82,8 @@ class Evidence:
     document: Document
     score: float
     access_reason: str
+    freshness_status: str = "current"
+    freshness_reason: str = "indexed version matches the latest known source version"
 
 
 @dataclass(frozen=True)
@@ -87,7 +94,7 @@ class AnswerResult:
     answer: str
     evidence: tuple[Evidence, ...]
     denied_document_count: int
+    stale_document_count: int
     decision: str
     provider: str
     audit_record: dict[str, Any]
-

@@ -9,11 +9,11 @@
 | REQ-001 | 跨来源自然语言问答与引用 | `handbook_mandatory` | `in_progress` | `app.py`<br>`src/retrieval.py`<br>`src/answering.py`<br>`src/service.py` | `tests/test_end_to_end.py` |
 | REQ-002 | 检索前确定性权限过滤 | `handbook_mandatory` | `implemented` | `src/policy.py`<br>`src/service.py` | `tests/test_policy.py`<br>`tests/test_no_leakage.py` |
 | REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json` | `tests/test_policy.py` |
-| REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `planned` | `src/models.py`<br>`src/retrieval.py` | — |
-| REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `planned` | `src/policy.py`<br>`src/service.py` | — |
-| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `in_progress` | `src/audit.py`<br>`src/service.py`<br>`app.py` | `tests/test_end_to_end.py` |
-| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `planned` | `src/audit.py` | — |
-| REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `planned` | `src/audit.py`<br>`app.py` | — |
+| REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `implemented` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json` | `tests/test_permission_freshness.py` |
+| REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py` | `tests/test_permission_freshness.py` |
+| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py` |
+| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`scripts/demo_audit_tamper.py` | `tests/test_audit.py` |
+| REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/audit_query.py`<br>`src/service.py`<br>`app.py` | `tests/test_audit_query.py` |
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py` | `tests/test_no_leakage.py`<br>`tests/test_end_to_end.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
 | REQ-011 | 时序和权威冲突检测 | `team_decision` | `deferred` | — | — |
@@ -78,43 +78,43 @@
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`planned`
+- 状态：`implemented`
 - 说明：回答必须说明证据更新时间，并在规定窗口内反映来源变化。
 - 验收标准：
 
   - 每条证据展示来源时间和同步时间
-  - 过期证据被标记或降权
+  - 已知过期证据在检索前被排除，延迟同步被明确标记
   - 测试覆盖更新后的状态在目标窗口内可见
 
 - 影响范围：
 
-  - 代码：`src/models.py`, `src/retrieval.py`
-  - 测试：—
+  - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`
+  - 测试：`tests/test_permission_freshness.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-005 · 权限变更即时生效
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`planned`
+- 状态：`implemented`
 - 说明：用户或文档权限变化后，旧权限不能继续读取受保护内容。
 - 验收标准：
 
   - 演示一次用户权限撤销
   - 撤销后重新查询不返回此前可见的敏感证据
-  - 权限缓存具有明确失效策略
+  - 每次请求从当前 IdentityService 重新解析身份，不沿用调用方的旧用户对象
 
 - 影响范围：
 
-  - 代码：`src/policy.py`, `src/service.py`
-  - 测试：—
+  - 代码：`src/identity.py`, `src/policy.py`, `src/service.py`, `app.py`
+  - 测试：`tests/test_permission_freshness.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-006 · 可查询的完整审计记录
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`in_progress`
+- 状态：`implemented`
 - 说明：每次请求记录身份、查询、逐文档授权决定、检索结果、最终回答和时间，并可供后续查询。
 - 验收标准：
 
@@ -126,14 +126,14 @@
 - 影响范围：
 
   - 代码：`src/audit.py`, `src/service.py`, `app.py`
-  - 测试：`tests/test_end_to_end.py`
+  - 测试：`tests/test_end_to_end.py`, `tests/test_audit_query.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-007 · 防篡改审计链
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`planned`
+- 状态：`implemented`
 - 说明：审计事件使用哈希链或等效机制，使删除和修改可以被检测。
 - 验收标准：
 
@@ -143,15 +143,15 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`
-  - 测试：—
+  - 代码：`src/audit.py`, `scripts/demo_audit_tamper.py`
+  - 测试：`tests/test_audit.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-008 · 自然语言审计查询
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`planned`
+- 状态：`implemented`
 - 说明：授权人员可以询问谁在何时访问了哪些信息以及系统为何允许。
 - 验收标准：
 
@@ -161,8 +161,8 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`, `app.py`
-  - 测试：—
+  - 代码：`src/audit.py`, `src/audit_query.py`, `src/service.py`, `app.py`
+  - 测试：`tests/test_audit_query.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-009 · LLM 安全边界
