@@ -254,7 +254,10 @@ python3 scripts/demo_audit_tamper.py
 
 ### v0.1：真实 LLM 与基础评测
 
-- 接入一个模型 API；
+- 通过固定样例比较候选模型，默认选择 `glm-5.3-flash`；
+- 接入 TokenHub OpenAI-compatible API；
+- 使用结构化输出并在服务端校验引用编号；
+- API 异常或模型输出不安全时自动退回确定性回答；
 - 建立 20–30 个 ground-truth 问题；
 - 测试回答、引用和拒绝行为。
 
