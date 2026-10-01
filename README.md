@@ -15,7 +15,7 @@ The MVP demonstrates one security-critical vertical slice:
 7. Apply live permission changes on the next query.
 8. Let compliance users query the audit trail.
 
-It uses synthetic data and runs in deterministic mock mode by default. A real OpenAI-compatible model can be connected later through environment variables.
+It uses synthetic data and runs in deterministic mock mode when no API key is configured. With a TokenHub API key it uses the benchmark-selected `glm-5.3-flash` model, validates every model citation against the authorised Top-K evidence, and falls back to deterministic synthesis when the endpoint or output is unsafe.
 
 ## Run
 
@@ -23,6 +23,8 @@ It uses synthetic data and runs in deterministic mock mode by default. A real Op
 cd /Users/panyuxiang/Desktop/hackson
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cp .env.example .env
+# Put the TokenHub key in .env; leave it empty to use mock mode.
 .venv/bin/streamlit run app.py
 ```
 
@@ -46,7 +48,7 @@ python3 scripts/demo_audit_tamper.py
 - Synthetic data only.
 - Fixed demo identities; this is not production authentication.
 - Lexical retrieval rather than embeddings.
-- Mock answer synthesis by default.
+- Real model answers still use the small synthetic corpus and lexical Top-K retrieval.
 - No real Confluence/Slack/Jira/Google Drive connector yet.
 - No temporal-authority conflict engine yet.
 - The audit head checkpoint is local; production deployment would anchor it in external immutable storage.
