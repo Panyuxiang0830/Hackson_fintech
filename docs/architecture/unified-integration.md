@@ -13,6 +13,8 @@
 - `audit_store.py`：SQLite 事务串行追加 SHA-256 查询审计链与本地 checkpoint，记录请求、权限／策略版本、证据版本与回答。审计查询需 admin/compliance，查询自身入链；无当前证据权限时脱敏问题、回答及证据。
 - `source_permissions.py`：仅预留检查／同步接口，返回 not_enabled，不声称已经连接真实平台。不增加摄取审计模块。
 
+集成审计记录的是实际候选、过滤策略和回答，不重新遍历全库逐文档记录拒绝。旧 Streamlit 全量演示日志仍为 v0 基线；REQ-006 保持进行中，长期合规／诊断日志范围及规模验收留在 EC-009，避免把两者误写成完全相同的已完成实现。
+
 ## 权限模型
 
 来源 ACL 快照允许 **且** 管理员显式绑定的来源身份有效 **且** 本地限制允许。
@@ -68,7 +70,7 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 - `--out`：Part A 原文、标准化事实及可重建索引元数据。
 - `--security-dir`：身份权限与查询审计，不能位于 --out 内，也不能包含 --out。
 - Qdrant 数据目录：独立派生检索存储。
-- Part A build 拒绝删除含身份／审计文件的输出目录。`prepare_integration_preview.py` 使用 SQLite backup 复制快照，拒绝覆盖目标，只读复用原始与 Embedding 文件。
+- Part A build 拒绝删除含身份／审计文件的输出目录。`prepare_integration_preview.py` 使用 SQLite backup 复制快照，拒绝覆盖目标，通过链接复用原始与 Embedding 文件；迁移以只读模式打开向量和行映射。链接本身不是文件系统写保护，预览目录只用于集成查询／迁移，不能通过它运行 Part A 原始导入／向量重建命令，否则可能改到共享来源文件。
 
 ## 人工验收顺序
 
@@ -83,3 +85,16 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 自动测试不替代用户人工验收、真实提供方配置和 EC-010 规模／质量评测。十个工程专题仍以固定清单为准。
 
 实际快照与运行中的 Qdrant 可使用 `scripts/verify_unified_snapshot.py --out ...` 做运维冒烟检查。测试身份与日志位于临时目录，不写入正式身份库；回答固定为 Mock，验证关键词／语义／混合检索、原文、引用和撤权，不冒充完整评测或真实登录提供方。
+
+## gpushare 独立预览验收记录（2026-10-06）
+
+- 分支代码：`/home/research_pyx/Hackson_fintech-integration`；原 main 代码和 7860 服务未替换。
+- 新数据、Qdrant、独立环境与安全状态：`/hy-tmp/data_pyx/contextledger-integration/`，分别放在 `content/`、`qdrant/`、`venv/`、`security/`。原 Part A 的 Raw／Embedding／模型缓存只复用、不重新下载；Canonical Store 使用独立副本。
+- Qdrant 1.19.1 只监听服务器回环 6335／6336，发布 45,565 份文档的 293,096 个分块；包含 5 个数据集。这不是全量质量或延迟基准。
+- 本地和服务器主测试各 55 项通过；服务器 Part A 解析／来源权限测试 8 项通过，需求同步检查通过。
+- 实际 Qdrant 和实际 MiniLM Embedding 的隔离冒烟样例：`orgforge:Jax` / `TitanDB`，关键词、语义、混合各返回 8 条授权候选，确定性回答包含 5 条证据；撤权后所有检索无结果、原文不可读、问答证据不足，审计链有效。
+- 提供方尚未配置，预览页面显示“OIDC 尚未配置”，业务接口返回 401。协议测试使用独立测试 issuer，不是线上模拟登录。
+- 前端开发预览在服务器 17860，经本机 SSH 转发访问 `http://127.0.0.1:17860/`；原 7860 保留。转发需要 SSH 会话存活，Flask 开发服务不作为生产部署。
+- 新运行目录当次占用约 2.6 GB；其中事实副本约 1.4 GB、Qdrant 约 1 GB、独立环境约 150 MB，索引优化／日志仍可能增长。共享缓存未计作新增空间。
+
+服务器已缓存模型时，设置 `HF_HUB_OFFLINE=1`、`TRANSFORMERS_OFFLINE=1`，避免查询启动时到 Hugging Face 检查更新；这只影响本地 Embedding，不禁用 OIDC 或问答模型 API。

@@ -347,7 +347,7 @@ def migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
                 if status.get("model") != MODEL or status.get("dim") != DIM or status.get("rows") != count:
                     raise ValueError("Part A embedding cache configuration does not match")
                 matrix = np.memmap(directory / "embeddings.f32", dtype=np.float32, mode="r", shape=(count, DIM))
-                cache = sqlite3.connect(directory / "rows.sqlite")
+                cache = sqlite3.connect((directory / "rows.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
                 cache.row_factory = sqlite3.Row
                 cursor = cache.execute("SELECT row_id,doc_id,chunk_id FROM vec_rows ORDER BY row_id")
             else:

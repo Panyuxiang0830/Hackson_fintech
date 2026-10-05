@@ -96,17 +96,18 @@
       "title": "可查询的完整审计记录",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "implemented",
+      "status": "in_progress",
       "description": "每次请求记录身份、查询、逐文档授权决定、检索结果、最终回答和时间，并可供后续查询。",
       "acceptance_criteria": [
         "每次请求写入追加式审计记录",
         "记录查询、检索文档 ID、最终回答和逐文档允许/拒绝决定",
         "可以按请求 ID、用户和时间范围查询",
-        "审计展示不泄漏无权限文档标题或正文"
+        "审计展示不泄漏无权限文档标题或正文",
+        "集成版明确记录服务端策略版本、实际返回候选的授权决定与证据版本；不把候选审计宣称为全库逐文档审计，长期合规与诊断日志范围由 EC-009 后续验收"
       ],
       "code": ["src/audit.py", "src/service.py", "app.py", "contextledger/audit_store.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/unified-integration.md", "docs/product/engineering-challenges.md"]
     },
     {
       "id": "REQ-007",
@@ -304,7 +305,7 @@
         "不重新加入已取消的四个数据摄取审计模块",
         "本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main"
       ],
-      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "requirements-integration.txt"],
+      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "requirements-integration.txt"],
       "tests": ["tests/test_integration.py", "tests/test_oidc.py"],
       "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "QUICKSTART.md"]
     },

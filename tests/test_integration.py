@@ -3,6 +3,7 @@
 import hashlib
 import json
 from pathlib import Path
+import sqlite3
 import tempfile
 import time
 import unittest
@@ -14,7 +15,7 @@ from unittest.mock import Mock, patch
 from qdrant_client import QdrantClient, models as qm
 
 from contextledger.audit_store import AuditStore
-from contextledger.filtered_index import FilteredIndex, IndexUnavailable, payload_for, point_id, prepare_snapshot
+from contextledger.filtered_index import FilteredIndex, IndexUnavailable, MODEL, migrate, payload_for, point_id, prepare_snapshot
 from contextledger.identity_store import IdentityStore
 from contextledger.models import CanonicalDoc, Chunk, Principal
 from contextledger.store import connect, init_db, insert_documents, insert_principals
@@ -102,6 +103,36 @@ class IntegrationTests(unittest.TestCase):
         self.login(self.alice, client)
         self.assertEqual(client.get("/api/search?corpus=alpha&q=TitanDB").status_code, 401)
         self.assertFalse(client.get("/api/session").json["authenticated"])
+
+    def test_migration_reuses_embedding_row_maps_in_read_only_mode(self):
+        import numpy as np
+        import warnings
+
+        with connect(self.db_path) as db:
+            for corpus in ("alpha", "beta"):
+                chunks = list(db.execute("SELECT * FROM chunks WHERE corpus=? ORDER BY rowid", (corpus,)))
+                directory = self.content / "vectors" / corpus
+                directory.mkdir(parents=True)
+                matrix = np.zeros((len(chunks), 384), dtype=np.float32)
+                matrix[:, 0] = 1.0
+                (directory / "embeddings.f32").write_bytes(matrix.tobytes())
+                (directory / "status.json").write_text(json.dumps({"model": MODEL, "dim": 384, "rows": len(chunks)}))
+                with sqlite3.connect(directory / "rows.sqlite") as cache:
+                    cache.execute("CREATE TABLE vec_rows (row_id INTEGER,doc_id TEXT,chunk_id TEXT)")
+                    cache.executemany("INSERT INTO vec_rows VALUES (?,?,?)",
+                                      [(i, row["doc_id"], row["chunk_id"]) for i, row in enumerate(chunks)])
+        with patch("contextledger.filtered_index.sqlite3.connect", wraps=sqlite3.connect) as opening:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Payload indexes have no effect in the local Qdrant.*")
+                result = migrate(self.db_path, self.qdrant, reuse_embeddings=True, batch_size=2)
+        self.assertEqual(result["chunks"], 4)
+        cache_calls = [call for call in opening.call_args_list if "rows.sqlite" in str(call.args[0])]
+        self.assertEqual(len(cache_calls), 2)
+        self.assertTrue(all(str(call.args[0]).endswith("?mode=ro") and call.kwargs["uri"] for call in cache_calls))
+        for call in cache_calls:
+            with sqlite3.connect(*call.args, **call.kwargs) as cache:
+                with self.assertRaises(sqlite3.OperationalError):
+                    cache.execute("DELETE FROM vec_rows")
 
     def test_both_indexes_filter_before_candidates_and_isolate_corpora(self):
         for mode in ("keyword", "vector", "hybrid"):

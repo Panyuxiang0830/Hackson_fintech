@@ -40,10 +40,11 @@ cp .env.example .env
 
 ```bash
 cd /Users/panyuxiang/Desktop/hackson
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m pip install -r requirements-integration.txt
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-The core tests use only Python's standard library, so they do not require Streamlit.
+The original core tests do not require Streamlit. The unified suite also needs the pinned integration dependencies for actual Qdrant filtering and OIDC protocol tests. Part A's parser tests run separately with `python -m pytest tests_part_a -q` after installing `requirements-part-a-test.txt`.
 
 Run the isolated tamper-evidence demo without touching the runtime audit log:
 

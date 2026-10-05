@@ -11,7 +11,7 @@
 | REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/source_permissions.py` | `tests/test_policy.py`<br>`tests/test_integration.py` |
 | REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json`<br>`contextledger/filtered_index.py` | `tests/test_permission_freshness.py`<br>`tests/test_integration.py` |
 | REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/identity_store.py`<br>`contextledger/web.py`<br>`contextledger/unified_service.py`<br>`contextledger/static/unified.js` | `tests/test_permission_freshness.py`<br>`tests/test_integration.py` |
-| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/audit_store.py`<br>`contextledger/unified_service.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py`<br>`tests/test_integration.py` |
+| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `in_progress` | `src/audit.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/audit_store.py`<br>`contextledger/unified_service.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py`<br>`tests/test_integration.py` |
 | REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`scripts/demo_audit_tamper.py`<br>`contextledger/audit_store.py` | `tests/test_audit.py`<br>`tests/test_integration.py` |
 | REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/audit_query.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py` | `tests/test_audit_query.py`<br>`tests/test_integration.py` |
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py`<br>`tests/test_integration.py` |
@@ -22,7 +22,7 @@
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py` | `tests/test_integration.py` |
 | REQ-016 | 可信登录与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/web.py` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
-| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
+| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `planned` | — | — |
 
 ## REQ-001 · 跨来源自然语言问答与引用
@@ -126,7 +126,7 @@
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`implemented`
+- 状态：`in_progress`
 - 说明：每次请求记录身份、查询、逐文档授权决定、检索结果、最终回答和时间，并可供后续查询。
 - 验收标准：
 
@@ -134,12 +134,13 @@
   - 记录查询、检索文档 ID、最终回答和逐文档允许/拒绝决定
   - 可以按请求 ID、用户和时间范围查询
   - 审计展示不泄漏无权限文档标题或正文
+  - 集成版明确记录服务端策略版本、实际返回候选的授权决定与证据版本；不把候选审计宣称为全库逐文档审计，长期合规与诊断日志范围由 EC-009 后续验收
 
 - 影响范围：
 
   - 代码：`src/audit.py`, `src/service.py`, `app.py`, `contextledger/audit_store.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_end_to_end.py`, `tests/test_audit_query.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/unified-integration.md`, `docs/product/engineering-challenges.md`
 
 ## REQ-007 · 防篡改审计链
 
@@ -359,7 +360,7 @@
 
 - 影响范围：
 
-  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `requirements-integration.txt`
+  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `requirements-integration.txt`
   - 测试：`tests/test_integration.py`, `tests/test_oidc.py`
   - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `QUICKSTART.md`
 
