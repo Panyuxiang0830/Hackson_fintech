@@ -26,6 +26,8 @@
 
 ## 安装和运行
 
+简洁的英文启动步骤见 [QUICKSTART.md](../../QUICKSTART.md)，下方保留分步命令。
+
 向量后端当前验证于 Linux x86_64、支持 AVX2 的 CPU、Python 3.10。需要 Git、C++17 编译器和 OpenMP；CPU 可以运行，CUDA 可加速 embedding。绑定使用 `-march=native` 编译，应在目标机器重新构建，不能跨机器复制 `.so`。
 
 在仓库根目录执行：

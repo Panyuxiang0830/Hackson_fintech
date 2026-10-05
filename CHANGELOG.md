@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- README 增加 Part A Quick Start，包含安装、数据导入、索引构建、检查和 7860 启动命令。
+- Part A 英文 Quick Start 独立放在 `QUICKSTART.md`，通过 `scripts/part_a.sh` 用两条短命令完成安装和启动。
 - 新增 REQ-014：独立 Part A 多来源离线导入、原文件提取、SQLite FTS5、384 维 8-bit RaBitQ IVF 及 7860 Flask 检索演示。
 - 新增 PrivacyBench 成员/文件 ACL 与 Public Jira 工单、评论、变更历史导入；补齐身份切换清理、延迟响应隔离、公开 API 字段限制和导入回归测试。
 - 提供固定 RaBitQ 上游版本的安装脚本、Part A 测试命令和运行/验证说明；明确离线候选后过滤与正式 MVP 检索前授权边界的差异。

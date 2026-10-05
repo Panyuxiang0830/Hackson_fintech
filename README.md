@@ -2,25 +2,7 @@
 
 Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO IT 2026 FinTech track.
 
-## Quick Start: Part A
-
-在仓库根目录执行。环境：Linux x86_64、Python 3.10、支持 AVX2 的 CPU；需要 Git、C++17 编译器和 OpenMP。
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python -m pip install -r requirements-part-a.txt
-.venv/bin/python scripts/setup_part_a_vectors.py
-
-.venv/bin/python -m contextledger build --out runtime/part_a
-.venv/bin/python -m contextledger augment --out runtime/part_a
-.venv/bin/python -m contextledger vectors --out runtime/part_a
-.venv/bin/python -m contextledger check --out runtime/part_a
-.venv/bin/python -m contextledger demo --out runtime/part_a --port 7860
-```
-
-打开 <http://127.0.0.1:7860>。首次运行会下载数据和模型；后续启动只需执行最后一条命令。详细说明见 [Part A](docs/product/part-a.md)。
+[Part A Quick Start](QUICKSTART.md)
 
 ## What v0 proves
 

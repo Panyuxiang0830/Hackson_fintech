@@ -21,6 +21,7 @@
 
 ## 文档地图
 
+- `QUICKSTART.md`：英文 Part A 快速启动，只需安装与启动两条短命令；
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
 - `docs/requirements.md`：由台账自动生成的只读视图；
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；

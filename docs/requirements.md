@@ -19,7 +19,7 @@
 | REQ-011 | 时序和权威冲突检测 | `team_decision` | `deferred` | — | — |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
-| REQ-014 | Part A 多来源离线数据导入与向量检索演示 | `team_decision` | `implemented` | `contextledger/__main__.py`<br>`contextledger/connectors.py`<br>`contextledger/files.py`<br>`contextledger/supplemental.py`<br>`contextledger/remote_zip.py`<br>`contextledger/pipeline.py`<br>`contextledger/processors.py`<br>`contextledger/store.py`<br>`contextledger/models.py`<br>`contextledger/acl.py`<br>`contextledger/search.py`<br>`contextledger/vectors.py`<br>`contextledger/demo_app.py`<br>`contextledger/templates/part_a.html`<br>`scripts/setup_part_a_vectors.py`<br>`requirements-part-a.txt`<br>`requirements-part-a-test.txt` | `tests_part_a/test_supplemental.py`<br>`scripts/check_part_a_ui.py` |
+| REQ-014 | Part A 多来源离线数据导入与向量检索演示 | `team_decision` | `implemented` | `contextledger/__main__.py`<br>`contextledger/connectors.py`<br>`contextledger/files.py`<br>`contextledger/supplemental.py`<br>`contextledger/remote_zip.py`<br>`contextledger/pipeline.py`<br>`contextledger/processors.py`<br>`contextledger/store.py`<br>`contextledger/models.py`<br>`contextledger/acl.py`<br>`contextledger/search.py`<br>`contextledger/vectors.py`<br>`contextledger/demo_app.py`<br>`contextledger/templates/part_a.html`<br>`scripts/part_a.sh`<br>`scripts/setup_part_a_vectors.py`<br>`requirements-part-a.txt`<br>`requirements-part-a-test.txt` | `tests/test_part_a_launcher.py`<br>`tests_part_a/test_supplemental.py`<br>`scripts/check_part_a_ui.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -268,11 +268,11 @@
   - 保留原文、文件校验、来源 ACL 和工单结构化字段；来源不含原生私有 ACL 时明确标注
   - 每个 corpus 使用独立 384 维、8-bit RaBitQ IVF 索引，支持关键词、向量和混合检索
   - 每次文档返回及直接打开前验证 ACL；切换身份、日期或数据集时清除旧内容，晚到响应不能恢复旧内容
-  - README Quick Start 提供可重复运行的安装、下载、构建、检查和演示命令；运行时数据、缓存及本机二进制不进入 Git
+  - 独立英文 QUICKSTART.md 与短启动命令提供安装、下载、构建、检查和演示入口；运行时数据、缓存及本机二进制不进入 Git
   - 原有 MVP 测试继续通过，并运行独立 Part A 权限、归档解析、重复导入及页面回归检查
 
 - 影响范围：
 
-  - 代码：`contextledger/__main__.py`, `contextledger/connectors.py`, `contextledger/files.py`, `contextledger/supplemental.py`, `contextledger/remote_zip.py`, `contextledger/pipeline.py`, `contextledger/processors.py`, `contextledger/store.py`, `contextledger/models.py`, `contextledger/acl.py`, `contextledger/search.py`, `contextledger/vectors.py`, `contextledger/demo_app.py`, `contextledger/templates/part_a.html`, `scripts/setup_part_a_vectors.py`, `requirements-part-a.txt`, `requirements-part-a-test.txt`
-  - 测试：`tests_part_a/test_supplemental.py`, `scripts/check_part_a_ui.py`
-  - 文档：`docs/product/part-a.md`, `docs/product/part-a-validation.json`, `docs/decisions/ADR-0002-part-a-offline-benchmark.md`, `README.md`, `CHANGELOG.md`
+  - 代码：`contextledger/__main__.py`, `contextledger/connectors.py`, `contextledger/files.py`, `contextledger/supplemental.py`, `contextledger/remote_zip.py`, `contextledger/pipeline.py`, `contextledger/processors.py`, `contextledger/store.py`, `contextledger/models.py`, `contextledger/acl.py`, `contextledger/search.py`, `contextledger/vectors.py`, `contextledger/demo_app.py`, `contextledger/templates/part_a.html`, `scripts/part_a.sh`, `scripts/setup_part_a_vectors.py`, `requirements-part-a.txt`, `requirements-part-a-test.txt`
+  - 测试：`tests/test_part_a_launcher.py`, `tests_part_a/test_supplemental.py`, `scripts/check_part_a_ui.py`
+  - 文档：`QUICKSTART.md`, `docs/product/part-a.md`, `docs/product/part-a-validation.json`, `docs/decisions/ADR-0002-part-a-offline-benchmark.md`, `README.md`, `CHANGELOG.md`
