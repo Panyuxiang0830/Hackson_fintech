@@ -43,6 +43,9 @@ python3 scripts/demo_audit_tamper.py
 
 ## Current limitations
 
+The limitations below describe the original `src/` / Streamlit MVP. The separate
+Part A module adds offline datasets and vector retrieval; see the next section.
+
 - Synthetic data only.
 - Fixed demo identities; this is not production authentication.
 - Lexical retrieval rather than embeddings.
@@ -50,6 +53,18 @@ python3 scripts/demo_audit_tamper.py
 - No real Confluence/Slack/Jira/Google Drive connector yet.
 - No temporal-authority conflict engine yet.
 - The audit head checkpoint is local; production deployment would anchor it in external immutable storage.
+
+## Part A: datasets and vector retrieval
+
+`contextledger/` adds an independent Flask demo on port 7860, offline imports
+for EnterpriseRAG, OrgForge, PrivacyBench Slack/Drive, and a Public Jira sample,
+plus SQLite FTS5 and 384-dimensional, 8-bit RaBitQ IVF indexes per corpus.
+
+See [Part A setup, dataset scope, and verification](docs/product/part-a.md) for
+the install/build/check/demo commands. Runtime datasets and indexes are rebuilt
+locally. This demo performs ACL checks after candidate retrieval and on document
+open; production integration still needs the pre-retrieval authorization boundary
+required by REQ-002. The existing Streamlit answer/audit path remains independent.
 
 See `docs/product/mvp-v0.md` for MVP scope, `docs/source/` for the
 Handbook baseline, and `docs/product/roadmap.md` for the implementation order.

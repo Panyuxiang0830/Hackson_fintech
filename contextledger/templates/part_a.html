@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ContextLedger · Part A</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5c6b80;
+      --line: #e4e9f0;
+      --bg: #f3f6fa;
+      --card: #fff;
+      --accent: #1d4f91;
+      --accent-soft: #e8f0fa;
+      --warn: #8a4b12;
+      --warn-bg: #fff4e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 22px 28px 18px;
+    }
+    header h1 { margin: 0; font-size: 22px; font-weight: 650; }
+    header p { margin: 6px 0 0; opacity: 0.88; }
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      padding: 18px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .panel, .hit, .reader {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .panel { padding: 16px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+    select, input[type="search"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+      background: white;
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input[type="range"] { flex: 1; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: white; width: 100%; margin-top: 12px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+    .presets button {
+      background: white;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      max-width: 100%;
+      white-space: normal;
+      text-align: left;
+    }
+    .presets button.active { background: var(--accent-soft); border-color: #b7cceb; color: var(--accent); }
+    .status { color: var(--muted); min-height: 1.4em; margin: 0 0 10px; }
+    .status strong { color: var(--warn); font-weight: 650; }
+    .hit { padding: 12px 14px; margin-bottom: 10px; cursor: pointer; }
+    .hit:hover, .hit.open { border-color: #b7cceb; }
+    .hit h2 { margin: 0 0 6px; font-size: 16px; overflow-wrap: anywhere; }
+    .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .pill {
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .pill.slack { background: #f3e8ff; color: #6b21a8; }
+    .pill.jira { background: #e7f6ee; color: #166534; }
+    .pill.google_drive { background: #fff4e8; color: var(--warn); }
+    .snippet { margin: 0; color: #334155; overflow-wrap: anywhere; }
+    .reader { padding: 16px 18px; margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .reader h2 { margin-top: 0; }
+    .empty { color: var(--muted); padding: 28px 8px; }
+    @media (max-width: 800px) {
+      main { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+      .panel, main > section { min-width: 0; }
+      header { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ContextLedger · Part A</h1>
+    <p>Search across Slack, Confluence, Jira, and Drive. Each result is checked against the selected person's access.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <label for="corpus">Company / dataset</label>
+      <select id="corpus">
+        {% for corpus in corpora %}
+        <option value="{{ corpus.id }}" data-scope="{{ corpus.scope }}"{% if corpus.id == 'orgforge' %} selected{% endif %}>{{ corpus.label }}</option>
+        {% endfor %}
+      </select>
+      <p class="snippet" id="scope" style="font-size:12px;margin-top:8px"></p>
+      <label for="principal">Person</label>
+      <select id="principal"></select>
+      <label for="asof">As of day <span id="daylabel">60</span></label>
+      <div class="row">
+        <input id="asof" type="range" min="0" max="60" value="60">
+      </div>
+      <label for="q">Question</label>
+      <input id="q" type="search" value="TitanDB" placeholder="Search the documents this person can see">
+      <label for="mode">Retrieval</label>
+      <select id="mode">
+        <option value="hybrid" selected>Hybrid · keyword + vector</option>
+        <option value="vector">Vector · RaBitQ</option>
+        <option value="keyword">Keyword</option>
+      </select>
+      <button class="primary" id="go" type="button">Search</button>
+    </section>
+    <section>
+      <div class="presets" id="presets">
+        {% for preset in presets %}
+        <button type="button" data-preset="{{ preset.id }}"
+          data-corpus="{{ preset.corpus }}"
+          data-principal="{{ preset.principal }}"
+          data-as-of="{{ preset.as_of }}"
+          data-mode="{{ preset.mode }}"
+          data-q="{{ preset.q }}">{{ preset.label }}</button>
+        {% endfor %}
+      </div>
+      <p class="status" id="status"></p>
+      <div id="hits"></div>
+      <article class="reader" id="reader" hidden></article>
+    </section>
+  </main>
+  <script>
+    const presets = {
+      {% for preset in presets %}
+      "{{ preset.id }}": {{ preset | tojson }},
+      {% endfor %}
+    };
+    const corpusEl = document.querySelector("#corpus");
+    const principalEl = document.querySelector("#principal");
+    const asofEl = document.querySelector("#asof");
+    const daylabel = document.querySelector("#daylabel");
+    const qEl = document.querySelector("#q");
+    const modeEl = document.querySelector("#mode");
+    const statusEl = document.querySelector("#status");
+    const hitsEl = document.querySelector("#hits");
+    const readerEl = document.querySelector("#reader");
+    let viewGeneration = 0;
+    let searchGeneration = 0;
+    let openGeneration = 0;
+
+    function clearView() {
+      viewGeneration++;
+      searchGeneration++;
+      openGeneration++;
+      hitsEl.replaceChildren();
+      readerEl.replaceChildren();
+      readerEl.hidden = true;
+      statusEl.textContent = "";
+    }
+
+    function employment(person) {
+      if (person.active_from == null && person.active_until == null) return person.role;
+      const from = person.active_from == null ? 0 : person.active_from;
+      const until = person.active_until == null ? 60 : person.active_until;
+      return `${person.role} · days ${from}–${until}`;
+    }
+
+    async function loadPeople(selected) {
+      clearView();
+      principalEl.replaceChildren();
+      const generation = viewGeneration;
+      const corpus = corpusEl.value;
+      const response = await fetch(`/api/principals?corpus=${encodeURIComponent(corpus)}`);
+      const people = await response.json();
+      if (generation !== viewGeneration) return false;
+      principalEl.innerHTML = "";
+      for (const person of people) {
+        const option = document.createElement("option");
+        option.value = person.id;
+        option.textContent = `${person.name} · ${employment(person)}`;
+        principalEl.appendChild(option);
+      }
+      if (selected && [...principalEl.options].some((option) => option.value === selected)) {
+        principalEl.value = selected;
+      }
+      asofEl.disabled = corpus !== "orgforge";
+      document.querySelector("#scope").textContent = corpusEl.selectedOptions[0].dataset.scope;
+      return true;
+    }
+
+    function renderHits(result) {
+      readerEl.hidden = true;
+      const hits = result.hits || [];
+      if (result.error) {
+        hitsEl.innerHTML = `<div class="empty">${escapeHtml(result.error)}</div>`;
+        statusEl.textContent = "";
+        return;
+      }
+      if (!hits.length) {
+        hitsEl.innerHTML = `<div class="empty">No document in this view matches.</div>`;
+      } else {
+        hitsEl.innerHTML = hits.map((hit) => `
+          <article class="hit" data-id="${escapeHtml(hit.doc_id)}">
+            <div class="meta">
+              <span class="pill ${hit.source}">${hit.source}</span>
+              ${hit.day == null ? "" : `<span class="pill">day ${hit.day}</span>`}
+              <span class="pill">${hit.acl_basis}</span>
+            </div>
+            <h2>${escapeHtml(hit.title || hit.doc_id)}</h2>
+            <p class="snippet">${escapeHtml(hit.snippet || "")}</p>
+          </article>
+        `).join("");
+      }
+      const sources = {};
+      for (const hit of hits) sources[hit.source] = (sources[hit.source] || 0) + 1;
+      const mix = Object.entries(sources).map(([source, count]) => `${source} ${count}`).join(", ");
+      const modeName = {hybrid: "Hybrid", vector: "Vector", keyword: "Keyword"}[result.mode] || "Search";
+      statusEl.textContent = `${modeName} · ${hits.length} shown${mix ? " · " + mix : ""}.`;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[char]));
+    }
+
+    async function search() {
+      const generation = ++searchGeneration;
+      const view = viewGeneration;
+      ++openGeneration;
+      hitsEl.replaceChildren();
+      readerEl.replaceChildren();
+      readerEl.hidden = true;
+      document.querySelectorAll(".presets button").forEach((button) => button.classList.remove("active"));
+      statusEl.textContent = "Searching…";
+      const params = new URLSearchParams({
+        corpus: corpusEl.value,
+        principal: principalEl.value,
+        q: qEl.value,
+        as_of: asofEl.value,
+        mode: modeEl.value
+      });
+      const response = await fetch(`/api/search?${params}`);
+      const result = await response.json();
+      if (generation === searchGeneration && view === viewGeneration) renderHits(result);
+    }
+
+    async function openHit(docId) {
+      const generation = ++openGeneration;
+      const view = viewGeneration;
+      const params = new URLSearchParams({
+        corpus: corpusEl.value,
+        principal: principalEl.value,
+        doc_id: docId,
+        as_of: asofEl.value
+      });
+      const response = await fetch(`/api/doc?${params}`);
+      if (generation !== openGeneration || view !== viewGeneration) return;
+      if (!response.ok) {
+        readerEl.hidden = false;
+        readerEl.innerHTML = "<h2>Not available</h2><p>This identity cannot open that document.</p>";
+        return;
+      }
+      const payload = await response.json();
+      if (generation !== openGeneration || view !== viewGeneration) return;
+      const doc = payload.doc;
+      const metadata = doc.metadata || {};
+      const name = (value) => typeof value === "object" && value ? value.name || value.displayName || "" : value;
+      const details = [["Updated", metadata.updated_at || doc.ts], ["Project", name(metadata.project)], ["Status", name(metadata.status)], ["Priority", name(metadata.priority)], ["Assignee", name(metadata.assignee)], ["File type", metadata.mime_type], ["Comments", metadata.comment_count], ["Changes", metadata.change_count]];
+      const description = details.filter(([key, value]) => value != null && value !== "").map(([key, value]) => `${escapeHtml(key)}: ${escapeHtml(value)}`).join(" · ");
+      let sourceLink = "";
+      if (metadata.source_url && /^https?:\/\//.test(metadata.source_url)) sourceLink = `<p><a href="${escapeHtml(metadata.source_url)}" target="_blank" rel="noopener">Source export</a></p>`;
+      readerEl.hidden = false;
+      readerEl.innerHTML = `<h2>${escapeHtml(doc.title)}</h2><p class="snippet">${description}</p>${sourceLink}<p class="snippet">${escapeHtml(doc.text)}</p>`;
+    }
+
+    document.querySelector("#go").addEventListener("click", search);
+    qEl.addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+    principalEl.addEventListener("change", clearView);
+    asofEl.addEventListener("input", () => { daylabel.textContent = asofEl.value; clearView(); });
+    corpusEl.addEventListener("change", () => loadPeople());
+    hitsEl.addEventListener("click", (event) => {
+      const hit = event.target.closest(".hit");
+      if (!hit) return;
+      document.querySelectorAll(".hit").forEach((node) => node.classList.remove("open"));
+      hit.classList.add("open");
+      openHit(hit.dataset.id);
+    });
+    document.querySelector("#presets").addEventListener("click", async (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      corpusEl.value = button.dataset.corpus;
+      qEl.value = button.dataset.q;
+      modeEl.value = button.dataset.mode || "hybrid";
+      asofEl.value = button.dataset.asOf;
+      daylabel.textContent = button.dataset.asOf;
+      if (!await loadPeople(button.dataset.principal)) return;
+      await search();
+      document.querySelectorAll(".presets button").forEach((node) => node.classList.remove("active"));
+      button.classList.add("active");
+    });
+    loadPeople("orgforge:Jax").then(search);
+  </script>
+</body>
+</html>

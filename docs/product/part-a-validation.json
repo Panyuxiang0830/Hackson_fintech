@@ -1,0 +1,161 @@
+{
+  "recorded_date": "2026-10-05",
+  "scope": "Local five-corpus offline Part A validation; not production authentication, real-time synchronization, or full benchmark recall.",
+  "documents": 45565,
+  "chunks": 293096,
+  "principals": 98,
+  "by_source": {
+    "enterpriserag/confluence": 5189,
+    "enterpriserag/google_drive": 25107,
+    "enterpriserag/jira": 6118,
+    "enterpriserag/slack": 3000,
+    "orgforge/confluence": 479,
+    "orgforge/jira": 304,
+    "orgforge/slack": 3303,
+    "privacy_camille_nike/google_drive": 17,
+    "privacy_camille_nike/slack": 485,
+    "privacy_grace_deere_company/google_drive": 17,
+    "privacy_grace_deere_company/slack": 546,
+    "publicjira_jira/jira": 1000
+  },
+  "vectors": {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "dim": 384,
+    "metric": "ip",
+    "nbits": 8,
+    "corpora": {
+      "enterpriserag": {
+        "rows": 279144,
+        "num_clusters": 1024,
+        "nprobe": 128,
+        "nbits": 8,
+        "metric": "ip"
+      },
+      "orgforge": {
+        "rows": 10292,
+        "num_clusters": 128,
+        "nprobe": 128,
+        "nbits": 8,
+        "metric": "ip"
+      },
+      "privacy_camille_nike": {
+        "rows": 964,
+        "num_clusters": 30,
+        "nprobe": 30,
+        "nbits": 8,
+        "metric": "ip"
+      },
+      "privacy_grace_deere_company": {
+        "rows": 1014,
+        "num_clusters": 31,
+        "nprobe": 31,
+        "nbits": 8,
+        "metric": "ip"
+      },
+      "publicjira_jira": {
+        "rows": 1682,
+        "num_clusters": 52,
+        "nprobe": 52,
+        "nbits": 8,
+        "metric": "ip"
+      }
+    }
+  },
+  "verification": {
+    "adapter_unit_tests": {
+      "passed": 8
+    },
+    "integration_checks": {
+      "passed": 44,
+      "all_passed": true
+    },
+    "browser_api_checks": {
+      "passed": 36,
+      "all_passed": true,
+      "javascript_errors": 0
+    },
+    "repeat_import": {
+      "counts_unchanged": true,
+      "all_vector_files_unchanged": true,
+      "corpora": {
+        "enterpriserag": 39414,
+        "orgforge": 4086,
+        "privacy_camille_nike": 502,
+        "privacy_grace_deere_company": 563,
+        "publicjira_jira": 1000
+      }
+    },
+    "sqlite_integrity": "ok",
+    "orphan_chunks": 0,
+    "unknown_acl_members": 0
+  },
+  "supplemental_provenance": {
+    "privacy_camille_nike": {
+      "dataset": "TonicAI/Privacy-Bench",
+      "revision": "33d1ee7eaf51a53dddaad56db60c9ae18f233d9c",
+      "synthetic": true,
+      "license": "CC-BY-4.0",
+      "scope": "All Slack exports and Drive files in this selected world; email excluded.",
+      "documents": 502,
+      "chunks": 964,
+      "by_source": {
+        "slack": 485,
+        "google_drive": 17
+      }
+    },
+    "privacy_grace_deere_company": {
+      "dataset": "TonicAI/Privacy-Bench",
+      "revision": "33d1ee7eaf51a53dddaad56db60c9ae18f233d9c",
+      "synthetic": true,
+      "license": "CC-BY-4.0",
+      "scope": "All Slack exports and Drive files in this selected world; email excluded.",
+      "documents": 563,
+      "chunks": 1014,
+      "by_source": {
+        "slack": 546,
+        "google_drive": 17
+      }
+    },
+    "publicjira_jira": {
+      "dataset": "The Public Jira Dataset",
+      "revision": "zenodo:15719919:md5:02f85309d966092ea130ca0797aea795",
+      "synthetic": false,
+      "license": "CC-BY-4.0",
+      "scope": "First 1000 issue records in upstream mongodump stream order; not a random or complete corpus sample.",
+      "archive_checksum": "md5:02f85309d966092ea130ca0797aea795",
+      "downloaded_bytes": 2975622,
+      "sample_seconds": 27.754,
+      "sample_sha256": "7d74e707862ecce929ac7c78c9aadbd6dd0464f397adb070945c0a7c771bd38c",
+      "documents": 1000,
+      "chunks": 1682,
+      "by_source": {
+        "jira": 1000
+      }
+    }
+  },
+  "timing": {
+    "final_supplemental_vector_build_seconds": 12.2,
+    "timing_scope": "Final rebuild of 3660 supplemental chunks; original base indexes reused. This excludes downloads and earlier import/build attempts."
+  },
+  "publication_validation": {
+    "base_mvp_unit_tests_passed": 19,
+    "adapter_unit_tests_passed_in_clean_venv": 8,
+    "clean_dependency_resolution": "pip check: no broken requirements",
+    "native_source_revision": "5ea4df06b8dc5de3889f16084f93544f55c77212",
+    "native_build": "Compiled from clean pinned upstream source for Python 3.10; no local research patches",
+    "clean_cpu_index_checks_passed": 44,
+    "privacy_exports_reparsed_in_clean_venv": {
+      "camille_nike": 502,
+      "grace_deere_company": 563
+    },
+    "browser_script_rechecked": 36,
+    "dependency_profile": "requirements-part-a.txt with torch 2.6.0+cpu, transformers 4.49.0, huggingface-hub 0.29.3; independent of the original workstation package environment",
+    "fresh_index_smoke": {
+      "chunks": 32,
+      "dimension": 384,
+      "unit_norm": true,
+      "keyword_vector_hybrid": "target document first",
+      "outside_access": "denied"
+    }
+  }
+}

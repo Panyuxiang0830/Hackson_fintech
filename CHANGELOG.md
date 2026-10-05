@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- 新增 REQ-014：独立 Part A 多来源离线导入、原文件提取、SQLite FTS5、384 维 8-bit RaBitQ IVF 及 7860 Flask 检索演示。
+- 新增 PrivacyBench 成员/文件 ACL 与 Public Jira 工单、评论、变更历史导入；补齐身份切换清理、延迟响应隔离、公开 API 字段限制和导入回归测试。
+- 提供固定 RaBitQ 上游版本的安装脚本、Part A 测试命令和运行/验证说明；明确离线候选后过滤与正式 MVP 检索前授权边界的差异。
+
 - 实现 REQ-004 至 REQ-008：新鲜度过滤、实时权限撤销、完整审计、哈希链和合规审计查询。
 - 新增审计 head checkpoint，可检测内容修改、重排、中间删除及仅删除末尾事件。
 - Streamlit 增加权限变化、新鲜度变化、审计完整性和自然语言审计查询演示。
