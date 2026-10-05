@@ -81,3 +81,5 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 7. 用副本测试篡改、构建中断、快照变化，不篡改真实演示审计库。
 
 自动测试不替代用户人工验收、真实提供方配置和 EC-010 规模／质量评测。十个工程专题仍以固定清单为准。
+
+实际快照与运行中的 Qdrant 可使用 `scripts/verify_unified_snapshot.py --out ...` 做运维冒烟检查。测试身份与日志位于临时目录，不写入正式身份库；回答固定为 Mock，验证关键词／语义／混合检索、原文、引用和撤权，不冒充完整评测或真实登录提供方。
