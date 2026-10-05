@@ -2,13 +2,13 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-05
+最后更新：2026-09-29
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
 | REQ-001 | 跨来源自然语言问答与引用 | `handbook_mandatory` | `in_progress` | `app.py`<br>`src/retrieval.py`<br>`src/answering.py`<br>`src/service.py` | `tests/test_end_to_end.py` |
 | REQ-002 | 检索前确定性权限过滤 | `handbook_mandatory` | `implemented` | `src/policy.py`<br>`src/service.py` | `tests/test_policy.py`<br>`tests/test_no_leakage.py` |
-| REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json`<br>`contextledger/acl.py`<br>`contextledger/supplemental.py`<br>`contextledger/models.py` | `tests/test_policy.py`<br>`tests_part_a/test_supplemental.py` |
+| REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json` | `tests/test_policy.py` |
 | REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `implemented` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json` | `tests/test_permission_freshness.py` |
 | REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py` | `tests/test_permission_freshness.py` |
 | REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py` |
@@ -19,7 +19,6 @@
 | REQ-011 | 时序和权威冲突检测 | `team_decision` | `deferred` | — | — |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
-| REQ-014 | Part A 多来源离线数据导入与向量检索演示 | `team_decision` | `implemented` | `contextledger/__main__.py`<br>`contextledger/connectors.py`<br>`contextledger/files.py`<br>`contextledger/supplemental.py`<br>`contextledger/remote_zip.py`<br>`contextledger/pipeline.py`<br>`contextledger/processors.py`<br>`contextledger/store.py`<br>`contextledger/models.py`<br>`contextledger/acl.py`<br>`contextledger/search.py`<br>`contextledger/vectors.py`<br>`contextledger/demo_app.py`<br>`contextledger/templates/part_a.html`<br>`scripts/part_a.sh`<br>`scripts/setup_part_a_vectors.py`<br>`requirements-part-a.txt`<br>`requirements-part-a-test.txt` | `tests/test_part_a_launcher.py`<br>`tests_part_a/test_supplemental.py`<br>`scripts/check_part_a_ui.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -71,9 +70,9 @@
 
 - 影响范围：
 
-  - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`, `contextledger/acl.py`, `contextledger/supplemental.py`, `contextledger/models.py`
-  - 测试：`tests/test_policy.py`, `tests_part_a/test_supplemental.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/part-a.md`, `docs/decisions/ADR-0002-part-a-offline-benchmark.md`
+  - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`
+  - 测试：`tests/test_policy.py`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-004 · 新鲜度与来源状态
 
@@ -255,24 +254,3 @@
   - 代码：—
   - 测试：—
   - 文档：`docs/source/submission-open-questions.md`, `docs/source/handbook-fintech-track.md`
-
-## REQ-014 · Part A 多来源离线数据导入与向量检索演示
-
-- 来源：team request to publish the validated Part A dataset and retrieval module
-- 权威级别：`team_decision`
-- 状态：`implemented`
-- 说明：提供独立的离线数据导入、原文存储、权限元数据、FTS5/RaBitQ IVF 检索和 Flask 演示；保持现有安全 MVP 流程，Part A 候选后过滤不代表完成 REQ-002。
-- 验收标准：
-
-  - 分别导入 EnterpriseRAG/OrgForge、PrivacyBench Slack/Drive 导出及 Public Jira 样本，并标注真实/合成、抽样范围和来源版本
-  - 保留原文、文件校验、来源 ACL 和工单结构化字段；来源不含原生私有 ACL 时明确标注
-  - 每个 corpus 使用独立 384 维、8-bit RaBitQ IVF 索引，支持关键词、向量和混合检索
-  - 每次文档返回及直接打开前验证 ACL；切换身份、日期或数据集时清除旧内容，晚到响应不能恢复旧内容
-  - 独立英文 QUICKSTART.md 与短启动命令提供安装、下载、构建、检查和演示入口；运行时数据、缓存及本机二进制不进入 Git
-  - 原有 MVP 测试继续通过，并运行独立 Part A 权限、归档解析、重复导入及页面回归检查
-
-- 影响范围：
-
-  - 代码：`contextledger/__main__.py`, `contextledger/connectors.py`, `contextledger/files.py`, `contextledger/supplemental.py`, `contextledger/remote_zip.py`, `contextledger/pipeline.py`, `contextledger/processors.py`, `contextledger/store.py`, `contextledger/models.py`, `contextledger/acl.py`, `contextledger/search.py`, `contextledger/vectors.py`, `contextledger/demo_app.py`, `contextledger/templates/part_a.html`, `scripts/part_a.sh`, `scripts/setup_part_a_vectors.py`, `requirements-part-a.txt`, `requirements-part-a-test.txt`
-  - 测试：`tests/test_part_a_launcher.py`, `tests_part_a/test_supplemental.py`, `scripts/check_part_a_ui.py`
-  - 文档：`QUICKSTART.md`, `docs/product/part-a.md`, `docs/product/part-a-validation.json`, `docs/decisions/ADR-0002-part-a-offline-benchmark.md`, `README.md`, `CHANGELOG.md`

@@ -21,14 +21,11 @@
 
 ## 文档地图
 
-- `QUICKSTART.md`：英文 Part A 快速启动，只需安装与启动两条短命令；
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
 - `docs/requirements.md`：由台账自动生成的只读视图；
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
-- `docs/product/part-a.md`：离线数据导入、向量索引、7860 演示和权限边界；
-- `docs/product/part-a-validation.json`：Part A 本地验证汇总，不包含数据正文；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
 - `CONTRIBUTING.md`：分支、提交和评审流程；

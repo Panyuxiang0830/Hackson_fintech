@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-09-29",
   "requirements": [
     {
       "id": "REQ-001",
@@ -48,9 +48,9 @@
         "合成数据包含部门、角色、项目和敏感级别元数据",
         "后续真实连接器不得把来源权限降级为单一公开/私有标记"
       ],
-      "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json", "contextledger/acl.py", "contextledger/supplemental.py", "contextledger/models.py"],
-      "tests": ["tests/test_policy.py", "tests_part_a/test_supplemental.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/part-a.md", "docs/decisions/ADR-0002-part-a-offline-benchmark.md"]
+      "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json"],
+      "tests": ["tests/test_policy.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-004",
@@ -212,55 +212,6 @@
       "code": [],
       "tests": [],
       "docs": ["docs/source/submission-open-questions.md", "docs/source/handbook-fintech-track.md"]
-    },
-    {
-      "id": "REQ-014",
-      "title": "Part A 多来源离线数据导入与向量检索演示",
-      "source": "team request to publish the validated Part A dataset and retrieval module",
-      "authority": "team_decision",
-      "status": "implemented",
-      "description": "提供独立的离线数据导入、原文存储、权限元数据、FTS5/RaBitQ IVF 检索和 Flask 演示；保持现有安全 MVP 流程，Part A 候选后过滤不代表完成 REQ-002。",
-      "acceptance_criteria": [
-        "分别导入 EnterpriseRAG/OrgForge、PrivacyBench Slack/Drive 导出及 Public Jira 样本，并标注真实/合成、抽样范围和来源版本",
-        "保留原文、文件校验、来源 ACL 和工单结构化字段；来源不含原生私有 ACL 时明确标注",
-        "每个 corpus 使用独立 384 维、8-bit RaBitQ IVF 索引，支持关键词、向量和混合检索",
-        "每次文档返回及直接打开前验证 ACL；切换身份、日期或数据集时清除旧内容，晚到响应不能恢复旧内容",
-        "独立英文 QUICKSTART.md 与短启动命令提供安装、下载、构建、检查和演示入口；运行时数据、缓存及本机二进制不进入 Git",
-        "原有 MVP 测试继续通过，并运行独立 Part A 权限、归档解析、重复导入及页面回归检查"
-      ],
-      "code": [
-        "contextledger/__main__.py",
-        "contextledger/connectors.py",
-        "contextledger/files.py",
-        "contextledger/supplemental.py",
-        "contextledger/remote_zip.py",
-        "contextledger/pipeline.py",
-        "contextledger/processors.py",
-        "contextledger/store.py",
-        "contextledger/models.py",
-        "contextledger/acl.py",
-        "contextledger/search.py",
-        "contextledger/vectors.py",
-        "contextledger/demo_app.py",
-        "contextledger/templates/part_a.html",
-        "scripts/part_a.sh",
-        "scripts/setup_part_a_vectors.py",
-        "requirements-part-a.txt",
-        "requirements-part-a-test.txt"
-      ],
-      "tests": [
-        "tests/test_part_a_launcher.py",
-        "tests_part_a/test_supplemental.py",
-        "scripts/check_part_a_ui.py"
-      ],
-      "docs": [
-        "QUICKSTART.md",
-        "docs/product/part-a.md",
-        "docs/product/part-a-validation.json",
-        "docs/decisions/ADR-0002-part-a-offline-benchmark.md",
-        "README.md",
-        "CHANGELOG.md"
-      ]
     }
   ]
 }
