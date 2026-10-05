@@ -2,6 +2,12 @@
 
 > 本文只描述团队的实现顺序，不代表官方提交格式。官方要求以 `docs/source/` 和 `project/requirements.json` 为准。
 
+## 当前优先：REQ-017 集成（2026-10-06）
+
+在 `codex/REQ-017-unified-integration` 上完成通用 OIDC、身份库、Qdrant/FTS 前置授权、统一回答与审计最低边界；真实提供方待配置，人工验收后才合并。实现和验收步骤见 [集成实施说明](../architecture/unified-integration.md)。下文 v0 完成项不能等同于集成版全部验收。
+
+后续专题以 [十个工程难题固定清单](engineering-challenges.md) 为准，REQ-018 完整质量／安全／规模评测仍 planned。本轮不扩展原平台权限同步或重新加入摄取审计。
+
 ## 当前基线：MVP v0
 
 已经完成：

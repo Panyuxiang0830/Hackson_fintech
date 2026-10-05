@@ -4,6 +4,12 @@ Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO 
 
 [Part A Quick Start](QUICKSTART.md)
 
+## Unified integration branch
+
+The authenticated 7860 UI now connects Part A data to filtered Qdrant/FTS retrieval, persistent system permissions, grounded answer generation and query audit. OIDC is configurable; without a provider all business APIs remain locked. See [integration setup and acceptance](docs/architecture/unified-integration.md).
+
+The sections below describe the original Streamlit v0 reference, not the authenticated integration's live state. Integration remains on `codex/REQ-017-unified-integration` until user acceptance; main is not changed.
+
 ## What v0 proves
 
 The MVP demonstrates one security-critical vertical slice:

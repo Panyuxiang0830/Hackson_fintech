@@ -6,23 +6,23 @@
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
-| REQ-001 | 跨来源自然语言问答与引用 | `handbook_mandatory` | `in_progress` | `app.py`<br>`src/retrieval.py`<br>`src/answering.py`<br>`src/service.py` | `tests/test_end_to_end.py` |
-| REQ-002 | 检索前确定性权限过滤 | `handbook_mandatory` | `in_progress` | `src/policy.py`<br>`src/service.py` | `tests/test_policy.py`<br>`tests/test_no_leakage.py` |
-| REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json` | `tests/test_policy.py` |
-| REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json` | `tests/test_permission_freshness.py` |
-| REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py` | `tests/test_permission_freshness.py` |
-| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py` |
-| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`scripts/demo_audit_tamper.py` | `tests/test_audit.py` |
-| REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/audit_query.py`<br>`src/service.py`<br>`app.py` | `tests/test_audit_query.py` |
-| REQ-009 | LLM 安全边界 | `handbook_mandatory` | `validated` | `src/answering.py`<br>`src/service.py`<br>`app.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py` |
+| REQ-001 | 跨来源自然语言问答与引用 | `handbook_mandatory` | `in_progress` | `app.py`<br>`src/retrieval.py`<br>`src/answering.py`<br>`src/service.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py` | `tests/test_end_to_end.py`<br>`tests/test_integration.py` |
+| REQ-002 | 检索前确定性权限过滤 | `handbook_mandatory` | `in_progress` | `src/policy.py`<br>`src/service.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py` | `tests/test_policy.py`<br>`tests/test_no_leakage.py`<br>`tests/test_integration.py` |
+| REQ-003 | 保留来源访问控制语义 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/policy.py`<br>`data/documents.json`<br>`data/users.json`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/source_permissions.py` | `tests/test_policy.py`<br>`tests/test_integration.py` |
+| REQ-004 | 新鲜度与来源状态 | `handbook_mandatory` | `in_progress` | `src/models.py`<br>`src/freshness.py`<br>`src/retrieval.py`<br>`src/service.py`<br>`app.py`<br>`data/documents.json`<br>`contextledger/filtered_index.py` | `tests/test_permission_freshness.py`<br>`tests/test_integration.py` |
+| REQ-005 | 权限变更即时生效 | `handbook_mandatory` | `implemented` | `src/identity.py`<br>`src/policy.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/identity_store.py`<br>`contextledger/web.py`<br>`contextledger/unified_service.py`<br>`contextledger/static/unified.js` | `tests/test_permission_freshness.py`<br>`tests/test_integration.py` |
+| REQ-006 | 可查询的完整审计记录 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/audit_store.py`<br>`contextledger/unified_service.py` | `tests/test_end_to_end.py`<br>`tests/test_audit_query.py`<br>`tests/test_integration.py` |
+| REQ-007 | 防篡改审计链 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`scripts/demo_audit_tamper.py`<br>`contextledger/audit_store.py` | `tests/test_audit.py`<br>`tests/test_integration.py` |
+| REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `implemented` | `src/audit.py`<br>`src/audit_query.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py` | `tests/test_audit_query.py`<br>`tests/test_integration.py` |
+| REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py`<br>`tests/test_integration.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
 | REQ-011 | 时序和权威冲突检测 | `team_decision` | `deferred` | — | — |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
-| REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `planned` | — | — |
-| REQ-016 | 可信登录与持久化身份权限库 | `team_decision` | `planned` | — | — |
-| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | — | — |
+| REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py` | `tests/test_integration.py` |
+| REQ-016 | 可信登录与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/web.py` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
+| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `planned` | — | — |
 
 ## REQ-001 · 跨来源自然语言问答与引用
@@ -42,8 +42,8 @@
 
 - 影响范围：
 
-  - 代码：`app.py`, `src/retrieval.py`, `src/answering.py`, `src/service.py`
-  - 测试：`tests/test_end_to_end.py`
+  - 代码：`app.py`, `src/retrieval.py`, `src/answering.py`, `src/service.py`, `contextledger/unified_service.py`, `contextledger/web.py`
+  - 测试：`tests/test_end_to_end.py`, `tests/test_integration.py`
   - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-002 · 检索前确定性权限过滤
@@ -62,8 +62,8 @@
 
 - 影响范围：
 
-  - 代码：`src/policy.py`, `src/service.py`
-  - 测试：`tests/test_policy.py`, `tests/test_no_leakage.py`
+  - 代码：`src/policy.py`, `src/service.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`
+  - 测试：`tests/test_policy.py`, `tests/test_no_leakage.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-003 · 保留来源访问控制语义
@@ -79,8 +79,8 @@
 
 - 影响范围：
 
-  - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`
-  - 测试：`tests/test_policy.py`
+  - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/source_permissions.py`
+  - 测试：`tests/test_policy.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-004 · 新鲜度与来源状态
@@ -99,8 +99,8 @@
 
 - 影响范围：
 
-  - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`
-  - 测试：`tests/test_permission_freshness.py`
+  - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`, `contextledger/filtered_index.py`
+  - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`
 
 ## REQ-005 · 权限变更即时生效
@@ -118,8 +118,8 @@
 
 - 影响范围：
 
-  - 代码：`src/identity.py`, `src/policy.py`, `src/service.py`, `app.py`
-  - 测试：`tests/test_permission_freshness.py`
+  - 代码：`src/identity.py`, `src/policy.py`, `src/service.py`, `app.py`, `contextledger/identity_store.py`, `contextledger/web.py`, `contextledger/unified_service.py`, `contextledger/static/unified.js`
+  - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-006 · 可查询的完整审计记录
@@ -137,8 +137,8 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`, `src/service.py`, `app.py`
-  - 测试：`tests/test_end_to_end.py`, `tests/test_audit_query.py`
+  - 代码：`src/audit.py`, `src/service.py`, `app.py`, `contextledger/audit_store.py`, `contextledger/unified_service.py`
+  - 测试：`tests/test_end_to_end.py`, `tests/test_audit_query.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-007 · 防篡改审计链
@@ -155,8 +155,8 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`, `scripts/demo_audit_tamper.py`
-  - 测试：`tests/test_audit.py`
+  - 代码：`src/audit.py`, `scripts/demo_audit_tamper.py`, `contextledger/audit_store.py`
+  - 测试：`tests/test_audit.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-008 · 自然语言审计查询
@@ -173,15 +173,15 @@
 
 - 影响范围：
 
-  - 代码：`src/audit.py`, `src/audit_query.py`, `src/service.py`, `app.py`
-  - 测试：`tests/test_audit_query.py`
+  - 代码：`src/audit.py`, `src/audit_query.py`, `src/service.py`, `app.py`, `contextledger/unified_service.py`, `contextledger/web.py`
+  - 测试：`tests/test_audit_query.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-009 · LLM 安全边界
 
 - 来源：FinTech track handbook
 - 权威级别：`handbook_mandatory`
-- 状态：`validated`
+- 状态：`in_progress`
 - 说明：大模型只负责对已授权证据进行总结，不能决定权限或引用未授权内容。
 - 验收标准：
 
@@ -191,11 +191,12 @@
   - 模型只接收已授权且未过期的 Top-K 证据，并能生成跨 Jira、Slack、Confluence 和 Google Drive 的综合回答
   - API 超时、配置缺失、输出无法解析或引用非法时自动退回确定性回答
   - 无 API Key 时仍可用确定性模式完成演示
+  - 团队后续专题 EC-008：在引用编号合法之外评估主张与证据支持关系、无依据推断和不可信来源指令；当前编号校验不能冒充语义验证
 
 - 影响范围：
 
-  - 代码：`src/answering.py`, `src/service.py`, `app.py`
-  - 测试：`tests/test_answering.py`, `tests/test_no_leakage.py`, `tests/test_end_to_end.py`
+  - 代码：`src/answering.py`, `src/service.py`, `app.py`, `contextledger/unified_service.py`
+  - 测试：`tests/test_answering.py`, `tests/test_no_leakage.py`, `tests/test_end_to_end.py`, `tests/test_integration.py`
   - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/evaluation/model-selection.md`, `docs/source/handbook-fintech-track.md`
 
 ## REQ-010 · 单一案例选择与展示声明
@@ -284,6 +285,7 @@
   - 原始数据与清洗后的派生内容分开保存，任何过滤结果都保留来源链接和过滤原因以便恢复
   - 优先使用字段、规则、解析器和轻量分类，只有歧义内容才调用大模型
   - 用保留率、关键事实召回率和节省的模型 Token 衡量筛选效果
+  - 团队专题 EC-005：Primary 等信息层级标签可解释、可纠正，线程聚合和摘要不混用不同权限内容
 
 - 影响范围：
 
@@ -295,7 +297,7 @@
 
 - 来源：team discussion marked 【新需求】 on 2026-10-02
 - 权威级别：`team_decision`
-- 状态：`planned`
+- 状态：`in_progress`
 - 说明：通过统一分类和身份感知路由组织异构信息；集成版采用支持元数据过滤的 Qdrant 向量后端，保留结构化事实库与关键词索引，并由应用服务维护可信权限和版本条件。
 - 验收标准：
 
@@ -306,18 +308,19 @@
   - 物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分
   - 向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权
   - 查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源
+  - 团队后续专题 EC-004/006：细化失败恢复、增量发布与分类或过窄路由造成的漏检；首版整快照阻断不冒充高可用增量同步
 
 - 影响范围：
 
-  - 代码：—
-  - 测试：—
+  - 代码：`contextledger/filtered_index.py`
+  - 测试：`tests/test_integration.py`
   - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`
 
 ## REQ-016 · 可信登录与持久化身份权限库
 
 - 来源：team integration discussion confirmed on 2026-10-05
 - 权威级别：`team_decision`
-- 状态：`planned`
+- 状态：`in_progress`
 - 说明：通过 OIDC 验证真实登录身份，并以持久化身份权限库管理账号映射、组织与组、角色、项目、本地限制和权限版本；登录提供方及来源 ACL 映射细节待确认。
 - 验收标准：
 
@@ -331,9 +334,9 @@
 
 - 影响范围：
 
-  - 代码：—
-  - 测试：—
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`
+  - 代码：`contextledger/identity_store.py`, `contextledger/web.py`
+  - 测试：`tests/test_integration.py`, `tests/test_oidc.py`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/architecture/unified-integration.md`
 
 ## REQ-017 · Part A 与安全问答服务统一集成
 
@@ -356,9 +359,9 @@
 
 - 影响范围：
 
-  - 代码：—
-  - 测试：—
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/product/engineering-challenges.md`
+  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `requirements-integration.txt`
+  - 测试：`tests/test_integration.py`, `tests/test_oidc.py`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `QUICKSTART.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 

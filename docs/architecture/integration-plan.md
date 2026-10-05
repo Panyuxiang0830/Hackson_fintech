@@ -1,7 +1,7 @@
 # ContextLedger：现状与集成架构方案
 
 - 日期：2026-10-05
-- 状态：方案已保存，部分关键设计已确认，未开始实现。
+- 方案基线：2026-10-05 的实施前记录。2026-10-06 已在 `codex/REQ-017-unified-integration` 实施通用 OIDC、身份库、可过滤 Qdrant、统一问答与审计；具体实现和剩余限制见 [实施与验收](unified-integration.md)。下文“当前”指方案基线，目标图不是最新实施状态图。
 - GitHub main 核对版本：`1359a7dacb54b3e0eb33f281ffd43eeb51aace06`。
 - 本地模型集成基础版本：`ea4517f`，原分支 `feat/REQ-009-tokenhub-integration`。
 - 本文是项目仓库内的方案记录，不在 Obsidian 维护第二份项目状态。

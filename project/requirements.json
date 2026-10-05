@@ -19,8 +19,8 @@
         "回答至少引用一条有权限访问的证据并提供来源链接",
         "证据不足时系统明确说明限制"
       ],
-      "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py"],
-      "tests": ["tests/test_end_to_end.py"],
+      "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py", "contextledger/unified_service.py", "contextledger/web.py"],
+      "tests": ["tests/test_end_to_end.py", "tests/test_integration.py"],
       "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -37,8 +37,8 @@
         "租户、部门、角色、项目和密级被转换为索引层过滤条件",
         "服务端对索引返回的候选证据再次执行权限校验"
       ],
-      "code": ["src/policy.py", "src/service.py"],
-      "tests": ["tests/test_policy.py", "tests/test_no_leakage.py"],
+      "code": ["src/policy.py", "src/service.py", "contextledger/filtered_index.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_policy.py", "tests/test_no_leakage.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -52,8 +52,8 @@
         "合成数据包含部门、角色、项目和敏感级别元数据",
         "后续真实连接器不得把来源权限降级为单一公开/私有标记"
       ],
-      "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json"],
-      "tests": ["tests/test_policy.py"],
+      "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/source_permissions.py"],
+      "tests": ["tests/test_policy.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -70,8 +70,8 @@
         "旧版本被保留但不会进入当前检索视图，删除、撤回和回滚使用显式状态表达",
         "系统可以通过 active version 指针或等效机制安全回退，并记录回退审计事件"
       ],
-      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json"],
-      "tests": ["tests/test_permission_freshness.py"],
+      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json", "contextledger/filtered_index.py"],
+      "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/index-and-freshness.md"]
     },
     {
@@ -87,8 +87,8 @@
         "每次请求从当前 IdentityService 重新解析身份，不沿用调用方的旧用户对象",
         "集成版系统内撤权持久化生效，搜索、原文、模型输入和回答交付均校验当前权限；旧缓存或历史回答不得绕过校验"
       ],
-      "code": ["src/identity.py", "src/policy.py", "src/service.py", "app.py"],
-      "tests": ["tests/test_permission_freshness.py"],
+      "code": ["src/identity.py", "src/policy.py", "src/service.py", "app.py", "contextledger/identity_store.py", "contextledger/web.py", "contextledger/unified_service.py", "contextledger/static/unified.js"],
+      "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -104,8 +104,8 @@
         "可以按请求 ID、用户和时间范围查询",
         "审计展示不泄漏无权限文档标题或正文"
       ],
-      "code": ["src/audit.py", "src/service.py", "app.py"],
-      "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py"],
+      "code": ["src/audit.py", "src/service.py", "app.py", "contextledger/audit_store.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -120,8 +120,8 @@
         "验证工具能检测事件删除、重排和内容修改",
         "演示一次篡改检测"
       ],
-      "code": ["src/audit.py", "scripts/demo_audit_tamper.py"],
-      "tests": ["tests/test_audit.py"],
+      "code": ["src/audit.py", "scripts/demo_audit_tamper.py", "contextledger/audit_store.py"],
+      "tests": ["tests/test_audit.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -136,8 +136,8 @@
         "审计查询本身受权限控制并被审计",
         "回答包含可核对的事件引用"
       ],
-      "code": ["src/audit.py", "src/audit_query.py", "src/service.py", "app.py"],
-      "tests": ["tests/test_audit_query.py"],
+      "code": ["src/audit.py", "src/audit_query.py", "src/service.py", "app.py", "contextledger/unified_service.py", "contextledger/web.py"],
+      "tests": ["tests/test_audit_query.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -145,7 +145,7 @@
       "title": "LLM 安全边界",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "validated",
+      "status": "in_progress",
       "description": "大模型只负责对已授权证据进行总结，不能决定权限或引用未授权内容。",
       "acceptance_criteria": [
         "权限决定由确定性代码执行",
@@ -153,10 +153,11 @@
         "模型返回的引用 ID 必须经过服务端校验",
         "模型只接收已授权且未过期的 Top-K 证据，并能生成跨 Jira、Slack、Confluence 和 Google Drive 的综合回答",
         "API 超时、配置缺失、输出无法解析或引用非法时自动退回确定性回答",
-        "无 API Key 时仍可用确定性模式完成演示"
+        "无 API Key 时仍可用确定性模式完成演示",
+        "团队后续专题 EC-008：在引用编号合法之外评估主张与证据支持关系、无依据推断和不可信来源指令；当前编号校验不能冒充语义验证"
       ],
-      "code": ["src/answering.py", "src/service.py", "app.py"],
-      "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_end_to_end.py"],
+      "code": ["src/answering.py", "src/service.py", "app.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_end_to_end.py", "tests/test_integration.py"],
       "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md"]
     },
     {
@@ -236,7 +237,8 @@
         "代码、结构化工单字段、长文档和聊天记录使用适合其结构的分块与元数据提取方式",
         "原始数据与清洗后的派生内容分开保存，任何过滤结果都保留来源链接和过滤原因以便恢复",
         "优先使用字段、规则、解析器和轻量分类，只有歧义内容才调用大模型",
-        "用保留率、关键事实召回率和节省的模型 Token 衡量筛选效果"
+        "用保留率、关键事实召回率和节省的模型 Token 衡量筛选效果",
+        "团队专题 EC-005：Primary 等信息层级标签可解释、可纠正，线程聚合和摘要不混用不同权限内容"
       ],
       "code": [],
       "tests": [],
@@ -247,7 +249,7 @@
       "title": "统一分类、混合索引与身份感知查询路由",
       "source": "team discussion marked 【新需求】 on 2026-10-02",
       "authority": "team_decision",
-      "status": "planned",
+      "status": "in_progress",
       "description": "通过统一分类和身份感知路由组织异构信息；集成版采用支持元数据过滤的 Qdrant 向量后端，保留结构化事实库与关键词索引，并由应用服务维护可信权限和版本条件。",
       "acceptance_criteria": [
         "统一分类字段至少覆盖来源、内容类型、部门、项目、业务实体、时间、权威等级、安全密级和当前状态",
@@ -256,10 +258,11 @@
         "先执行元数据和关键词过滤，再进行向量召回与排序，最后只把少量 Top-K 证据交给模型",
         "物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分",
         "向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权",
-        "查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源"
+        "查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源",
+        "团队后续专题 EC-004/006：细化失败恢复、增量发布与分类或过窄路由造成的漏检；首版整快照阻断不冒充高可用增量同步"
       ],
-      "code": [],
-      "tests": [],
+      "code": ["contextledger/filtered_index.py"],
+      "tests": ["tests/test_integration.py"],
       "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md"]
     },
     {
@@ -267,7 +270,7 @@
       "title": "可信登录与持久化身份权限库",
       "source": "team integration discussion confirmed on 2026-10-05",
       "authority": "team_decision",
-      "status": "planned",
+      "status": "in_progress",
       "description": "通过 OIDC 验证真实登录身份，并以持久化身份权限库管理账号映射、组织与组、角色、项目、本地限制和权限版本；登录提供方及来源 ACL 映射细节待确认。",
       "acceptance_criteria": [
         "问答、搜索、原文读取、权限管理和审计查询均以服务端验证的登录身份为准，不接受调用方任意指定的演示身份",
@@ -278,9 +281,9 @@
         "用户已确认先完成通用 OIDC 接入，具体提供方稍后配置；未配置时拒绝业务访问，不启用任意演示身份登录",
         "来源身份由管理员显式绑定，不仅凭姓名自动匹配；离线 ACL 与真实身份的全面一致性改造后续专题讨论"
       ],
-      "code": [],
-      "tests": [],
-      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md"]
+      "code": ["contextledger/identity_store.py", "contextledger/web.py"],
+      "tests": ["tests/test_integration.py", "tests/test_oidc.py"],
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/architecture/unified-integration.md"]
     },
     {
       "id": "REQ-017",
@@ -301,9 +304,9 @@
         "不重新加入已取消的四个数据摄取审计模块",
         "本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main"
       ],
-      "code": [],
-      "tests": [],
-      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/product/engineering-challenges.md"]
+      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "requirements-integration.txt"],
+      "tests": ["tests/test_integration.py", "tests/test_oidc.py"],
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "QUICKSTART.md"]
     },
     {
       "id": "REQ-018",

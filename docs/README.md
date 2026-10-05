@@ -28,6 +28,7 @@
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
+- `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
 - `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
