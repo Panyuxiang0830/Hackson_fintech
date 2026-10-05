@@ -72,7 +72,9 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
     def protect():
         if not request.path.startswith("/api/") or request.path == "/api/session":
             return
-        actor = service.identities.session_actor(session.get("sid", ""))
+        # Unit tests may inject server-side sessions; the shipped CLI exposes no
+        # test login. Removing OIDC configuration locks even previously issued sessions.
+        actor = service.identities.session_actor(session.get("sid", "")) if configured or app.testing else None
         if not actor:
             service.audit.append({"request_id": secrets.token_hex(16), "timestamp": timestamp(),
                                   "event_type": "unauthenticated_request", "user_id": "unauthenticated", "decision": "denied",
@@ -164,7 +166,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
 
     @app.get("/api/session")
     def status():
-        actor = service.identities.session_actor(session.get("sid", ""))
+        actor = service.identities.session_actor(session.get("sid", "")) if configured or app.testing else None
         if actor:
             g.actor = actor
         return jsonify(oidc_configured=configured, authenticated=bool(actor),
