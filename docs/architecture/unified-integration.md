@@ -91,7 +91,7 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 - 分支代码：`/home/research_pyx/Hackson_fintech-integration`；原 main 代码和 7860 服务未替换。
 - 新数据、Qdrant、独立环境与安全状态：`/hy-tmp/data_pyx/contextledger-integration/`，分别放在 `content/`、`qdrant/`、`venv/`、`security/`。原 Part A 的 Raw／Embedding／模型缓存只复用、不重新下载；Canonical Store 使用独立副本。
 - Qdrant 1.19.1 只监听服务器回环 6335／6336，发布 45,565 份文档的 293,096 个分块；包含 5 个数据集。这不是全量质量或延迟基准。
-- 本地和服务器主测试各 55 项通过；服务器 Part A 解析／来源权限测试 8 项通过，需求同步检查通过。
+- 本地和服务器主测试各 56 项通过（含共享向量行映射只读迁移测试）；服务器 Part A 解析／来源权限测试 8 项通过，需求同步检查通过。
 - 实际 Qdrant 和实际 MiniLM Embedding 的隔离冒烟样例：`orgforge:Jax` / `TitanDB`，关键词、语义、混合各返回 8 条授权候选，确定性回答包含 5 条证据；撤权后所有检索无结果、原文不可读、问答证据不足，审计链有效。
 - 提供方尚未配置，预览页面显示“OIDC 尚未配置”，业务接口返回 401。协议测试使用独立测试 issuer，不是线上模拟登录。
 - 前端开发预览在服务器 17860，经本机 SSH 转发访问 `http://127.0.0.1:17860/`；原 7860 保留。转发需要 SSH 会话存活，Flask 开发服务不作为生产部署。
