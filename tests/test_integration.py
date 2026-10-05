@@ -95,6 +95,14 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(client.get("/auth/login").status_code, 503)
         self.assertIn(b"OIDC", client.get("/").data)
 
+    def test_unconfigured_non_test_app_locks_preexisting_sessions(self):
+        app = create_app(self.db_path, self.security, service=self.service,
+            config={"TESTING": False, "SECRET_KEY": "test-secret-" * 4, "OIDC_ISSUER": "", "OIDC_CLIENT_ID": ""})
+        client = app.test_client()
+        self.login(self.alice, client)
+        self.assertEqual(client.get("/api/search?corpus=alpha&q=TitanDB").status_code, 401)
+        self.assertFalse(client.get("/api/session").json["authenticated"])
+
     def test_both_indexes_filter_before_candidates_and_isolate_corpora(self):
         for mode in ("keyword", "vector", "hybrid"):
             with patch.object(self.qdrant, "query_points", wraps=self.qdrant.query_points) as call:
