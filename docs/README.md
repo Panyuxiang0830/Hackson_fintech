@@ -26,6 +26,9 @@
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
+- `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
+- `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
+- `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
 - `CONTRIBUTING.md`：分支、提交和评审流程；

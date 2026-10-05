@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-02
+最后更新：2026-10-06
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -21,6 +21,9 @@
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `planned` | — | — |
+| REQ-016 | 可信登录与持久化身份权限库 | `team_decision` | `planned` | — | — |
+| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | — | — |
+| REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `planned` | — | — |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -98,7 +101,7 @@
 
   - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`
   - 测试：`tests/test_permission_freshness.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`
 
 ## REQ-005 · 权限变更即时生效
 
@@ -111,6 +114,7 @@
   - 演示一次用户权限撤销
   - 撤销后重新查询不返回此前可见的敏感证据
   - 每次请求从当前 IdentityService 重新解析身份，不沿用调用方的旧用户对象
+  - 集成版系统内撤权持久化生效，搜索、原文、模型输入和回答交付均校验当前权限；旧缓存或历史回答不得绕过校验
 
 - 影响范围：
 
@@ -292,7 +296,7 @@
 - 来源：team discussion marked 【新需求】 on 2026-10-02
 - 权威级别：`team_decision`
 - 状态：`planned`
-- 说明：通过统一的部门、项目、业务实体、内容类型、时间、权威性和权限元数据组织异构信息，并根据问题与提问者身份路由到合适的结构化或向量检索范围。
+- 说明：通过统一分类和身份感知路由组织异构信息；集成版采用支持元数据过滤的 Qdrant 向量后端，保留结构化事实库与关键词索引，并由应用服务维护可信权限和版本条件。
 - 验收标准：
 
   - 统一分类字段至少覆盖来源、内容类型、部门、项目、业务实体、时间、权威等级、安全密级和当前状态
@@ -300,9 +304,78 @@
   - Query 路由提取意图、实体、时间和来源范围，并结合当前身份生成检索过滤条件
   - 先执行元数据和关键词过滤，再进行向量召回与排序，最后只把少量 Top-K 证据交给模型
   - 物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分
+  - 向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权
+  - 查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源
 
 - 影响范围：
 
   - 代码：—
   - 测试：—
-  - 文档：`docs/product/roadmap.md`
+  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`
+
+## REQ-016 · 可信登录与持久化身份权限库
+
+- 来源：team integration discussion confirmed on 2026-10-05
+- 权威级别：`team_decision`
+- 状态：`planned`
+- 说明：通过 OIDC 验证真实登录身份，并以持久化身份权限库管理账号映射、组织与组、角色、项目、本地限制和权限版本；登录提供方及来源 ACL 映射细节待确认。
+- 验收标准：
+
+  - 问答、搜索、原文读取、权限管理和审计查询均以服务端验证的登录身份为准，不接受调用方任意指定的演示身份
+  - 真实登录账号使用稳定身份标识映射到系统用户及来源身份，不仅凭显示姓名匹配
+  - 身份映射、组、角色、项目、本地限制和权限版本持久化保存，重启或重建内容索引不会丢失
+  - 管理员和合规功能在服务端执行角色检查，普通用户不能通过调用接口自行提权
+  - 每次请求解析最新权限；具体撤权时效和来源 ACL 保真继续由 REQ-005 与 REQ-003 管理
+  - 用户已确认先完成通用 OIDC 接入，具体提供方稍后配置；未配置时拒绝业务访问，不启用任意演示身份登录
+  - 来源身份由管理员显式绑定，不仅凭姓名自动匹配；离线 ACL 与真实身份的全面一致性改造后续专题讨论
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：—
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`
+
+## REQ-017 · Part A 与安全问答服务统一集成
+
+- 来源：team integration discussion confirmed on 2026-10-05
+- 权威级别：`team_decision`
+- 状态：`in_progress`
+- 说明：保留 Part A 的 7860 页面作为统一入口，使 Part A 数据与检索连接既有权限管理、新鲜度、回答、引用校验和审计服务，不再维护两条互不相通的业务链路。
+- 验收标准：
+
+  - 统一页面提供搜索、问答、证据与原文，并向相应授权角色提供权限管理和审计功能
+  - 页面及其业务接口调用同一应用服务，读取一致的身份权限状态
+  - Part A 检索证据通过统一权限与新鲜度检查后进入既有回答服务和查询审计链
+  - 集成前对齐 main 与本地模型集成分支的需求和引用校验能力，不能把未合入功能宣称为 main 已实现
+  - 真实登录由 REQ-016、索引权限由 REQ-002、来源 ACL 由 REQ-003、新鲜度由 REQ-004、撤权由 REQ-005、回答与审计由既有 REQ 管理，不重复建立需求
+  - 集成版采用已确认的 Qdrant 可过滤后端，仍保留 Part A 解析、原始与标准化存储能力
+  - 本轮优先保障系统内权限撤销，不实现原平台权限撤销的自动发现与同步；保留来源权限检查与同步的适配接口，未启用时明确返回 not_enabled 或 unknown，不伪造同步成功
+  - 外部权限自动同步的阶段性延期不取消既有来源 ACL 保真要求，界面和文档明确区分离线权限快照与实时来源权限
+  - 不重新加入已取消的四个数据摄取审计模块
+  - 本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：—
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/product/engineering-challenges.md`
+
+## REQ-018 · 端到端质量、安全与性能评测
+
+- 来源：engineering challenges confirmed by user on 2026-10-06
+- 权威级别：`team_decision`
+- 状态：`planned`
+- 说明：以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。
+- 验收标准：
+
+  - 测试集保存问题、身份权限真值、期望证据和期望拒答行为
+  - 分别评估信息筛选的关键事实召回、授权范围内检索质量和回答证据支持程度
+  - 安全测试覆盖越权访问、系统内撤权、缓存或历史绕过及不可信来源指令
+  - 记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长
+  - 测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：—
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`
