@@ -2,6 +2,8 @@
 
 Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO IT 2026 FinTech track.
 
+[Part A Quick Start](QUICKSTART.md)
+
 ## What v0 proves
 
 The MVP demonstrates one security-critical vertical slice:
