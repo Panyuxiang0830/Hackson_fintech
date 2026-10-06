@@ -4,6 +4,8 @@ body { margin:0; font:15px/1.5 "Segoe UI","Helvetica Neue",sans-serif; color:var
 header { padding:20px 28px; color:white; background:var(--accent); }
 header h1 { margin:0; font-size:24px; } header p { margin:6px 0 12px; }
 header a { color:white; margin-left:16px; } header button { margin-left:12px; }
+.demo-entry { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0; }
+.demo-entry label { color:white; margin:0; } .demo-entry select { width:auto; max-width:100%; min-width:260px; }
 .notice { padding:12px 28px; background:#fff4e8; color:#8a4b12; }
 main { max-width:1280px; margin:0 auto; display:grid; grid-template-columns:330px minmax(0,1fr); gap:18px; padding:18px; }
 .panel,.hit { background:white; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:12px; }

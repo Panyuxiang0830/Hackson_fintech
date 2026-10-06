@@ -28,6 +28,7 @@ class UnifiedService:
     def __init__(self, index: FilteredIndex, identities: IdentityStore, audit: AuditStore, answer=None):
         self.index, self.identities, self.audit = index, identities, audit
         self.answer = answer or AnswerService()
+        self.identity_mode = "trusted_service"
 
     def current(self, user_id) -> Actor:
         actor = self.identities.get(user_id)
@@ -56,6 +57,7 @@ class UnifiedService:
             "request_id": str(uuid.uuid4()), "timestamp": timestamp(), "event_type": event_type,
             "user_id": actor.id, "user_role": actor.role, "permission_epoch": actor.epoch,
             "policy_version": POLICY_VERSION, "query": question, "answer": answer, "decision": decision,
+            "identity_mode": self.identity_mode,
             "retrieved_document_ids": [hit["doc_id"] for hit in hits],
             "evidence": [{key: hit[key] for key in ("corpus", "doc_id", "version", "content_hash", "chunk_id")} for hit in hits],
             "authorization_decisions": [{"document_id": hit["doc_id"], "allowed": True,

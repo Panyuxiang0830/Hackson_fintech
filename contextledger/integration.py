@@ -16,7 +16,7 @@ from contextledger.unified_service import validate_security_path
 
 
 def main(argv=None):
-    load_dotenv()
+    load_dotenv(os.getenv("CONTEXTLEDGER_ENV_FILE") or None)
     parser = argparse.ArgumentParser(description="ContextLedger unified integration")
     parser.add_argument("--out", type=Path, default=Path("runtime/part_a"))
     parser.add_argument("--security-dir", type=Path, default=Path(os.getenv("SECURITY_DIR", "runtime/security")))
@@ -27,6 +27,9 @@ def main(argv=None):
     serve = commands.add_parser("serve")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=7860)
+    serve.add_argument("--demo", action="store_true", help="explicit isolated loopback-only demo, not production authentication")
+    demo = commands.add_parser("demo-init", help="initialize an empty isolated demo security directory")
+    demo.add_argument("--bind", action="append", required=True, metavar="CORPUS=PRINCIPAL_ID")
     user = commands.add_parser("user", help="operator-only account bootstrap by exact issuer/sub")
     user.add_argument("--issuer", required=True)
     user.add_argument("--subject", required=True)
@@ -45,6 +48,17 @@ def main(argv=None):
                               api_key=os.getenv("QDRANT_API_KEY") or None, timeout=120)
         print(json.dumps(migrate(db_path, client, batch_size=args.batch_size,
                                 reuse_embeddings=args.reuse_part_a_embeddings), indent=2))
+    elif args.command == "demo-init":
+        from contextledger.demo_identity import initialize_demo
+        try:
+            bindings = [tuple(binding.split("=", 1)) for binding in args.bind]
+            if any(len(binding) != 2 for binding in bindings):
+                raise ValueError("Use CORPUS=PRINCIPAL_ID")
+            roster = initialize_demo(db_path, args.security_dir, bindings)
+        except ValueError as error:
+            parser.error(str(error))
+        print(json.dumps({"demo_mode": True, "accounts": len(roster["accounts"]),
+                          "security_dir": str(args.security_dir), "permissions_reset": False}, ensure_ascii=False))
     elif args.command == "user":
         from contextledger.store import connect
         identities = IdentityStore(args.security_dir / "identities.sqlite")
@@ -62,7 +76,11 @@ def main(argv=None):
         print(json.dumps({"id": actor.id, "role": args.role, "bindings": bindings}, ensure_ascii=False))
     else:
         from contextledger.web import create_app
-        app = create_app(db_path, args.security_dir)
+        from contextledger.demo_identity import require_loopback_bind
+        demo_mode = args.demo or os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
+        if demo_mode:
+            require_loopback_bind(args.host)
+        app = create_app(db_path, args.security_dir, config={"DEMO_MODE": demo_mode})
         app.run(host=args.host, port=args.port, debug=False)
     return 0
 

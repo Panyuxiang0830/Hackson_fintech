@@ -1,4 +1,6 @@
-"""Real discovery/token/JWKS/signature flow against an isolated test-only issuer.
+"""Regression for explicitly enabled, deferred optional browser login.
+
+Real discovery/token/JWKS/signature flow against an isolated test-only issuer.
 
 This fixture is NOT a login option shipped to the application or a real provider.
 """
@@ -81,7 +83,7 @@ class OIDCTests(unittest.TestCase):
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
         self.app = create_app(self.fixture.db_path, self.fixture.security, service=self.fixture.service,
-                             config={"TESTING": True, "SECRET_KEY": "oidc-test-secret-" * 4,
+                             config={"TESTING": True, "SECRET_KEY": "oidc-test-secret-" * 4, "BROWSER_LOGIN_ENABLED": True,
                                      "OIDC_ISSUER": self.issuer, "OIDC_CLIENT_ID": "contextledger-test-client",
                                      "OIDC_CLIENT_SECRET": "", "PUBLIC_URL": "http://127.0.0.1:7860"})
         self.client = self.app.test_client()

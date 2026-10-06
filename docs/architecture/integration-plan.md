@@ -6,6 +6,8 @@
 - 本地模型集成基础版本：`ea4517f`，原分支 `feat/REQ-009-tokenhub-integration`。
 - 本文是项目仓库内的方案记录，不在 Obsidian 维护第二份项目状态。
 
+> 后续范围调整及澄清（2026-10-06）：用户仅延期真实浏览器登录，保留 Part A 前端作为当前集成和人工验收入口；Tool 是后续设想，REQ-020 为 deferred，不阻塞当前版本。下述 OIDC 是历史目标，不是本轮必交付项；存储、身份权限库、权限过滤与审计核心职责保持。现行决定见修正后的 [ADR-0003](../decisions/ADR-0003-tool-first-and-deferred-browser-login.md)。
+
 ## 1. 已确认与待确认
 
 | 事项 | 决定 | 状态 |

@@ -263,7 +263,10 @@ def serve(db_path: Path, host: str = "127.0.0.1", port: int = 7860) -> None:
     from dotenv import load_dotenv
     from contextledger.web import create_app as unified_app
 
-    load_dotenv()
+    load_dotenv(os.getenv("CONTEXTLEDGER_ENV_FILE") or None)
     security_dir = Path(os.getenv("SECURITY_DIR", "runtime/security"))
     app = unified_app(db_path, security_dir)
+    if app.config["DEMO_MODE"]:
+        from contextledger.demo_identity import require_loopback_bind
+        require_loopback_bind(host)
     app.run(host=host, port=port, debug=False)

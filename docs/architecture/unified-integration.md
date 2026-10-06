@@ -2,10 +2,12 @@
 
 日期：2026-10-06。工作分支：`codex/REQ-017-unified-integration`。未经用户验收确认不合并 main。
 
+用户已澄清：Tool 是后续设想，本轮仍在 Part A 前端验收集成，只延期真实浏览器登录，不取消身份权限库。现行范围见修正后的 [ADR-0003](../decisions/ADR-0003-tool-first-and-deferred-browser-login.md)。用户已确认并在分支实现独立管理员与六员工的隔离演示入口，取消登录不等于匿名开放生产业务 API。
+
 ## 已实施代码边界
 
-- 保留 Part A 风格的 7860 页面；正式 `demo` 启动路径也进入统一服务，不再使用可任意指定 principal 的离线诊断页面。
-- `web.py`：通用 OIDC，校验签名、issuer、audience、时效、state、nonce 和 PKCE；身份以 issuer/sub 对应持久化用户。无提供方配置时只显示入口，业务接口返回 401，不提供伪登录。
+- 保留 Part A 风格页面作为当前集成和人工验收入口；正式 `demo` 启动路径进入统一服务。新增显式开启的固定七账号隔离演示模式，不通过 Flask TESTING 或任意来源 principal 参数绕过权限；普通模式仍拒绝未验证身份。
+- `web.py`：浏览器登录默认关闭，`/auth/login` 和 `/auth/callback` 返回 404，页面没有登录入口。保留通用 OIDC 作为延期的可选能力，只有显式开启时才使用，校验签名、issuer、audience、时效、state、nonce 和 PKCE。目前生产业务接口仍返回 401，不接受自报身份；未来 Tool 不作为解除当前前端验收缺口的前置条件。
 - `identity_store.py`：持久化账号、角色、部门、组、项目、密级、来源身份绑定、本地拒绝规则与权限版本。来源组自动解析和全面 ACL 重构没有在本轮冒充完成。
 - `filtered_index.py`：Qdrant 元数据过滤、FTS 的 SQL 授权条件、候选二次校验与离线快照发布门闩。Qdrant 不保存原文，证据回到 Canonical Store 读取。
 - `unified_service.py`：检索、原文、问答共用身份与权限，只把授权 Top-K 分块交给既有 AnswerService；保留引用编号校验、异常 Mock 回退。
@@ -19,9 +21,9 @@
 
 来源 ACL 快照允许 **且** 管理员显式绑定的来源身份有效 **且** 本地限制允许。
 
-管理员可绑定／撤销来源身份、停用账号、管理角色与密级，增加／移除平台、项目、部门、文档或整个数据集的拒绝规则。删除本地拒绝规则不能绕过来源 ACL。管理员角色本身不获得全部文档权限。
+管理员可绑定／撤销来源身份、停用账号、管理角色与密级，增加／移除平台、项目、部门、文档或整个数据集的拒绝规则。删除本地拒绝规则不能绕过已绑定来源身份的 ACL；新增来源身份绑定可能扩大账号范围，必须明确确认映射依据。管理员角色本身不获得全部文档权限。离线推断 ACL 是保存在事实库中的基础授权数据，不会被身份权限库覆盖；授权代码读取两者并合成最终过滤条件。
 
-多组来源授权初版通过多个显式来源身份的 ACL 并集表达，本地拒绝优先；来源角色／部门约束来自这些可信绑定。没有来源映射的新登录用户默认为 member、无数据权限。OrgForge 的历史查询不得恢复已离职身份的当前访问能力。
+多组来源授权初版通过多个显式来源身份的 ACL 并集表达，本地拒绝优先；来源角色／部门约束来自这些可信绑定。没有来源映射的新系统用户默认为 member、无数据权限。OrgForge 的历史查询不得恢复已离职身份的当前访问能力。
 
 ## 新鲜度最小边界
 
@@ -46,7 +48,19 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 
 Qdrant 可使用 [官方安装方式](https://qdrant.tech/documentation/operations/installation/)。实现参考 [过滤语义](https://qdrant.tech/documentation/search/filtering/) 和 [payload 索引](https://qdrant.tech/documentation/manage-data/indexing/)；身份、撤权和跨库发布由应用负责，不是向量库自动提供。
 
-## 配置真实登录
+## 当前入口状态
+
+`.env.integration.example` 中 `BROWSER_LOGIN_ENABLED=false`、`DEMO_MODE=false` 是默认值。普通模式没有演示入口，业务请求仍需验证。演示模式需用新的独立安全目录执行 `demo-init`，再显式启用 `--demo` 或 `DEMO_MODE=true`；强制回环 bind、PUBLIC_URL、请求地址、Host 与写入 Origin，保留 CSRF 和业务权限检查，不能与 OIDC 混用。
+
+用户已确认新增一个独立管理员与六个员工，复用实际搜索、问答、权限与审计服务。固定名单只用于演示会话；`/api/session` 明确显示 `identity_mode=isolated_demo`、`identity_verified=false`，审计记录也标记演示身份。任何能访问该回环端口的人都能选择管理员，不能将该模式公开部署或当作生产认证。初始化／重启不重置已撤销的绑定、本地限制或账号状态。启动与走查见 [演示验收](../product/demo-acceptance.md)。
+
+2026-10-06 配置检查：本机项目有回答模型 API Key，provider 为 `openai_compatible`；gpushare 集成预览进程没有模型 Key，provider 为 `mock`。配置检查只输出 Key 是否存在，不显示密钥，也未复制到服务器；服务器真实模型问答尚未验收。
+
+同日补充隔离冒烟检查：使用临时合成 Confluence／Jira 证据和真实本地 Qdrant 引擎，经 `UnifiedService.search`／`ask` 调用本机已配置的 `glm-5.3-flash`。实际 provider 为 `openai_compatible/glm-5.3-flash`，返回 `[1] [2]` 与授权证据对应的中文回答，回答与审计查询合计约 4.7 秒。按返回请求 ID 找到对应 answer 事件及真实 provider，哈希链有效；未绑定来源身份的管理员只能看脱敏回答。临时状态已清理，没有修改服务器权限或审计库。这不是 17860 前端人工验收，也不足以证明真实 Part A 大语料的回答质量。当前本地主测试 60 项、需求同步与 diff 检查通过。
+
+## 可选 OIDC 历史配置（延期，不作为当前步骤）
+
+下面仅保存已有实现的运维参考，不继续执行 Auth0 登录配置。只有后续明确要求恢复浏览器登录时才显式设置 `BROWSER_LOGIN_ENABLED=true`；旧会话或仅填写 OIDC 字段不能恢复访问。
 
 参考 `.env.integration.example`，填到被 Git 忽略的 `.env`：
 
@@ -63,7 +77,7 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
   --issuer '你的真实 issuer' --subject '验证后的 sub' --name '管理员' --role admin
 ```
 
-管理员随后在页面为成员绑定来源身份。姓名、邮箱或外部 role 声明不自动提权。真实提供方尚未选定；当前完成通用实现与独立测试 issuer 验证，不声称真实提供方已配置、真实企业 ACL 已改造。
+此可选模式中管理员随后可在页面为成员绑定来源身份。姓名、邮箱或外部 role 声明不自动提权。用户曾选择 Auth0 与独立显示名“ContextLedger 管理员”，Auth0 应用已创建但未配置回调、未读取密钥或接入服务器；随后明确延期浏览器登录。管理员真实身份绑定未执行，不能声称真实企业 ACL 已改造。
 
 ## 存储与重建
 
@@ -74,19 +88,23 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 
 ## 人工验收顺序
 
-1. 配置真实 OIDC，登录两个账号；新账号未绑定时无权限。
-2. 管理员绑定两个来源身份，同一问题展示各自授权证据；无绑定的管理员也不能读原文。
+当前实际回答 Prompt、独立系统管理员与更新后的验收范围见 [Prompt 与身份人工走查](../product/prompt-and-login-walkthrough.md)。管理员不是数据集里的员工，默认没有业务资料权限。
+
+1. 不配置 Auth0，不等待 Tool；在明确标记的隔离演示模式下选择固定账号验收，非演示的未验证生产请求仍被拒绝。
+2. 六个员工绑定不同来源身份，同一问题验证各自授权证据；独立演示管理员做撤权。无绑定的管理员也不能读原文，演示选择身份不代表生产鉴权已完成。
 3. 生成回答、展开引用，核对编号、来源、内容版本和时间。
 4. 撤销来源身份或增加平台拒绝规则，搜索、原文、问答不能继续交付旧证据；恢复不得超出来源 ACL。
 5. 模型不可用时退回确定性回答，生成期间撤权则丢弃结果。
 6. 合规角色查询／导出脱敏审计，普通成员被拒绝；核对完整性和请求引用。
 7. 用副本测试篡改、构建中断、快照变化，不篡改真实演示审计库。
 
-自动测试不替代用户人工验收、真实提供方配置和 EC-010 规模／质量评测。十个工程专题仍以固定清单为准。
+自动测试不替代用户人工验收及 EC-010 规模／质量评测。十个工程专题仍以固定清单为准。隔离演示入口已实现，用户人工走查待完成；未来 Tool 单独讨论。
 
 实际快照与运行中的 Qdrant 可使用 `scripts/verify_unified_snapshot.py --out ...` 做运维冒烟检查。测试身份与日志位于临时目录，不写入正式身份库；回答固定为 Mock，验证关键词／语义／混合检索、原文、引用和撤权，不冒充完整评测或真实登录提供方。
 
 ## gpushare 独立预览验收记录（2026-10-06）
+
+以下为已有服务器预览记录，不代表当前工作区的登录停用、范围和提示修正已经部署；运行中的预览须单独同步和验证。
 
 - 分支代码：`/home/research_pyx/Hackson_fintech-integration`；原 main 代码和 7860 服务未替换。
 - 新数据、Qdrant、独立环境与安全状态：`/hy-tmp/data_pyx/contextledger-integration/`，分别放在 `content/`、`qdrant/`、`venv/`、`security/`。原 Part A 的 Raw／Embedding／模型缓存只复用、不重新下载；Canonical Store 使用独立副本。

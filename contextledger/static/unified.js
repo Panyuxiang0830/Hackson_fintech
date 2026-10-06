@@ -20,13 +20,25 @@ async function sessionStatus() {
     clearEvidence(); el("status").textContent = "身份或权限已变化，已清除当前证据与回答，请重新查询。";
   }
   me=status.user; csrf=status.csrf || ""; epoch=me ? me.epoch : null;
-  el("identity").textContent = me ? `${me.name} · ${me.role} · 权限版本 ${me.epoch}` : status.oidc_configured ? "尚未登录" : "OIDC 尚未配置；受保护业务不可访问";
-  el("login").hidden=!!me || !status.oidc_configured; el("logout").hidden=!me;
+  el("identity").textContent = me ? `${status.demo_mode ? "演示身份 · " : ""}${me.name} · ${me.role} · 权限版本 ${me.epoch}` : status.demo_mode ? "请选择演示身份；不是生产登录" : !status.browser_login_enabled ? "真实登录已延期；普通模式不开放未验证业务访问" : status.oidc_configured ? "尚未登录" : "可选 OIDC 未配置；受保护业务不可访问";
+  if (el("login")) el("login").hidden=!!me || !status.oidc_configured;
+  if (el("logout")) el("logout").hidden=!me;
+  if (el("demoidentity") && me) el("demoidentity").value=me.id;
   el("admin").hidden=!me || me.role!=="admin";
   el("auditpanel").hidden=!me || !["admin","compliance"].includes(me.role);
   for (const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me;
   if (me && (previousId !== me.id || !el("corpus").options.length)) await loadCorpora();
   return status;
+}
+async function loadDemoAccounts() {
+  if (!el("demoidentity")) return;
+  const selected=me ? me.id : el("demoidentity").value;
+  const accounts=await api("/api/demo/accounts"); el("demoidentity").replaceChildren();
+  for (const account of accounts) {
+    option(el("demoidentity"),account.id,`${account.name} · ${account.role}${account.department ? ` · ${account.department}` : ""}${account.enabled ? "" : " · 已停用"}`);
+    el("demoidentity").lastElementChild.disabled=!account.enabled;
+  }
+  if(accounts.some(account=>account.id===selected)) el("demoidentity").value=selected;
 }
 async function loadCorpora() {
   const corpora=await api("/api/corpora"); const selected=el("corpus").value; el("corpus").replaceChildren();
@@ -79,17 +91,29 @@ async function loadAdmin() {
 function showPermissions() {
   const person=people.find(p=>p.id===el("target").value);
   el("permissions").textContent=person ? JSON.stringify({bindings:person.bindings,restrictions:person.restrictions},null,2) : "";
-  if(person) { el("role").value=person.role; el("clearance").value=person.clearance; }
+  if(person) {
+    el("role").value=person.role; el("clearance").value=person.clearance;
+    const source=person.bindings.find(b=>b.enabled) || person.bindings[0];
+    if(source) el("binding").value=source.principal_id;
+  }
 }
 async function mutate(fields) {
-  try { await api("/api/admin/permissions",{user_id:el("target").value,...fields}); clearEvidence(); await sessionStatus(); await loadCorpora(); await loadAdmin(); el("adminstatus").textContent="已持久化。下一次请求与交付检查使用新权限。"; }
+  try { await api("/api/admin/permissions",{user_id:el("target").value,...fields}); clearEvidence(); await sessionStatus(); await loadCorpora(); await loadAdmin(); await loadDemoAccounts(); el("adminstatus").textContent="已持久化。下一次请求与交付检查使用新权限。"; }
   catch(error) { el("adminstatus").textContent=error.message; }
 }
 function binding(enabled) { const p=principals.find(p=>p.principal_id===el("binding").value); if(p) return mutate({action:"binding",corpus:p.corpus,principal_id:p.principal_id,enabled}); }
 function restrict(denied) { const p=principals.find(p=>p.principal_id===el("binding").value); if(p) return mutate({action:"restriction",corpus:p.corpus,kind:el("rulekind").value,value:el("rulevalue").value,denied}); }
 el("search").onclick=()=>query(false); el("ask").onclick=()=>query(true);
 el("corpus").onchange=clearEvidence; el("mode").onchange=clearEvidence;
-el("logout").onclick=async()=>{ await api("/api/logout",{}); clearEvidence(); el("corpus").replaceChildren(); await sessionStatus(); };
+if (el("logout")) el("logout").onclick=async()=>{ await api("/api/logout",{}); clearEvidence(); el("corpus").replaceChildren(); await sessionStatus(); };
+if (el("demoselect")) el("demoselect").onclick=async()=>{
+  try {
+    await api("/api/demo/select",{user_id:el("demoidentity").value});
+    clearEvidence(); el("corpus").replaceChildren();
+    await sessionStatus(); await loadDemoAccounts(); await loadAdmin();
+    el("status").textContent="已切换演示身份，后续请求使用该账号的当前权限。";
+  } catch(error) { el("status").textContent=error.message; }
+};
 el("target").onchange=showPermissions;
 el("bind").onclick=()=>binding(true); el("unbind").onclick=()=>binding(false);
 el("deny").onclick=()=>restrict(true); el("restore").onclick=()=>restrict(false);
@@ -97,6 +121,6 @@ el("saveaccount").onclick=()=>mutate({action:"account",role:el("role").value,cle
 el("disable").onclick=()=>mutate({action:"account",enabled:false}); el("enable").onclick=()=>mutate({action:"account",enabled:true});
 el("auditgo").onclick=async()=>{ try { auditData=await api(`/api/audit?${new URLSearchParams({q:el("auditquestion").value})}`); el("auditresults").textContent=JSON.stringify(auditData,null,2); el("auditexport").disabled=false; } catch(error) { el("auditresults").textContent=error.message; } };
 el("auditexport").onclick=()=>{ if(!auditData)return; const url=URL.createObjectURL(new Blob([JSON.stringify(auditData,null,2)],{type:"application/json"})); const a=document.createElement("a"); a.href=url;a.download="contextledger-audit-redacted.json";a.click();URL.revokeObjectURL(url); };
-sessionStatus().then(loadAdmin).catch(error=>{el("identity").textContent=error.message;});
+sessionStatus().then(async()=>{await loadDemoAccounts(); await loadAdmin();}).catch(error=>{el("identity").textContent=error.message;});
 setInterval(()=>sessionStatus().catch(()=>{clearEvidence();el("status").textContent="连接不可用，已清除当前展示。";}),5000);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)clearEvidence();else sessionStatus().catch(()=>clearEvidence());});

@@ -21,9 +21,11 @@
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py` | `tests/test_integration.py` |
-| REQ-016 | 可信登录与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/web.py` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
-| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_oidc.py` |
+| REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
+| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_oidc.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `planned` | — | — |
+| REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `planned` | `src/answering.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py` |
+| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `deferred` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -317,41 +319,44 @@
   - 测试：`tests/test_integration.py`
   - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`
 
-## REQ-016 · 可信登录与持久化身份权限库
+## REQ-016 · 可信调用身份与持久化身份权限库
 
-- 来源：team integration discussion confirmed on 2026-10-05
+- 来源：team integration discussion confirmed on 2026-10-05; browser login deferred by user on 2026-10-06
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：通过 OIDC 验证真实登录身份，并以持久化身份权限库管理账号映射、组织与组、角色、项目、本地限制和权限版本；登录提供方及来源 ACL 映射细节待确认。
+- 说明：以持久化身份权限库管理稳定调用身份、来源映射、组织与组、角色、项目、本地限制和权限版本。真实浏览器登录延期，保留 Part A 前端用于当前集成验收；用户已确认在回环／SSH 预览中新增独立 ContextLedger 管理员和六个员工，使用隔离演示状态复用实际权限和审计服务。Agent Tool 是后续设想，不作为当前前置条件，演示身份选择不能宣称为生产鉴权。
 - 验收标准：
 
-  - 问答、搜索、原文读取、权限管理和审计查询均以服务端验证的登录身份为准，不接受调用方任意指定的演示身份
-  - 真实登录账号使用稳定身份标识映射到系统用户及来源身份，不仅凭显示姓名匹配
+  - 生产问答、搜索、原文读取、权限管理和审计查询均以服务端验证的调用身份为准，不接受模型或普通请求参数自报身份；演示模式显式启用、使用独立权限与审计状态、仅允许回环访问并标注非生产鉴权
+  - 系统用户使用稳定身份标识映射到来源身份，不仅凭显示姓名匹配；未来 Tool 身份传递机制在延期的 REQ-020 确认，不阻塞当前前端验收方案
   - 身份映射、组、角色、项目、本地限制和权限版本持久化保存，重启或重建内容索引不会丢失
   - 管理员和合规功能在服务端执行角色检查，普通用户不能通过调用接口自行提权
   - 每次请求解析最新权限；具体撤权时效和来源 ACL 保真继续由 REQ-005 与 REQ-003 管理
-  - 用户已确认先完成通用 OIDC 接入，具体提供方稍后配置；未配置时拒绝业务访问，不启用任意演示身份登录
+  - 浏览器登录已于 2026-10-06 延期，不作为当前验收前置条件；OIDC 默认停用，已有配置或旧会话不能意外重新启用；未验证的生产业务请求仍拒绝访问，演示身份入口不在普通模式开放
   - 来源身份由管理员显式绑定，不仅凭姓名自动匹配；离线 ACL 与真实身份的全面一致性改造后续专题讨论
+  - 独立系统管理员显示名为 ContextLedger 管理员，不借用现有数据集员工，默认没有来源身份绑定，管理角色不自动授予业务资料读取权限；隔离演示账号不能冒充已验证的真实管理员
+  - 六个演示员工显式绑定到六个已存在的来源身份，页面可切换固定名单但不能创建任意身份；停用账号不可进入业务，成员不能直接调用管理员或审计接口
+  - 演示初始化与重启保留已有撤权和本地限制，不自动恢复权限；拒绝将已有非演示权限库用于演示模式，禁止演示模式和 OIDC 混用
 
 - 影响范围：
 
-  - 代码：`contextledger/identity_store.py`, `contextledger/web.py`
-  - 测试：`tests/test_integration.py`, `tests/test_oidc.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/architecture/unified-integration.md`
+  - 代码：`contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `scripts/sync_preview_config.py`, `.env.integration.example`
+  - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_oidc.py`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/product/tool-entry-scope.md`
 
 ## REQ-017 · Part A 与安全问答服务统一集成
 
 - 来源：team integration discussion confirmed on 2026-10-05
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：保留 Part A 的 7860 页面作为统一入口，使 Part A 数据与检索连接既有权限管理、新鲜度、回答、引用校验和审计服务，不再维护两条互不相通的业务链路。
+- 说明：将 Part A 数据与检索连接既有权限管理、新鲜度、回答、引用校验和审计服务，形成同一应用服务；用户于 2026-10-06 澄清本轮保留 Part A 前端作为集成和人工验收入口，只延期真实浏览器登录，Agent Tool 由 REQ-020 后续讨论。
 - 验收标准：
 
-  - 统一页面提供搜索、问答、证据与原文，并向相应授权角色提供权限管理和审计功能
-  - 页面及其业务接口调用同一应用服务，读取一致的身份权限状态
+  - 保留 Part A 风格前端，提供搜索、问答、证据与原文，并向相应授权角色提供权限管理和审计功能，支持完整人工验收
+  - 前端调用同一应用服务，读取一致的身份权限状态，不维护第二套权限逻辑；未来工具适配层复用该服务，不是当前验收前置条件
   - Part A 检索证据通过统一权限与新鲜度检查后进入既有回答服务和查询审计链
   - 集成前对齐 main 与本地模型集成分支的需求和引用校验能力，不能把未合入功能宣称为 main 已实现
-  - 真实登录由 REQ-016、索引权限由 REQ-002、来源 ACL 由 REQ-003、新鲜度由 REQ-004、撤权由 REQ-005、回答与审计由既有 REQ 管理，不重复建立需求
+  - 身份权限与隔离演示边界由 REQ-016、索引权限由 REQ-002、来源 ACL 由 REQ-003、新鲜度由 REQ-004、撤权由 REQ-005、回答与审计由既有 REQ 管理；浏览器登录和未来 Tool 都不属于当前交付前置条件
   - 集成版采用已确认的 Qdrant 可过滤后端，仍保留 Part A 解析、原始与标准化存储能力
   - 本轮优先保障系统内权限撤销，不实现原平台权限撤销的自动发现与同步；保留来源权限检查与同步的适配接口，未启用时明确返回 not_enabled 或 unknown，不伪造同步成功
   - 外部权限自动同步的阶段性延期不取消既有来源 ACL 保真要求，界面和文档明确区分离线权限快照与实时来源权限
@@ -360,9 +365,9 @@
 
 - 影响范围：
 
-  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `requirements-integration.txt`
-  - 测试：`tests/test_integration.py`, `tests/test_oidc.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `QUICKSTART.md`
+  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `requirements-integration.txt`
+  - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_oidc.py`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 
@@ -383,3 +388,44 @@
   - 代码：—
   - 测试：—
   - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`
+
+## REQ-019 · 回答 Prompt 的管理与质量评测
+
+- 来源：user requested recording answer prompt design on 2026-10-06
+- 权威级别：`team_decision`
+- 状态：`planned`
+- 说明：将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。本轮只记录实际模板与计划，不修改业务 Prompt。
+- 验收标准：
+
+  - 记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料
+  - 后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化
+  - 通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明
+  - Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持
+
+- 影响范围：
+
+  - 代码：`src/answering.py`, `contextledger/unified_service.py`
+  - 测试：`tests/test_answering.py`
+  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/evaluation/model-selection.md`
+
+## REQ-020 · 面向上游 Agent 的权限感知工具接口
+
+- 来源：user proposed a future LLM tool on 2026-10-06 and clarified it is not the current integration scope
+- 权威级别：`team_decision`
+- 状态：`deferred`
+- 说明：后续可将统一检索服务作为上游 Agent 可调用的工具。用户已明确本轮不做 Tool，继续在 Part A 前端验收集成；具体采用 MCP、HTTP 工具或本地调用以及身份验证方式待后续确认，不宣称工具入口已实现。
+- 验收标准：
+
+  - 明确工具接入协议、部署信任边界与上游最终用户身份验证方式，再实现适配层；浏览器登录不是工具接入的必要前置条件
+  - 工具只接受问题与已授权范围内的检索条件，权限身份由可信运行时注入或验证，不能由模型在工具参数中任意选择 user_id、角色或来源 principal
+  - 即使使用共享服务凭据，也必须保留并验证最终用户身份，不把全部请求归为拥有所有员工权限的一个服务账号
+  - 工具复用统一身份权限库、Qdrant/FTS 前置过滤、证据二次校验、交付检查和审计，不建立旁路权限实现
+  - 默认返回可追溯的授权证据、来源、版本和请求标识供上游模型使用；是否在工具内部再次生成回答需要明确，不强制每次工具调用重复调用模型
+  - 测试同一问题对两个不同权限身份的结果、伪造身份、未验证身份、系统内撤权、原文访问和审计权限；未建立可信身份时拒绝访问
+  - 不以实现 Tool 阻塞 REQ-017 当前前端验收；未来 Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录
+
+- 影响范围：
+
+  - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/web.py`
+  - 测试：`tests/test_integration.py`
+  - 文档：`docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`

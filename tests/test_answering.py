@@ -1,6 +1,7 @@
 import io
 import json
 import os
+from pathlib import Path
 import unittest
 import urllib.error
 from unittest.mock import patch
@@ -61,6 +62,36 @@ class AnswerServiceTests(unittest.TestCase):
         prompt = captured_request["messages"][1]["content"]
         self.assertIn("source=confluence", prompt)
         self.assertIn("source=jira", prompt)
+
+    def test_documented_prompt_snapshot_matches_actual_request(self):
+        captured_request = {}
+
+        def fake_urlopen(request, timeout, context):
+            captured_request.update(json.loads(request.data))
+            return self._response(
+                {
+                    "status": "answered",
+                    "answer": "The evidence supports this answer [1].",
+                    "citation_ids": [1],
+                    "uncertainty": "medium",
+                }
+            )
+
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                AnswerService().answer(self.user, "What does the evidence say?", self.evidence)
+
+        guide = (
+            Path(__file__).resolve().parents[1]
+            / "docs/product/prompt-and-login-walkthrough.md"
+        ).read_text(encoding="utf-8")
+        actual_system = captured_request["messages"][0]["content"]
+        self.assertIn(" ".join(actual_system.split()), " ".join(guide.split()))
+        actual_user = captured_request["messages"][1]["content"]
+        for field in ("Identity:", "Question:", "Authorised Top-K evidence:", "source_updated=", "freshness="):
+            self.assertIn(field, actual_user)
+        self.assertEqual(captured_request["temperature"], 0)
+        self.assertEqual(captured_request["max_tokens"], 1000)
 
     def test_out_of_range_model_citation_triggers_deterministic_fallback(self):
         unsafe_response = self._response(

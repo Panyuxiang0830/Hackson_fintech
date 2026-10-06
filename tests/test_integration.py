@@ -76,7 +76,7 @@ class IntegrationTests(unittest.TestCase):
         with patch.dict("os.environ", {"LLM_PROVIDER": "mock", "LLM_API_KEY": ""}):
             self.service = UnifiedService(self.index, self.ids, self.audit)
         self.app = create_app(self.db_path, self.security, service=self.service,
-                             config={"TESTING": True, "SECRET_KEY": "test-secret-" * 4, "OIDC_ISSUER": "", "OIDC_CLIENT_ID": ""})
+                             config={"TESTING": True, "SECRET_KEY": "test-secret-" * 4, "BROWSER_LOGIN_ENABLED": False, "OIDC_ISSUER": "", "OIDC_CLIENT_ID": ""})
         self.client = self.app.test_client()
         self.login(self.alice)
 
@@ -93,12 +93,42 @@ class IntegrationTests(unittest.TestCase):
         client = self.app.test_client()
         for path in ("/api/search?q=TitanDB", "/api/doc?doc_id=doc-0", "/api/admin/users", "/api/audit"):
             self.assertEqual(client.get(path).status_code, 401)
-        self.assertEqual(client.get("/auth/login").status_code, 503)
-        self.assertIn(b"OIDC", client.get("/").data)
+        self.assertEqual(client.get("/auth/login").status_code, 404)
+        self.assertEqual(client.get("/auth/callback?code=forged").status_code, 404)
+        page = client.get("/").get_data(as_text=True)
+        self.assertNotIn('href="/auth/login"', page)
+        self.assertIn("Part A 数据链路与前端验收", page)
+        self.assertIn("普通模式不开放演示身份选择", page)
+        self.assertNotIn("工具身份入口尚未实现", page)
+        status = client.get("/api/session").json
+        self.assertFalse(status["browser_login_enabled"])
+        self.assertFalse(status["tool_access_configured"])
+        self.assertEqual(status["identity_mode"], "identity_entry_pending")
+
+    def test_deferred_login_ignores_existing_oidc_configuration_and_sessions(self):
+        with patch.dict("os.environ", {"BROWSER_LOGIN_ENABLED": "false"}):
+            app = create_app(self.db_path, self.security, service=self.service,
+                config={"TESTING": False, "SECRET_KEY": "test-secret-" * 4,
+                        "OIDC_ISSUER": "https://issuer.example", "OIDC_CLIENT_ID": "retained-client-id"})
+        client = app.test_client()
+        self.login(self.alice, client)
+        self.assertIsNone(app.extensions["oidc_client"])
+        self.assertEqual(client.get("/auth/login").status_code, 404)
+        self.assertEqual(client.get("/auth/callback").status_code, 404)
+        status = client.get("/api/session").json
+        self.assertFalse(status["authenticated"])
+        self.assertFalse(status["oidc_configured"])
+        self.assertNotIn(b'href="/auth/login"', client.get("/").data)
+        for path in ("/api/search?corpus=alpha&q=TitanDB&user_id=" + self.alice.id,
+                     "/api/doc?corpus=alpha&doc_id=doc-0", "/api/admin/users", "/api/audit"):
+            response = client.get(path, headers={"X-User-ID": self.alice.id})
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.json["error"], "trusted_identity_required")
+        self.assertEqual(client.post("/api/ask", json={"q": "TitanDB", "user_id": self.alice.id}).status_code, 401)
 
     def test_unconfigured_non_test_app_locks_preexisting_sessions(self):
         app = create_app(self.db_path, self.security, service=self.service,
-            config={"TESTING": False, "SECRET_KEY": "test-secret-" * 4, "OIDC_ISSUER": "", "OIDC_CLIENT_ID": ""})
+            config={"TESTING": False, "SECRET_KEY": "test-secret-" * 4, "BROWSER_LOGIN_ENABLED": False, "OIDC_ISSUER": "", "OIDC_CLIENT_ID": ""})
         client = app.test_client()
         self.login(self.alice, client)
         self.assertEqual(client.get("/api/search?corpus=alpha&q=TitanDB").status_code, 401)
@@ -143,6 +173,19 @@ class IntegrationTests(unittest.TestCase):
                 if mode != "keyword":
                     self.assertIsNotNone(call.call_args.kwargs["query_filter"])
         self.assertEqual(self.client.get("/api/search?corpus=beta&q=TitanDB&mode=vector").json["hits"], [])
+
+    def test_service_isolates_two_internal_callers_without_browser_login(self):
+        # Trusted in-process identities in an isolated fixture; NOT a production
+        # tool endpoint accepting arbitrary user IDs from the model or network.
+        for mode in ("keyword", "vector", "hybrid"):
+            alice, _ = self.service.search(self.alice.id, "alpha", "TitanDB", mode)
+            bob, _ = self.service.search(self.bob.id, "alpha", "TitanDB", mode)
+            self.assertEqual({h["doc_id"] for h in alice["hits"]}, {"doc-0", "doc-1"})
+            self.assertEqual({h["doc_id"] for h in bob["hits"]}, {"doc-2"})
+        self.ids.bind(self.alice.id, "alpha", "alpha:a", False)
+        self.assertEqual(self.service.search(self.alice.id, "alpha", "TitanDB")[0]["hits"], [])
+        self.assertEqual({h["doc_id"] for h in self.service.search(self.bob.id, "alpha", "TitanDB")[0]["hits"]}, {"doc-2"})
+        self.assertTrue(self.audit.verify().valid)
 
     def test_caller_cannot_impersonate_source_principal(self):
         self.assertEqual(self.client.get("/api/search?corpus=alpha&q=TitanDB&principal=alpha:b").status_code, 400)
@@ -244,6 +287,30 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/search?q=TitanDB").status_code, 401)
         self.login(self.admin)
         self.assertEqual(self.client.get("/api/search?corpus=alpha&q=TitanDB&mode=keyword").json["hits"], [])
+
+    def test_independent_named_admin_is_not_a_dataset_employee(self):
+        account = self.ids.register(
+            "https://issuer.example", "independent-admin-sub", "ContextLedger 管理员"
+        )
+        self.ids.update(account.id, role="admin")
+        admin = self.ids.get(account.id)
+        self.assertEqual(admin.name, "ContextLedger 管理员")
+        self.assertEqual(admin.role, "admin")
+        self.assertEqual(self.ids.scope(admin, "alpha"), ([], {}))
+        with connect(self.db_path) as db:
+            self.assertIsNone(
+                db.execute("SELECT 1 FROM principals WHERE principal_id=?", (admin.id,)).fetchone()
+            )
+        same_account = self.ids.register(
+            "https://issuer.example", "independent-admin-sub", "External display name"
+        )
+        self.assertEqual(same_account.id, admin.id)
+        self.assertEqual(same_account.name, admin.name)
+        self.login(admin)
+        self.assertEqual(self.client.get("/api/admin/users").status_code, 200)
+        self.assertEqual(
+            self.client.get("/api/search?corpus=alpha&q=TitanDB&mode=hybrid").json["hits"], []
+        )
 
     def test_orgforge_historical_day_does_not_restore_departed_source_identity(self):
         with connect(self.db_path) as db:

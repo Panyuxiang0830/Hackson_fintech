@@ -1,4 +1,8 @@
-"""7860 unified UI with OIDC-only identity, CSRF and server-side role checks."""
+"""Part A-style integration UI; browser login is deferred and disabled by default.
+
+An explicit isolated loopback demo can select fixed demonstration identities.
+Disabling browser login never opens production APIs to caller-selected identity.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +20,7 @@ from flask import Flask, g, jsonify, render_template, request, session
 from qdrant_client import QdrantClient
 
 from contextledger.audit_store import AuditStore
+from contextledger.demo_identity import LOOPBACK_HOSTS, MARKER, load_roster
 from contextledger.filtered_index import FilteredIndex, IndexUnavailable
 from contextledger.identity_store import IdentityStore
 from contextledger.source_permissions import SourcePermissionAdapter
@@ -31,6 +36,8 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
         SECRET_KEY=os.getenv("APP_SECRET_KEY") or secrets.token_hex(32),
         OIDC_ISSUER=os.getenv("OIDC_ISSUER", ""), OIDC_CLIENT_ID=os.getenv("OIDC_CLIENT_ID", ""),
         OIDC_CLIENT_SECRET=os.getenv("OIDC_CLIENT_SECRET", ""),
+        BROWSER_LOGIN_ENABLED=os.getenv("BROWSER_LOGIN_ENABLED", "false").lower() in {"1", "true", "yes"},
+        DEMO_MODE=os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"},
         PUBLIC_URL=os.getenv("APP_PUBLIC_URL", "http://127.0.0.1:7860"),
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=os.getenv("APP_PUBLIC_URL", "").startswith("https://"),
@@ -38,8 +45,17 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
     )
     if config:
         app.config.update(config)
-    issuer = app.config["OIDC_ISSUER"]
+    browser_login_enabled = app.config["BROWSER_LOGIN_ENABLED"] is True
+    demo_mode = app.config["DEMO_MODE"] is True
+    if demo_mode and browser_login_enabled:
+        raise ValueError("Isolated demo mode and OIDC browser login must not be enabled together")
+    issuer = app.config["OIDC_ISSUER"] if browser_login_enabled else ""
     public_url = app.config["PUBLIC_URL"].rstrip("/")
+    if demo_mode and urlparse(public_url).hostname not in LOOPBACK_HOSTS:
+        raise ValueError("Demo PUBLIC_URL must be a loopback URL")
+    if demo_mode and not all((Path(security_dir) / name).is_file()
+                             for name in (MARKER, "identities.sqlite", "audit.sqlite")):
+        raise ValueError("Run demo-init in a new isolated security directory before enabling demo mode")
     for url in (issuer, public_url):
         if not url:
             continue
@@ -48,7 +64,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
             raise ValueError("OIDC issuer/public URL must be HTTPS or a loopback development URL")
         if parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError("OIDC issuer/public URL must not contain credentials, query or fragment")
-    configured = bool(issuer and app.config["OIDC_CLIENT_ID"])
+    configured = bool(browser_login_enabled and issuer and app.config["OIDC_CLIENT_ID"])
     if configured and (not (os.getenv("APP_SECRET_KEY") or config and config.get("SECRET_KEY")) or len(app.config["SECRET_KEY"]) < 32):
         raise ValueError("APP_SECRET_KEY must have at least 32 characters")
     oauth = OAuth(app)
@@ -67,23 +83,55 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
                                  AuditStore(Path(security_dir) / "audit.sqlite"))
     app.extensions["unified_service"] = service
     app.extensions["oidc_client"] = oidc
+    roster = load_roster(db_path, security_dir, service.identities) if demo_mode else None
+    if demo_mode and service.audit.path.resolve() != (Path(security_dir) / "audit.sqlite").resolve():
+        raise ValueError("Demo audit state must be inside the isolated demo security directory")
+    demo_ids = {item["id"] for item in roster["accounts"]} if roster else set()
+    service.identity_mode = "isolated_demo" if demo_mode else "oidc_session" if configured else "trusted_service"
+
+    def session_actor():
+        actor = service.identities.session_actor(session.get("sid", "")) if configured or demo_mode or app.testing else None
+        if demo_mode and actor and actor.id not in demo_ids:
+            return None
+        return actor
+
+    def csrf_allowed():
+        token = session.get("csrf", "")
+        return bool(token and secrets.compare_digest(token, request.headers.get("X-CSRF-Token", "")))
 
     @app.before_request
     def protect():
+        if demo_mode:
+            # No ProxyFix / forwarded-header trust: only loopback peers, fixed Host,
+            # and same-origin writes. This is a network-isolated demo, not login.
+            if request.remote_addr not in {"127.0.0.1", "::1"} or request.host_url.rstrip("/") != public_url:
+                return jsonify(error="demo_loopback_only"), 403
+            origin = request.headers.get("Origin")
+            if (origin is not None and origin != public_url) or (
+                    request.method not in {"GET", "HEAD", "OPTIONS"} and origin != public_url):
+                return jsonify(error="demo_same_origin_required"), 403
+        if request.path in {"/api/demo/accounts", "/api/demo/select"}:
+            if not demo_mode:
+                return jsonify(error="demo_mode_disabled"), 404
+            if request.method == "POST" and not csrf_allowed():
+                return jsonify(error="csrf_failed"), 403
+            return
         if not request.path.startswith("/api/") or request.path == "/api/session":
             return
         # Unit tests may inject server-side sessions; the shipped CLI exposes no
-        # test login. Removing OIDC configuration locks even previously issued sessions.
-        actor = service.identities.session_actor(session.get("sid", "")) if configured or app.testing else None
+        # test login. Disabling browser login or removing OIDC configuration locks
+        # even previously issued sessions. A future tool adapter must verify its
+        # own trusted caller context rather than accept model-provided user IDs.
+        actor = session_actor()
         if not actor:
             service.audit.append({"request_id": secrets.token_hex(16), "timestamp": timestamp(),
                                   "event_type": "unauthenticated_request", "user_id": "unauthenticated", "decision": "denied",
-                                  "endpoint": request.path, "retrieved_document_ids": []})
-            return jsonify(error="login_required"), 401
+                                  "endpoint": request.path, "identity_mode": service.identity_mode,
+                                  "retrieved_document_ids": []})
+            return jsonify(error="trusted_identity_required"), 401
         g.actor = actor
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
-            csrf = session.get("csrf", "")
-            if not csrf or not secrets.compare_digest(csrf, request.headers.get("X-CSRF-Token", "")):
+            if not csrf_allowed():
                 service.record(actor, "csrf_rejected", decision="denied", endpoint=request.path)
                 return jsonify(error="csrf_failed"), 403
         # Never accept an arbitrary caller-chosen source identity.
@@ -162,20 +210,54 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
 
     @app.get("/")
     def index_page():
-        return render_template("unified.html")
+        return render_template("unified.html", browser_login_enabled=browser_login_enabled, demo_mode=demo_mode)
 
     @app.get("/api/session")
     def status():
-        actor = service.identities.session_actor(session.get("sid", "")) if configured or app.testing else None
+        actor = session_actor()
+        if demo_mode and not session.get("csrf"):
+            session["csrf"] = secrets.token_urlsafe(32)
         if actor:
             g.actor = actor
-        return jsonify(oidc_configured=configured, authenticated=bool(actor),
-                       user=asdict(actor) if actor else None, csrf=session.get("csrf") if actor else None,
-                       login_identity=service.identities.login_identity(actor.id) if actor else None,
+        return jsonify(oidc_configured=configured, browser_login_enabled=browser_login_enabled, demo_mode=demo_mode,
+                       identity_mode="isolated_demo" if demo_mode else "oidc_session" if configured else "identity_entry_pending",
+                       identity_verified=bool(actor and not demo_mode),
+                       tool_access_configured=False, authenticated=bool(actor),
+                       user=asdict(actor) if actor else None, csrf=session.get("csrf") if actor or demo_mode else None,
+                       login_identity=service.identities.login_identity(actor.id) if actor and not demo_mode else None,
                        source_permissions="not_enabled", freshness="offline snapshot only")
+
+    @app.get("/api/demo/accounts")
+    def demo_accounts():
+        accounts = []
+        for item in roster["accounts"]:
+            actor = service.identities.get(item["id"])
+            accounts.append({"id": actor.id, "name": actor.name, "role": actor.role,
+                             "enabled": actor.enabled, "department": actor.department,
+                             "initial_source": item["source"]})
+        return jsonify(accounts)
+
+    @app.post("/api/demo/select")
+    def select_demo():
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict) or set(body) != {"user_id"} or not isinstance(body["user_id"], str):
+            raise ValueError("Only a fixed demo user_id may be selected")
+        if body["user_id"] not in demo_ids:
+            raise PermissionError("not a demo account")
+        actor = service.current(body["user_id"])
+        previous = session_actor()
+        service.record(actor, "demo_identity_selected", previous_user_id=previous.id if previous else None)
+        service.identities.end_session(session.get("sid", ""))
+        sid = service.identities.new_session(actor, time.time() + 8 * 3600)
+        session.clear()
+        session["sid"], session["csrf"] = sid, secrets.token_urlsafe(32)
+        g.actor = actor
+        return jsonify(ok=True, demo_mode=True, identity_verified=False)
 
     @app.get("/auth/login")
     def login():
+        if not browser_login_enabled:
+            return jsonify(error="browser_login_deferred"), 404
         if oidc is None:
             return jsonify(error="OIDC is not configured; set issuer and client ID. No demo login is enabled."), 503
         session.clear()
@@ -184,6 +266,8 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
 
     @app.get("/auth/callback")
     def callback():
+        if not browser_login_enabled:
+            return jsonify(error="browser_login_deferred"), 404
         if oidc is None:
             return jsonify(error="OIDC not configured"), 503
         try:
@@ -214,6 +298,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
 
     @app.post("/api/logout")
     def logout():
+        service.record(g.actor, "demo_exit" if demo_mode else "logout")
         service.identities.end_session(session.get("sid", ""))
         session.clear()
         return jsonify(ok=True)

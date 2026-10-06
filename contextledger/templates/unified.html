@@ -10,12 +10,23 @@
 <body>
   <header>
     <h1>ContextLedger · 集成版</h1>
-    <p>四来源授权检索、问答、权限管理与审计 · Part A 数据链路</p>
-    <span id="identity">正在检查登录…</span>
+    <p>四来源授权检索、问答、权限管理与审计 · Part A 数据链路与前端验收</p>
+    <span id="identity">正在检查可信身份接入状态…</span>
+    {% if demo_mode %}
+    <div class="demo-entry">
+      <label for="demoidentity">演示身份（非真实登录）</label>
+      <select id="demoidentity" aria-label="演示身份"></select>
+      <button id="demoselect">切换演示身份</button>
+    </div>
+    {% endif %}
+    {% if browser_login_enabled or demo_mode %}
+    {% if browser_login_enabled %}
     <a id="login" href="/auth/login">OIDC 登录</a>
+    {% endif %}
     <button id="logout" hidden>退出</button>
+    {% endif %}
   </header>
-  <div class="notice" id="notice">离线来源 ACL 快照 + 系统内权限。未启用原平台权限同步，不宣称实时新鲜度。</div>
+  <div class="notice" id="notice">{% if demo_mode %}隔离演示模式：可切换固定虚拟身份，不是真实登录；仅用于回环／SSH 预览。{% endif %}离线来源 ACL 快照 + 系统内权限。未启用原平台权限同步，不宣称实时新鲜度。</div>
   <main>
     <section class="panel">
       <h2>查询</h2>
@@ -27,7 +38,7 @@
       </select>
       <label for="question">问题</label><textarea id="question" rows="4" maxlength="4000" placeholder="例如：TitanDB 是做什么的？"></textarea>
       <div class="row"><button id="search">搜索证据</button><button id="ask" class="primary">生成回答</button></div>
-      <p class="muted">身份由服务端登录决定，不能选择其他员工冒用身份。</p>
+      <p class="muted">{% if demo_mode %}当前选定的演示账号由服务端会话固定；搜索不能另行指定员工。生产环境仍需真实身份验证。{% else %}本轮保留 Part A 数据链路与前端验收，真实登录已延期；普通模式不开放演示身份选择。生产身份仍需服务端验证，不能由模型或普通参数指定。{% endif %}</p>
       <p class="muted">回答校验引用编号与授权范围，不宣称已完成逐句语义依据验证。无模型配置时使用确定性回答。</p>
     </section>
     <section>
