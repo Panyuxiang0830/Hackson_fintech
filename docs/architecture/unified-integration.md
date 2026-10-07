@@ -140,3 +140,11 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 - Jax 提问 `TitanDB是做什么的`：请求 `8ae1f9c9-26f2-4f3d-a539-ae2ca80aa9fb`，实际 `openai_compatible/glm-5.3-flash` 回答核心数据库、数据写入与查询用途，包含 `[1]`、`[3]`、`[5]`；提供 5 条当前授权 Confluence 证据，不是 Mock。
 - 对应审计权限版本均为 5，`identity_mode=isolated_demo`；新 `llm_diagnostics` 记录 Prompt `answer-v2-2026-10-07`。正确名称请求调用 1 次、失败列表为空、`finish_reason=stop`；检查时哈希链 48 个事件且有效。仅保存安全枚举，不记录密钥、原始异常或未校验模型输出。
 - 实体门槛和分块选择是本轮保守修复，不代表完整 Query Router、任意中文跨语种检索、意图相关重排或逐句证据支持已经完成；通用质量／延迟／成本评测仍属于 REQ-018/019。真实 API 的单次成功也不等于可用性保障。用户人工验收待完成，未合并 main。
+
+## 回答 Prompt 调整与真实输出边界（2026-10-07）
+
+- REQ-019 已扩充原问题／系统指令／授权证据分区、自然解释、分段与就近引用；REQ-015 记录按需模型问题拆解、受限 JSON 与纠错确认，仍为待实现设计，不新增检索前模型调用。
+- 最终 v6 实现代码 `150d706d` 已同步集成工作分支；本机及服务器各 85 项主测试、需求同步与 diff 检查通过。17860 重启后使用同一 Jax 身份、orgforge、混合检索和 `TitanDB是做什么的` 验证。保持既有 Canonical Store、Qdrant、权限版本与撤权状态，main／7860 未替换。
+- 请求 `92cc4103-d09e-4752-93a5-633e014cfcc7` 返回真实 GLM 三段回答，包含 [1]/[3]，5 份授权候选文档与 v5 同次比较一致；不是 Mock。审计为 `answer-v6-2026-10-07`、attempts=1、failures=[]、finish_reason=stop、permission_epoch=5、isolated_demo；核对时哈希链 53 个事件有效。
+- 质量未完全达标：实际回答仍有未询问的技术栈与迁移信息，不能因分段和编号校验通过就宣称表达已彻底解决；“没有定位文档”也未做全库存在性核验。Prompt 是软约束，后续需固定样例对比表达、相关性与事实支持，不能无限堆叠措辞或把样例调参当作通用能力。详见 [实际 Prompt 与验证边界](../product/prompt-and-login-walkthrough.md)。
+- 当前改动未合并 main，用户人工验收待完成；完整检索质量、跨来源冲突与逐句语义校验不因此完成。
