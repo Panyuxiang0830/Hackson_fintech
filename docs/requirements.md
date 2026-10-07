@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-06
+最后更新：2026-10-07
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -20,11 +20,11 @@
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
-| REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py` | `tests/test_integration.py` |
+| REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py` | `tests/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
 | REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `planned` | — | — |
-| REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `planned` | `src/answering.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py` |
+| REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py` |
 | REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `deferred` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
@@ -315,9 +315,9 @@
 
 - 影响范围：
 
-  - 代码：`contextledger/filtered_index.py`
+  - 代码：`contextledger/filtered_index.py`, `contextledger/search.py`
   - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`
+  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`, `docs/product/demo-acceptance.md`
 
 ## REQ-016 · 可信调用身份与持久化身份权限库
 
@@ -361,6 +361,7 @@
   - 本轮优先保障系统内权限撤销，不实现原平台权限撤销的自动发现与同步；保留来源权限检查与同步的适配接口，未启用时明确返回 not_enabled 或 unknown，不伪造同步成功
   - 外部权限自动同步的阶段性延期不取消既有来源 ACL 保真要求，界面和文档明确区分离线权限快照与实时来源权限
   - 不重新加入已取消的四个数据摄取审计模块
+  - 中文与英文实体相邻输入可检索；未知实体不强行用无关候选作答，拼写建议仅来自当前授权资料且不自动替换；模型降级明确标记未生成可靠答案，记录不含密钥或原始模型输出的失败原因
   - 本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main
 
 - 影响范围：
@@ -393,8 +394,8 @@
 
 - 来源：user requested recording answer prompt design on 2026-10-06
 - 权威级别：`team_decision`
-- 状态：`planned`
-- 说明：将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。本轮只记录实际模板与计划，不修改业务 Prompt。
+- 状态：`in_progress`
+- 说明：将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 为修复实测问答不可用，实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，完整质量和成本评测仍待完成。
 - 验收标准：
 
   - 记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料

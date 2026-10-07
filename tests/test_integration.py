@@ -89,6 +89,78 @@ class IntegrationTests(unittest.TestCase):
     def post(self, path, body, client=None):
         return (client or self.client).post(path, json=body, headers={"X-CSRF-Token": "test-csrf"})
 
+    def test_chinese_adjoining_entity_is_tokenised_and_authorised(self):
+        from contextledger.search import _fts_query
+        self.assertIn('"TitanDB"', _fts_query("介绍TitanDB是做什么的"))
+        hits, _ = self.index.search(self.index.scope(self.ids.get(self.alice.id), "alpha"), "TitanDB是做什么的")
+        self.assertEqual({h["doc_id"] for h in hits}, {"doc-0", "doc-1"})
+
+    def test_unknown_entity_does_not_return_nearest_unrelated_docs_or_call_model(self):
+        self.index.embed = Mock(side_effect=AssertionError("unnecessary embedding"))
+        answerer = self.service.answer
+        with patch.object(answerer, "_openai_compatible") as model:
+            result, hits = self.service.ask(self.alice.id, "alpha", "TibanDB是做什么的")
+        self.assertEqual(hits, [])
+        self.assertEqual(result["decision"], "insufficient")
+        self.assertEqual(result["llm_diagnostics"]["attempts"], 0)
+        self.index.embed.assert_not_called()
+        model.assert_not_called()
+
+    def test_spelling_suggestions_are_authorised_and_not_auto_applied(self):
+        with connect(self.db_path) as db:
+            db.execute("UPDATE documents SET title=? WHERE doc_id=?", ("TitanDB Overview", "doc-0"))
+            db.execute("UPDATE documents SET title=? WHERE doc_id=?", ("TibanSecretDB Overview", "doc-2"))
+            db.commit()
+            prepare_snapshot(db, "fixture", "test-generation", "test-embedding", 2)
+            db.execute("UPDATE cl_index_state SET state=?", ("ready",))
+            db.commit()
+        result, hits = self.service.ask(self.alice.id, "alpha", "TibanDB是做什么的")
+        self.assertEqual(hits, [])
+        self.assertEqual(result["query_suggestions"], ["TitanDB"])
+        self.assertIn("系统未自动替换", result["answer"])
+        self.assertNotIn("TibanSecretDB", result["answer"])
+        self.assertEqual(self.audit.query(request_id=result["request_id"])[0]["query"], "TibanDB是做什么的")
+
+    def test_api_failures_audited_as_insufficient_with_safe_diagnostics(self):
+        import os, urllib.error
+        from src.answering import AnswerService
+        with patch.dict(os.environ, {"LLM_API_KEY":"fixture-key", "LLM_PROVIDER":"openai_compatible"}):
+            self.service.answer = AnswerService()
+            with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("fixture-key")):
+                result, _ = self.service.ask(self.alice.id, "alpha", "TitanDB是做什么的")
+        event = self.audit.query(request_id=result["request_id"])[0]
+        self.assertEqual(event["decision"], "insufficient")
+        self.assertEqual(event["llm_diagnostics"]["failures"], ["api_unavailable"])
+        self.assertNotIn("fixture-key", json.dumps(event))
+
+    def test_substantive_chunk_replaces_heading_only_and_keeps_hash_validation(self):
+        text = "TitanDB title only\n\nTitanDB stores relational records. TitanDB is backed by PostgreSQL and used for telemetry."
+        digest = hashlib.sha256(text.encode()).hexdigest()
+        with connect(self.db_path) as db:
+            db.execute("UPDATE documents SET text=?,version=?,content_hash=? WHERE doc_id=?",
+                       (text,digest[:12],digest,"doc-0"))
+            db.execute("UPDATE docs_fts SET text=? WHERE doc_id=?", (text,"doc-0"))
+            db.execute("UPDATE chunks SET text=? WHERE chunk_id=?", ("TitanDB title only","doc-0-0"))
+            db.execute("INSERT INTO chunks VALUES (?,?,?,?,?)", ("doc-0-1","alpha","doc-0",1,text.split("\n\n")[1]))
+            db.commit()
+            prepare_snapshot(db, "fixture", "test-generation", "test-embedding", 2)
+            db.execute("UPDATE cl_index_state SET state=?", ("ready",))
+            db.commit()
+        hits,_ = self.index.search(self.index.scope(self.ids.get(self.alice.id),"alpha"), "TitanDB是做什么的",mode="keyword")
+        hit = next(hit for hit in hits if hit["doc_id"]=="doc-0")
+        self.assertEqual(hit["chunk_id"], "doc-0-1")
+        self.assertIn("PostgreSQL",hit["text"])
+        with connect(self.db_path) as db:
+            db.execute("UPDATE chunks SET text=? WHERE chunk_id=?", ("TitanDB INJECTED TitanDB","doc-0-1"))
+            db.commit()
+        with self.assertRaises(IndexUnavailable):
+            self.index.search(self.index.scope(self.ids.get(self.alice.id),"alpha"),"TitanDB是做什么的",mode="keyword")
+
+    def test_empty_question_has_actionable_chinese_error(self):
+        response = self.post("/api/ask", {"corpus":"alpha","q":"  "})
+        self.assertEqual(response.status_code,400)
+        self.assertIn("灰色示例文字",response.json["error"])
+
     def test_unauthenticated_apis_and_unconfigured_login_fail_closed(self):
         client = self.app.test_client()
         for path in ("/api/search?q=TitanDB", "/api/doc?doc_id=doc-0", "/api/admin/users", "/api/audit"):

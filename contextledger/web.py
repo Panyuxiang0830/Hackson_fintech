@@ -198,7 +198,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
         query = args.get("q", "")
         mode = args.get("mode", "hybrid")
         if not isinstance(corpus, str) or not isinstance(query, str) or not query.strip() or len(query) > 4000:
-            raise ValueError("corpus and a question of 1..4000 characters are required")
+            raise ValueError("请选择数据集，并输入 1～4000 个字符的问题；灰色示例文字不是已输入的问题。")
         day = args.get("as_of")
         if day not in (None, ""):
             if isinstance(day, bool):

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-06",
+  "updated_at": "2026-10-07",
   "requirements": [
     {
       "id": "REQ-001",
@@ -262,9 +262,9 @@
         "查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源",
         "团队后续专题 EC-004/006：细化失败恢复、增量发布与分类或过窄路由造成的漏检；首版整快照阻断不冒充高可用增量同步"
       ],
-      "code": ["contextledger/filtered_index.py"],
+      "code": ["contextledger/filtered_index.py", "contextledger/search.py"],
       "tests": ["tests/test_integration.py"],
-      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md"]
+      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-016",
@@ -306,6 +306,7 @@
         "本轮优先保障系统内权限撤销，不实现原平台权限撤销的自动发现与同步；保留来源权限检查与同步的适配接口，未启用时明确返回 not_enabled 或 unknown，不伪造同步成功",
         "外部权限自动同步的阶段性延期不取消既有来源 ACL 保真要求，界面和文档明确区分离线权限快照与实时来源权限",
         "不重新加入已取消的四个数据摄取审计模块",
+        "中文与英文实体相邻输入可检索；未知实体不强行用无关候选作答，拼写建议仅来自当前授权资料且不自动替换；模型降级明确标记未生成可靠答案，记录不含密钥或原始模型输出的失败原因",
         "本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main"
       ],
       "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt"],
@@ -335,8 +336,8 @@
       "title": "回答 Prompt 的管理与质量评测",
       "source": "user requested recording answer prompt design on 2026-10-06",
       "authority": "team_decision",
-      "status": "planned",
-      "description": "将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。本轮只记录实际模板与计划，不修改业务 Prompt。",
+      "status": "in_progress",
+      "description": "将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 为修复实测问答不可用，实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，完整质量和成本评测仍待完成。",
       "acceptance_criteria": [
         "记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料",
         "后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化",

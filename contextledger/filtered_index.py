@@ -7,7 +7,9 @@ publication, historical versions and live freshness remain separate work.
 from __future__ import annotations
 
 import hashlib
+import difflib
 import json
+import re
 import sqlite3
 import uuid
 from dataclasses import dataclass
@@ -17,7 +19,7 @@ from pathlib import Path
 from qdrant_client import models as qm
 
 from contextledger.identity_store import Actor, IdentityStore
-from contextledger.search import _fts_query, _rrf, _snippet
+from contextledger.search import _fts_query, _rrf, _snippet, contains_terms, entity_terms
 from contextledger.store import connect
 
 LEVELS = {"public": 0, "internal": 1, "confidential": 2, "restricted": 3}
@@ -182,6 +184,7 @@ class FilteredIndex:
             db.execute("BEGIN")
             state = self.consistent(db, scope.corpus)
             keyword = []
+            anchors = entity_terms(query)
             match = _fts_query(query)
             if mode != "vector" and match:
                 keyword = [r[0] for r in db.execute(f"""SELECT d.doc_id FROM docs_fts
@@ -189,10 +192,14 @@ class FilteredIndex:
                     JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id
                     WHERE docs_fts MATCH ? AND {where}
                     ORDER BY bm25(docs_fts) LIMIT ?""", (match, *args, max(50, limit * 10)))]
+            # Unknown explicit entities must not turn nearest neighbours into facts.
+            if mode != "vector" and anchors and not keyword:
+                return [], state["generation"]
             vector, chunks = [], {}
             if mode != "keyword":
                 try:
-                    results = self.client.query_points(state["collection"], query=self.embed(query),
+                    embedding_query = " ".join(anchors) if anchors and re.search(r"[\u4e00-\u9fff]", query) else query
+                    results = self.client.query_points(state["collection"], query=self.embed(embedding_query),
                         query_filter=self.vector_filter(scope), limit=80, with_payload=True).points
                 except Exception as error:
                     raise IndexUnavailable("Filtered vector backend unavailable; no unfiltered fallback.") from error
@@ -208,7 +215,7 @@ class FilteredIndex:
             hits = []
             for doc_id in ranking:
                 hit = self._document(db, scope, doc_id, chunks.get(doc_id), query)
-                if hit:
+                if hit and (not anchors or contains_terms(hit["full_text"], anchors)):
                     hits.append(hit)
                     if len(hits) >= limit:
                         break
@@ -236,6 +243,17 @@ class FilteredIndex:
             arguments = tokens if order else []
             chunk = db.execute(f"SELECT * FROM chunks WHERE corpus=? AND doc_id=? ORDER BY {order} ordinal LIMIT 1",
                                (scope.corpus, doc_id, *[t.lower() for t in arguments])).fetchone()
+        anchors = entity_terms(query)
+        if anchors:
+            # The English embedding may prefer a heading-only chunk. Choose a
+            # substantive lexical chunk in the same authorised document instead.
+            options = db.execute("SELECT * FROM chunks WHERE corpus=? AND doc_id=? ORDER BY ordinal",
+                                 (scope.corpus, doc_id)).fetchall()
+            scored = [(sum(len(re.findall(r"\b" + re.escape(term) + r"\b", item["text"], re.I)) for term in anchors),
+                       min(len(item["text"].split()), 150), item) for item in options
+                      if contains_terms(item["text"], anchors)]
+            if scored:
+                chunk = max(scored, key=lambda item: (item[0], item[1]))[2]
         if chunk is not None:
             expected = db.execute("SELECT content_hash FROM cl_chunks WHERE chunk_id=? AND corpus=? AND doc_id=?",
                                   (chunk["chunk_id"], scope.corpus, doc_id)).fetchone()
@@ -258,6 +276,23 @@ class FilteredIndex:
             state = self.consistent(db, scope.corpus)
             hit = self._document(db, scope, doc_id)
             return hit, state["generation"]
+
+    def suggestions(self, scope, query):
+        """Only names found in currently authorised titles, never global vocab."""
+        anchors = entity_terms(query)
+        if len(anchors) != 1 or not scope.principals:
+            return []
+        term = anchors[0]
+        where, args = self.sql_filter(scope)
+        with connect(self.db_path) as db:
+            db.execute("BEGIN")
+            self.consistent(db, scope.corpus)
+            titles = db.execute(f"SELECT d.title FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND instr(lower(d.title),?)>0 LIMIT 200",
+                                (*args, term[:2].lower())).fetchall()
+        names = {name for row in titles for name in entity_terms(row[0])}
+        ranked = sorted(((difflib.SequenceMatcher(None, term.lower(), name.lower()).ratio(), name) for name in names),
+                        key=lambda item: (-item[0], item[1]))
+        return [name for score, name in ranked if score >= .7 and name.lower() != term.lower()][:3]
 
 
 def prepare_snapshot(db, collection: str, generation: str, model: str, dim: int):

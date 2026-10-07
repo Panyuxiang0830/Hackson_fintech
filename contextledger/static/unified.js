@@ -1,6 +1,6 @@
 "use strict";
 const el = id => document.getElementById(id);
-let me = null, csrf = "", epoch = null, generation = 0, people = [], principals = [], auditData = null;
+let me = null, csrf = "", epoch = null, generation = 0, people = [], principals = [], auditData = null, queryBusy=false;
 function clearEvidence() {
   generation++;
   for (const id of ["answer", "reader", "hits"]) { el(id).replaceChildren(); if (id !== "hits") el(id).hidden = true; }
@@ -26,7 +26,7 @@ async function sessionStatus() {
   if (el("demoidentity") && me) el("demoidentity").value=me.id;
   el("admin").hidden=!me || me.role!=="admin";
   el("auditpanel").hidden=!me || !["admin","compliance"].includes(me.role);
-  for (const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me;
+  for (const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me || queryBusy;
   if (me && (previousId !== me.id || !el("corpus").options.length)) await loadCorpora();
   return status;
 }
@@ -44,7 +44,7 @@ async function loadCorpora() {
   const corpora=await api("/api/corpora"); const selected=el("corpus").value; el("corpus").replaceChildren();
   for (const corpus of corpora) option(el("corpus"), corpus.id, corpus.label);
   if (corpora.some(c=>c.id===selected)) el("corpus").value=selected;
-  if (!corpora.length) el("status").textContent="账号尚未绑定可用来源身份，请联系管理员。";
+  if (!corpora.length) el("status").textContent=me && me.role==="admin" ? "当前为管理账号，未配置业务资料读取权限。可在下方管理权限／审计；查询请切换员工。" : "账号尚未绑定可用来源身份，请联系管理员。";
 }
 function renderHits(hits) {
   el("hits").replaceChildren();
@@ -57,6 +57,10 @@ function renderHits(hits) {
   }
 }
 async function query(ask) {
+  if(queryBusy) return;
+  if(!el("question").value.trim()) { el("status").textContent="请先输入问题。灰色示例文字不是已输入的问题。"; el("question").focus(); return; }
+  queryBusy=true;
+  for(const id of ["search","ask","corpus","mode","question"]) el(id).disabled=true;
   clearEvidence(); const current=generation; el("status").textContent=ask ? "正在检索授权证据并生成回答…" : "正在检索…";
   try {
     if (!el("corpus").value) throw new Error("请先绑定来源身份。");
@@ -65,8 +69,10 @@ async function query(ask) {
     if (current!==generation) return;
     if (ask) { el("answer").hidden=false; el("answer").textContent=result.answer; }
     renderHits(result.evidence || result.hits || []);
-    el("status").textContent=`${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条`;
+    const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="insufficient" ? "授权证据不足，暂不能回答" : "回答已生成" : "检索完成";
+    el("status").textContent=`${state} · ${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条${!ask && result.query_suggestions && result.query_suggestions.length ? ` · 请确认是否指：${result.query_suggestions.join(" / ")}` : ""}`;
   } catch(error) { if (current===generation || !el("status").textContent) el("status").textContent=error.message; }
+  finally { queryBusy=false; for(const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me; }
 }
 async function openDoc(corpus,doc_id) {
   const current=generation;

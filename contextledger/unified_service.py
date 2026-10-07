@@ -75,17 +75,20 @@ class UnifiedService:
         actor = self.current(user_id)
         scope = self.index.scope(actor, corpus, day)
         hits, generation = self.index.search(scope, query, mode=mode)
+        suggestions = self.index.suggestions(scope, query) if not hits else []
         self.fence(actor, corpus, generation, hits)
         event = self.record(actor, "search", question=query, hits=hits, mode=mode,
                             corpus=corpus, index_generation=generation, as_of=scope.day)
         return {"hits": [self.public_hit(hit) for hit in hits], "mode": mode,
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
-                "index_generation": generation, "scope": "offline ACL snapshot + system-local permissions"}, hits
+                "index_generation": generation, "query_suggestions": suggestions,
+                "scope": "offline ACL snapshot + system-local permissions"}, hits
 
     def ask(self, user_id, corpus, query, mode="hybrid", day=None):
         actor = self.current(user_id)
         scope = self.index.scope(actor, corpus, day)
         hits, generation = self.index.search(scope, query, mode=mode, limit=5)
+        suggestions = self.index.suggestions(scope, query) if not hits else []
         self.fence(actor, corpus, generation, hits)  # Before any external model call.
         levels = ("public", "internal", "confidential", "restricted")
         user = User(actor.id, actor.name, actor.department or "source ACL snapshot", actor.role, levels[actor.clearance])
@@ -96,18 +99,25 @@ class UnifiedService:
                                 "unknown", source_time, source_time, hit["indexed_at"], "internal")
             evidence.append(Evidence(document, 1.0, "source ACL snapshot AND local restrictions",
                                      "consistent_with_offline_snapshot", "Live source freshness is unknown."))
-        answer, decision, provider = self.answer.answer(user, query, evidence)
         try:
+            kwargs = {"before_call": lambda: self.fence(actor, corpus, generation, hits)} if isinstance(self.answer, AnswerService) else {}
+            answer, decision, provider = self.answer.answer(user, query, evidence, **kwargs)
             self.fence(actor, corpus, generation, hits)  # Also after a possibly slow LLM call.
         except (PermissionError, PermissionChanged, IndexUnavailable):
             self.record(actor, "answer_discarded", question=query, decision="permission_or_version_changed")
             raise
+        if not hits and suggestions:
+            answer += "\n你是否想查询：" + " / ".join(suggestions) + "？请确认名称后重新提问；系统未自动替换。"
+        diagnostics = getattr(self.answer, "last_diagnostics", {})
+        diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
         event = self.record(actor, "answer", question=query, hits=hits, answer=answer, decision=decision,
-                            provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day)
+                            provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day,
+                            llm_diagnostics=diagnostics)
         return {"answer": answer, "decision": decision, "provider": provider,
                 "evidence": [self.public_hit(hit) | {"citation_id": i, "excerpt": hit["text"][:4000]}
                              for i, hit in enumerate(hits, 1)],
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
+                "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation,
                 "citation_validation": "number and authorised scope only; not semantic entailment"}, hits
 

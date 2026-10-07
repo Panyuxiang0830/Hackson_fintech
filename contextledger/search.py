@@ -8,6 +8,7 @@ principal is already allowed to see. Withheld rows contribute a count only.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -213,21 +214,24 @@ def _out_dir(connection: sqlite3.Connection) -> Path:
 
 
 def _fts_query(text: str) -> str:
-    tokens = []
-    current = []
-    for char in text:
-        if char.isalnum() or char in {"_", "-"}:
-            current.append(char)
-        elif current:
-            token = "".join(current)
-            if len(token) >= 2:
-                tokens.append('"' + token.replace('"', "") + '"')
-            current = []
-    if current:
-        token = "".join(current)
-        if len(token) >= 2:
-            tokens.append('"' + token.replace('"', "") + '"')
+    # A Latin entity adjoining Chinese text is not one FTS token.
+    parts = re.findall(r"[A-Za-z0-9_-]+|[\u4e00-\u9fff]+|[^\W\d_A-Za-z]+", text)
+    tokens = list(dict.fromkeys('"' + part + '"' for part in parts if len(part) >= 2))
     return " OR ".join(tokens[:12])
+
+
+def entity_terms(query: str) -> list[str]:
+    """Conservative lexical anchors, not an LLM identity/entity resolver."""
+    chinese = bool(re.search(r"[\u4e00-\u9fff]", query))
+    stop = {"what", "which", "where", "when", "how", "the", "and", "for", "used", "with", "does", "please"}
+    return list(dict.fromkeys(term for term in re.findall(r"[A-Za-z][A-Za-z0-9_-]*", query)
+        if len(term) >= 3 and term.lower() not in stop and
+        (chinese or any(c.isupper() for c in term[1:]) or any(c.isdigit() for c in term) or "_" in term)))[:6]
+
+
+def contains_terms(text: str, terms: list[str]) -> bool:
+    return all(re.search(r"(?<![A-Za-z0-9_])" + re.escape(term) + r"(?![A-Za-z0-9_])", text, re.I)
+               for term in terms)
 
 
 def _fts_doc_ids(connection: sqlite3.Connection, corpus: str, query: str, window: int) -> list[str]:
