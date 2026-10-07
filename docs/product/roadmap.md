@@ -48,7 +48,7 @@ REQ-020 为 deferred 的未来 Tool 设想；不要求当前先选工具协议�
 
 1. REQ-014：为 Confluence、Jira、Slack 和 Google Drive 建立来源感知的摄取、清洗、聚合和可恢复过滤链路；
 2. REQ-015：建立统一分类字段、结构化与向量混合索引，以及结合提问者身份的 Query 路由；
-   - 2026-10-07 扩充按需问题拆解、受限 JSON 的关键词／语义改写与纠错确认；[Query Planner](../architecture/query-planning.md) 仍待实现与收益评测，不把回答 Prompt v3 当成规划模块已接入。
+   - 2026-10-07 扩充按需问题拆解、受限 JSON 的关键词／语义改写与纠错确认；[Query Planner](../architecture/query-planning.md) 仍待实现与收益评测，不把回答 Prompt 的修改当成规划模块已接入。
 3. REQ-002/003：把权限过滤下推到索引层，并继续在服务端二次校验；
 4. REQ-004：保留版本历史，通过 active version 管理过期、撤回和回滚。
 

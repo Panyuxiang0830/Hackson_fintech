@@ -128,7 +128,8 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertEqual(decision, "answered")
         self.assertTrue(provider.startswith("openai_compatible/"))
         system = captured["messages"][0]["content"]
-        for instruction in ("own words", "blank lines", "jargon", "unasked migration", "do not invent facts"):
+        for instruction in ("own words", "blank lines", "jargon", "unasked migration", "do not invent facts",
+                            "non-technical colleague", "Explain the flow", "monitoring metrics"):
             self.assertIn(instruction, system)
 
     def test_out_of_range_model_citation_triggers_deterministic_fallback(self):

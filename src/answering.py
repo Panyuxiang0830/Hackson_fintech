@@ -14,7 +14,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v3-2026-10-07"
+PROMPT_VERSION = "answer-v4-2026-10-07"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 SYSTEM_PROMPT = (
@@ -27,6 +27,17 @@ SYSTEM_PROMPT = (
     "relationships in your own words, like a helpful colleague. Do not mechanically copy "
     "source sentences, translate an excerpt word for word, or dump a list of technologies. "
     "Explain necessary jargon briefly at first use and group details by what they do. "
+    "Unless the user asks for technical depth, write for a non-technical colleague. "
+    "For what-is or purpose questions, describe the practical purpose and two or three "
+    "concrete responsibilities: where the data comes from, what is stored, and how "
+    "applications use it, as supported by evidence. Explain the flow, not an inventory "
+    "of implementation components. Do not enumerate programming frameworks, acronyms, "
+    "drivers, or query mechanics as a substitute for explanation. For example, prefer "
+    "'an ingestion service collects incoming data and saves it for applications to query' "
+    "over a string of framework names; this is a style example, not evidence of this "
+    "project. Omit monitoring metrics, testing checklists, and migration proposals from "
+    "a basic purpose answer unless specifically requested or necessary to answer it. "
+    "Choose relevant evidence rather than trying to use every supplied item. "
     "Give enough relevant detail to make the answer understandable without padding; do "
     "not add unasked migration plans or unrelated facts just because they appear in evidence. "
     "Separate the direct answer from supporting explanation with a blank line. Answers "
