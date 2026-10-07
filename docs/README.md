@@ -33,6 +33,7 @@
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
 - `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
 - `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
+- `docs/architecture/query-planning.md`：待实现的问题理解、关键词／语义改写和纠错确认，保持检索权限边界；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
 - `CONTRIBUTING.md`：分支、提交和评审流程；

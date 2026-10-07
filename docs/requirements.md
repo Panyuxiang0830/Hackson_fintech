@@ -307,6 +307,8 @@
   - 统一分类字段至少覆盖来源、内容类型、部门、项目、业务实体、时间、权威等级、安全密级和当前状态
   - 明确字段保存在结构化索引，语义内容按需进入向量索引，内容未变化时不重复生成向量
   - Query 路由提取意图、实体、时间和来源范围，并结合当前身份生成检索过滤条件
+  - 待实现的问题理解层保留原用户问题，按需以大模型输出受限 JSON 的意图、关键词、语义改写与歧义候选；格式失败回退原问题，所有分支继续使用服务端权限过滤，不能由模型决定身份或扩大访问范围
+  - 检索扩展数量与成本有上限，原问题检索保留；可能的拼写错误或话外意思只作为候选，不擅自更换实体、时间、否定或比较条件，改变问题含义时先要求用户确认，并用召回质量、延迟和调用成本评估是否值得启用
   - 先执行元数据和关键词过滤，再进行向量召回与排序，最后只把少量 Top-K 证据交给模型
   - 物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分
   - 向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权
@@ -317,7 +319,7 @@
 
   - 代码：`contextledger/filtered_index.py`, `contextledger/search.py`
   - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`, `docs/product/demo-acceptance.md`
+  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`, `docs/architecture/query-planning.md`, `docs/product/demo-acceptance.md`
 
 ## REQ-016 · 可信调用身份与持久化身份权限库
 
@@ -395,10 +397,12 @@
 - 来源：user requested recording answer prompt design on 2026-10-06
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：将回答阶段的系统指令、用户问题与证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 为修复实测问答不可用，实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，完整质量和成本评测仍待完成。
+- 说明：将回答阶段的系统指令、原用户问题与授权证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 已实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，本次扩充自然表达、术语解释、分段和问题相关性要求，避免机械抄写或无关细节；完整质量和成本评测仍待完成。
 - 验收标准：
 
   - 记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料
+  - 实际模型请求包含独立的系统指令、未经替换的原用户问题和带编号的授权检索证据，动态数据分区表达且不被提升为系统指令
+  - 回答先用自然语言直接回答问题，再按需分段或列项解释相关用途、关系和必要术语；禁止整段搬运或堆砌技术名词，引用贴近所支持事实，不为生动或详细编造事实，不擅自增加未被询问的迁移等话题
   - 后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化
   - 通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明
   - Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持
@@ -407,7 +411,7 @@
 
   - 代码：`src/answering.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_answering.py`
-  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/evaluation/model-selection.md`
+  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`
 
 ## REQ-020 · 面向上游 Agent 的权限感知工具接口
 
