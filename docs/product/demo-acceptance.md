@@ -40,6 +40,8 @@ APP_PUBLIC_URL=http://127.0.0.1:17860 BROWSER_LOGIN_ENABLED=false \
 
 服务器模型配置通过 SSH 安全同步，只传 LLM 与演示白名单配置，不传 Auth0、其他 API Key 或本机应用 Secret。新应用 Secret 独立生成，保存在权限为 0600 的运行时配置；`CONTEXTLEDGER_ENV_FILE` 指向该文件。不要将配置或运行时审计加入 Git。
 
+离线 Embedding 还须指向服务器现有缓存。同步配置时用 `--hf-home /hy-tmp/data_pyx/contextledger-part-a/hf-cache` 显式指定服务器路径，不复制本机 HF_HOME，不重新下载模型。缓存缺失时语义／混合检索拒绝请求，不回退为无权限过滤的全库检索。
+
 ## 人工走查
 
 1. 打开 `http://127.0.0.1:17860/`，选择 Jax，点击“切换演示身份”。确认显示 member、权限版本和 orgforge。

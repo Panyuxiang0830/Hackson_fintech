@@ -14,6 +14,17 @@ class PreviewConfigTests(unittest.TestCase):
         self.assertNotIn("OIDC_CLIENT_SECRET", payload)
         self.assertNotIn("APP_SECRET_KEY", payload)
         self.assertNotIn("OTHER_API_KEY", payload)
+        self.assertNotIn("HF_HOME", payload)
+
+    def test_embedding_cache_requires_explicit_absolute_server_path(self):
+        payload = preview_config({"LLM_API_KEY": "fixture-token", "HF_HOME": "/local/ignored"},
+                                 "http://127.0.0.1:17860", "/tmp/isolated-demo", "http://127.0.0.1:6335",
+                                 "/server/existing-cache")
+        self.assertEqual(payload["HF_HOME"], "/server/existing-cache")
+        for path in ("relative/cache", "/cache\nOTHER=value", "/cache\x00"):
+            with self.assertRaises(ValueError):
+                preview_config({"LLM_API_KEY": "fixture-token"}, "http://127.0.0.1:17860",
+                               "/tmp/isolated-demo", "http://127.0.0.1:6335", path)
 
     def test_public_preview_and_missing_or_multiline_key_are_rejected(self):
         for values, url in (({}, "http://127.0.0.1:17860"),

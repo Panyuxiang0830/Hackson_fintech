@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from dotenv import dotenv_values
 
 
-def preview_config(values, public_url, security_dir, qdrant_url):
+def preview_config(values, public_url, security_dir, qdrant_url, hf_home=None):
     if urlparse(public_url).hostname not in {"127.0.0.1", "::1", "localhost"}:
         raise ValueError("Preview URL must be loopback")
     if not Path(security_dir).is_absolute():
@@ -22,7 +22,7 @@ def preview_config(values, public_url, security_dir, qdrant_url):
     key = (values.get("LLM_API_KEY") or "").strip()
     if not key or "\n" in key or "\r" in key or "\x00" in key:
         raise ValueError("A nonempty single-line model key is required in the local ignored config")
-    return {
+    config = {
         "APP_PUBLIC_URL": public_url, "BROWSER_LOGIN_ENABLED": "false", "DEMO_MODE": "true",
         "SECURITY_DIR": security_dir, "QDRANT_URL": qdrant_url,
         "LLM_API_KEY": key, "LLM_PROVIDER": "openai_compatible",
@@ -31,6 +31,11 @@ def preview_config(values, public_url, security_dir, qdrant_url):
         "LLM_REASONING_EFFORT": values.get("LLM_REASONING_EFFORT") or "low",
         "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
     }
+    if hf_home is not None:
+        if not Path(hf_home).is_absolute() or any(c in hf_home for c in "\r\n\x00"):
+            raise ValueError("Embedding cache must be an absolute server path")
+        config["HF_HOME"] = hf_home
+    return config
 
 
 RECEIVER = r'''
@@ -44,8 +49,10 @@ incoming = json.load(sys.stdin)
 allowed = {"APP_PUBLIC_URL", "BROWSER_LOGIN_ENABLED", "DEMO_MODE", "SECURITY_DIR", "QDRANT_URL",
            "LLM_API_KEY", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_REASONING_EFFORT",
            "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"}
-if set(incoming) != allowed or any(not isinstance(v, str) or chr(0) in v for v in incoming.values()):
+if set(incoming) not in (allowed, allowed | {"HF_HOME"}) or any(not isinstance(v, str) or chr(0) in v for v in incoming.values()):
     raise SystemExit("Invalid configuration payload")
+if "HF_HOME" in incoming and (not Path(incoming["HF_HOME"]).is_absolute() or not Path(incoming["HF_HOME"]).is_dir()):
+    raise SystemExit("Embedding cache directory does not exist")
 old = dotenv_values(target) if target.is_file() else {}
 secret = old.get("APP_SECRET_KEY") or secrets.token_urlsafe(48)
 if len(secret) < 32:
@@ -73,8 +80,9 @@ def main():
     parser.add_argument("--public-url", required=True)
     parser.add_argument("--security-dir", required=True)
     parser.add_argument("--qdrant-url", default="http://127.0.0.1:6335")
+    parser.add_argument("--hf-home", help="Existing server Hugging Face cache; no model download")
     args = parser.parse_args()
-    config = preview_config(dotenv_values(args.source), args.public_url, args.security_dir, args.qdrant_url)
+    config = preview_config(dotenv_values(args.source), args.public_url, args.security_dir, args.qdrant_url, args.hf_home)
     command = f"{shlex.quote(args.remote_python)} -c {shlex.quote(RECEIVER)} {shlex.quote(args.remote_config)}"
     result = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", args.ssh_host, command],
                             input=json.dumps(config), text=True, capture_output=True)

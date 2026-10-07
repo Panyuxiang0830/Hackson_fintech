@@ -308,8 +308,8 @@
         "不重新加入已取消的四个数据摄取审计模块",
         "本次集成在独立工作分支实施，未经用户人工验收确认不得合并到 main"
       ],
-      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "requirements-integration.txt"],
-      "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_oidc.py"],
+      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt"],
+      "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_oidc.py"],
       "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md"]
     },
     {
