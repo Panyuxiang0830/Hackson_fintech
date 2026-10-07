@@ -213,11 +213,30 @@ def _out_dir(connection: sqlite3.Connection) -> Path:
     return Path(path).resolve().parent
 
 
+# Function words that otherwise dominate an OR query and bury the real entity.
+_QUERY_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "can", "could", "do", "does",
+    "for", "from", "had", "has", "have", "how", "in", "is", "it", "not", "of", "on",
+    "or", "please", "should", "that", "the", "this", "to", "used", "was", "were",
+    "what", "when", "where", "which", "who", "why", "with", "would",
+}
+
+
 def _fts_query(text: str) -> str:
     # A Latin entity adjoining Chinese text is not one FTS token.
     parts = re.findall(r"[A-Za-z0-9_-]+|[\u4e00-\u9fff]+|[^\W\d_A-Za-z]+", text)
-    tokens = list(dict.fromkeys('"' + part + '"' for part in parts if len(part) >= 2))
-    return " OR ".join(tokens[:12])
+    tokens = []
+    for part in parts:
+        if len(part) < 2:
+            continue
+        if re.fullmatch(r"[A-Za-z]+", part) and part.lower() in _QUERY_STOPWORDS:
+            continue
+        quoted = '"' + part + '"'
+        if quoted not in tokens:
+            tokens.append(quoted)
+        if len(tokens) >= 12:
+            break
+    return " OR ".join(tokens)
 
 
 def entity_terms(query: str) -> list[str]:

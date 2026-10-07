@@ -162,17 +162,33 @@ class FilteredIndex:
         state = self.state(db)
         if self.expected_model and (state["model"] != self.expected_model or state["dim"] != 384):
             raise IndexUnavailable("Embedding model/configuration differs from published index.")
-        mismatch = db.execute("""SELECT 1 FROM documents d LEFT JOIN cl_metadata m
-            ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE d.corpus=? AND (
-            m.doc_id IS NULL OR d.version!=m.version OR d.content_hash!=m.content_hash OR
-            d.acl_json!=m.acl_snapshot OR d.extra_json!=m.extra_snapshot OR
-            NOT (d.day IS m.day) OR NOT (d.ts IS m.ts) OR d.source!=m.source OR d.dept!=m.department OR d.title!=m.title)
-            LIMIT 1""", (corpus,)).fetchone()
-        removed = db.execute("""SELECT 1 FROM cl_metadata m LEFT JOIN documents d
-            ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE m.corpus=? AND d.doc_id IS NULL LIMIT 1""", (corpus,)).fetchone()
-        if mismatch or removed:
-            raise IndexUnavailable("Known source snapshot changed; rebuild before retrieval.")
+        if _published_guard_matches(db, corpus):
+            return state
+        _scan_snapshot(db, corpus)
         return state
+
+    def install_snapshot_guard(self):
+        """Seal an already-published snapshot so later reads skip the full scan.
+
+        An immediate transaction keeps the scan and the stored counter on one
+        snapshot. A later document or metadata write increments the counter and
+        retrieval fails closed until the snapshot is published again.
+        """
+        with connect(self.db_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                self.state(db)
+            except IndexUnavailable:
+                return
+            _ensure_guard_schema(db)
+            for (corpus,) in db.execute("SELECT DISTINCT corpus FROM cl_metadata"):
+                if db.execute("SELECT 1 FROM cl_mutation_published WHERE corpus=?", (corpus,)).fetchone():
+                    continue
+                _scan_snapshot(db, corpus)
+                db.execute("INSERT INTO cl_mutation(corpus, n) VALUES (?, 0) ON CONFLICT(corpus) DO NOTHING", (corpus,))
+                current = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (corpus,)).fetchone()[0]
+                db.execute("INSERT INTO cl_mutation_published(corpus, n) VALUES (?, ?)", (corpus, current))
+            db.commit()
 
     def search(self, scope: Scope, query: str, mode="hybrid", limit=8):
         if mode not in {"keyword", "vector", "hybrid"}:
@@ -295,6 +311,85 @@ class FilteredIndex:
         return [name for score, name in ranked if score >= .7 and name.lower() != term.lower()][:3]
 
 
+def _scan_snapshot(db, corpus):
+    mismatch = db.execute("""SELECT 1 FROM documents d LEFT JOIN cl_metadata m
+        ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE d.corpus=? AND (
+        m.doc_id IS NULL OR d.version!=m.version OR d.content_hash!=m.content_hash OR
+        d.acl_json!=m.acl_snapshot OR d.extra_json!=m.extra_snapshot OR
+        NOT (d.day IS m.day) OR NOT (d.ts IS m.ts) OR d.source!=m.source OR d.dept!=m.department OR d.title!=m.title)
+        LIMIT 1""", (corpus,)).fetchone()
+    removed = db.execute("""SELECT 1 FROM cl_metadata m LEFT JOIN documents d
+        ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE m.corpus=? AND d.doc_id IS NULL LIMIT 1""", (corpus,)).fetchone()
+    if mismatch or removed:
+        raise IndexUnavailable("Known source snapshot changed; rebuild before retrieval.")
+
+
+def _ensure_guard_schema(db):
+    # Separate executes keep an open transaction intact. executescript would commit it.
+    statements = [
+        """CREATE TABLE IF NOT EXISTS cl_mutation (
+            corpus TEXT PRIMARY KEY, n INTEGER NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS cl_mutation_published (
+            corpus TEXT PRIMARY KEY, n INTEGER NOT NULL)""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_documents_ai AFTER INSERT ON documents BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+        END""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_documents_au AFTER UPDATE ON documents BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+            INSERT INTO cl_mutation(corpus, n) VALUES (OLD.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1 WHERE OLD.corpus <> NEW.corpus;
+        END""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_documents_ad AFTER DELETE ON documents BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (OLD.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+        END""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_metadata_ai AFTER INSERT ON cl_metadata BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+        END""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_metadata_au AFTER UPDATE ON cl_metadata
+        WHEN OLD.source <> NEW.source OR OLD.version <> NEW.version OR OLD.content_hash <> NEW.content_hash
+            OR OLD.acl_snapshot <> NEW.acl_snapshot OR OLD.extra_snapshot <> NEW.extra_snapshot
+            OR NOT (OLD.day IS NEW.day) OR NOT (OLD.ts IS NEW.ts)
+            OR OLD.department <> NEW.department OR OLD.title <> NEW.title
+        BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+            INSERT INTO cl_mutation(corpus, n) VALUES (OLD.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1 WHERE OLD.corpus <> NEW.corpus;
+        END""",
+        """CREATE TRIGGER IF NOT EXISTS cl_guard_metadata_ad AFTER DELETE ON cl_metadata BEGIN
+            INSERT INTO cl_mutation(corpus, n) VALUES (OLD.corpus, 1)
+            ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
+        END""",
+    ]
+    for statement in statements:
+        db.execute(statement)
+
+
+def _published_guard_matches(db, corpus):
+    try:
+        published = db.execute("SELECT n FROM cl_mutation_published WHERE corpus=?", (corpus,)).fetchone()
+        current = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (corpus,)).fetchone()
+    except sqlite3.OperationalError:
+        return False
+    if published is None or current is None:
+        return False
+    if int(published[0]) != int(current[0]):
+        raise IndexUnavailable("Known source snapshot changed; rebuild before retrieval.")
+    return True
+
+
+def _sync_published_guard(db):
+    _ensure_guard_schema(db)
+    for (corpus,) in db.execute("SELECT DISTINCT corpus FROM documents"):
+        db.execute("INSERT OR IGNORE INTO cl_mutation(corpus, n) VALUES (?, 0)", (corpus,))
+    for corpus, count in db.execute("SELECT corpus, n FROM cl_mutation"):
+        db.execute("INSERT OR REPLACE INTO cl_mutation_published(corpus, n) VALUES (?, ?)", (corpus, count))
+
+
 def prepare_snapshot(db, collection: str, generation: str, model: str, dim: int):
     db.executescript("""
         CREATE TABLE IF NOT EXISTS cl_index_state (
@@ -339,6 +434,7 @@ def prepare_snapshot(db, collection: str, generation: str, model: str, dim: int)
         db.executemany("INSERT INTO cl_chunks VALUES (?,?,?,?)",
             ((chunk["chunk_id"], chunk["corpus"], chunk["doc_id"], hashlib.sha256(chunk["text"].encode()).hexdigest())
              for chunk in db.execute("SELECT * FROM chunks")))
+        _sync_published_guard(db)
 
 
 def payload_for(chunk, meta):

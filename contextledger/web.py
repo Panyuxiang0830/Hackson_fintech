@@ -81,6 +81,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
                               api_key=os.getenv("QDRANT_API_KEY") or None, timeout=60)
         service = UnifiedService(FilteredIndex(db_path, client, identities), identities,
                                  AuditStore(Path(security_dir) / "audit.sqlite"))
+        service.index.install_snapshot_guard()
     app.extensions["unified_service"] = service
     app.extensions["oidc_client"] = oidc
     roster = load_roster(db_path, security_dir, service.identities) if demo_mode else None

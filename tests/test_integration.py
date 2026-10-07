@@ -92,6 +92,7 @@ class IntegrationTests(unittest.TestCase):
     def test_chinese_adjoining_entity_is_tokenised_and_authorised(self):
         from contextledger.search import _fts_query
         self.assertIn('"TitanDB"', _fts_query("介绍TitanDB是做什么的"))
+        self.assertEqual(_fts_query("What is TitanDB and what is it used for?"), '"TitanDB"')
         hits, _ = self.index.search(self.index.scope(self.ids.get(self.alice.id), "alpha"), "TitanDB是做什么的")
         self.assertEqual({h["doc_id"] for h in hits}, {"doc-0", "doc-1"})
 
@@ -155,6 +156,13 @@ class IntegrationTests(unittest.TestCase):
             db.commit()
         with self.assertRaises(IndexUnavailable):
             self.index.search(self.index.scope(self.ids.get(self.alice.id),"alpha"),"TitanDB是做什么的",mode="keyword")
+
+    def test_document_edit_after_publish_blocks_retrieval(self):
+        with connect(self.db_path) as db:
+            db.execute("UPDATE documents SET title=? WHERE doc_id=?", ("Renamed TitanDB", "doc-0"))
+            db.commit()
+        with self.assertRaises(IndexUnavailable):
+            self.index.search(self.index.scope(self.ids.get(self.alice.id), "alpha"), "TitanDB", mode="keyword")
 
     def test_empty_question_has_actionable_chinese_error(self):
         response = self.post("/api/ask", {"corpus":"alpha","q":"  "})
