@@ -6,7 +6,7 @@
 
 在 `codex/REQ-017-unified-integration` 上完成身份库、Qdrant/FTS 前置授权、统一回答与审计最低边界。保留 Part A 前端作为当前人工验收入口；用户只延期真实浏览器登录，OIDC 默认停用，不继续推进 Auth0 配置，不取消身份权限库。人工验收后才合并。实现和验收步骤见 [集成实施说明](../architecture/unified-integration.md)。下文 v0 完成项不能等同于集成版全部验收。
 
-用户已确认隔离前端演示入口：独立“ContextLedger 管理员”与六个员工，显式启用、回环访问、独立权限与审计状态。分支已实现固定名单、会话与 CSRF、Host／Origin 限制，初始化／重启不重置撤权。接下来部署到 gpushare 并按 [演示验收](demo-acceptance.md) 走查搜索、真实模型回答、引用、撤权和请求 ID 对应的审计；用户人工验收仍是 main 合并前置条件。
+用户已确认隔离前端演示入口：独立“ContextLedger 管理员”与六个员工，显式启用、回环访问、独立权限与审计状态。分支已实现固定名单、会话与 CSRF、Host／Origin 限制，初始化／重启不重置撤权。2026-10-07 已同步到 gpushare，自动走查了搜索、真实模型 API、撤权恢复和请求 ID 对应的审计；发现“当前进展”样例的召回多为标题／索引片段，模型拒答，质量仍需后续评测。接下来按 [演示验收](demo-acceptance.md) 由用户人工验收，确认后才合并 main。
 
 REQ-020 为 deferred 的未来 Tool 设想；不要求当前先选工具协议或实现上游身份通道。后续范围见 [未来工具入口](tool-entry-scope.md)。
 

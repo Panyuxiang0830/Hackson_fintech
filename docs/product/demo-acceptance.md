@@ -46,7 +46,7 @@ APP_PUBLIC_URL=http://127.0.0.1:17860 BROWSER_LOGIN_ENABLED=false \
 
 1. 打开 `http://127.0.0.1:17860/`，选择 Jax，点击“切换演示身份”。确认显示 member、权限版本和 orgforge。
 2. 搜索 `TitanDB`，点击证据查看原文；切换 Alex 或 Ariana 再搜相同问题，对比实际授权证据 ID，而不是只比答案文字。
-3. Jax 提问“TitanDB 当前有哪些进展和问题？请依据证据回答”，点击“生成回答”。核对 provider 为 `openai_compatible/glm-5.3-flash`；Mock／mock_fallback 不能算真实 API 验收。展开 `[1] [2]` 对应证据；编号校验不等于逐句语义证明。
+3. Jax 提问 `What is TitanDB and what is it used for? 请用中文依据证据回答。`，点击“生成回答”。核对 provider 为 `openai_compatible/glm-5.3-flash`；Mock／mock_fallback 不能算真实 API 验收。展开 `[1] [2]` 对应证据；编号校验不等于逐句语义证明。也可测试“TitanDB 当前有哪些进展和问题？请依据证据回答”：2026-10-07 自动走查时召回多为标题／索引片段，模型拒答，这是仍需评测的召回质量限制，不能算本题质量已通过。
 4. 复制回答显示的请求 ID，切换管理员，在审计条件粘贴请求 ID，点击“查询审计与完整性”。核对 answer 事件、用户、provider、permission_epoch、identity_mode 和 integrity.valid。管理员无业务绑定时回答脱敏，不能为了看明文而取消脱敏检查。
 5. 管理员选择 Jax。来源身份默认对齐其已有绑定；选择平台拒绝、输入先前实际出现的平台名（例如 slack），点击“增加拒绝规则”。切回 Jax，重新搜索、生成回答和打开先前的对应原文，不应交付被撤销的平台证据；其他员工不受影响。
 6. 管理员移除刚加的本地拒绝，再核对恢复仍受原来源 ACL 限制。撤权、恢复及后续查询应在审计链中出现。需要全部撤权时用“撤销来源身份”或“停用账号”。

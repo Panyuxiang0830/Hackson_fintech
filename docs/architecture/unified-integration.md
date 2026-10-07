@@ -1,6 +1,6 @@
 # 集成版实施与验收
 
-日期：2026-10-06。工作分支：`codex/REQ-017-unified-integration`。未经用户验收确认不合并 main。
+更新：2026-10-07。工作分支：`codex/REQ-017-unified-integration`。未经用户验收确认不合并 main。
 
 用户已澄清：Tool 是后续设想，本轮仍在 Part A 前端验收集成，只延期真实浏览器登录，不取消身份权限库。现行范围见修正后的 [ADR-0003](../decisions/ADR-0003-tool-first-and-deferred-browser-login.md)。用户已确认并在分支实现独立管理员与六员工的隔离演示入口，取消登录不等于匿名开放生产业务 API。
 
@@ -54,7 +54,7 @@ Qdrant 可使用 [官方安装方式](https://qdrant.tech/documentation/operatio
 
 用户已确认新增一个独立管理员与六个员工，复用实际搜索、问答、权限与审计服务。固定名单只用于演示会话；`/api/session` 明确显示 `identity_mode=isolated_demo`、`identity_verified=false`，审计记录也标记演示身份。任何能访问该回环端口的人都能选择管理员，不能将该模式公开部署或当作生产认证。初始化／重启不重置已撤销的绑定、本地限制或账号状态。启动与走查见 [演示验收](../product/demo-acceptance.md)。
 
-2026-10-06 配置检查：本机项目有回答模型 API Key，provider 为 `openai_compatible`；gpushare 集成预览进程没有模型 Key，provider 为 `mock`。配置检查只输出 Key 是否存在，不显示密钥，也未复制到服务器；服务器真实模型问答尚未验收。
+历史配置检查（2026-10-06，已被下方 2026-10-07 部署记录替代）：当时本机有回答模型 API Key、gpushare 无 Key。仅检查 Key 是否存在，没有显示密钥；当时服务器真实模型问答未验收。
 
 同日补充隔离冒烟检查：使用临时合成 Confluence／Jira 证据和真实本地 Qdrant 引擎，经 `UnifiedService.search`／`ask` 调用本机已配置的 `glm-5.3-flash`。实际 provider 为 `openai_compatible/glm-5.3-flash`，返回 `[1] [2]` 与授权证据对应的中文回答，回答与审计查询合计约 4.7 秒。按返回请求 ID 找到对应 answer 事件及真实 provider，哈希链有效；未绑定来源身份的管理员只能看脱敏回答。临时状态已清理，没有修改服务器权限或审计库。这不是 17860 前端人工验收，也不足以证明真实 Part A 大语料的回答质量。当前本地主测试 60 项、需求同步与 diff 检查通过。
 
@@ -104,7 +104,7 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 
 ## gpushare 独立预览验收记录（2026-10-06）
 
-以下为已有服务器预览记录，不代表当前工作区的登录停用、范围和提示修正已经部署；运行中的预览须单独同步和验证。
+以下是旧版服务器预览记录；登录停用与七账号演示入口的当前部署状态以紧随其后的 2026-10-07 记录为准。
 
 - 分支代码：`/home/research_pyx/Hackson_fintech-integration`；原 main 代码和 7860 服务未替换。
 - 新数据、Qdrant、独立环境与安全状态：`/hy-tmp/data_pyx/contextledger-integration/`，分别放在 `content/`、`qdrant/`、`venv/`、`security/`。原 Part A 的 Raw／Embedding／模型缓存只复用、不重新下载；Canonical Store 使用独立副本。
@@ -116,3 +116,18 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 - 新运行目录当次占用约 2.6 GB；其中事实副本约 1.4 GB、Qdrant 约 1 GB、独立环境约 150 MB，索引优化／日志仍可能增长。共享缓存未计作新增空间。
 
 服务器已缓存模型时，设置 `HF_HUB_OFFLINE=1`、`TRANSFORMERS_OFFLINE=1`，避免查询启动时到 Hugging Face 检查更新；这只影响本地 Embedding，不禁用 OIDC 或问答模型 API。
+
+## gpushare 七账号演示部署与自动走查（2026-10-07）
+
+- 集成工作分支已同步到 `/home/research_pyx/Hackson_fintech-integration`，17860 使用七账号隔离演示入口；main 和原 7860 服务保持不变。未合并 main，用户人工验收待完成。
+- 独立状态为 `/hy-tmp/data_pyx/contextledger-integration/security-demo/`；旧 `security/` 未替换。管理员默认无来源绑定，六个员工绑定 orgforge 各自来源身份，名单见演示验收文档。
+- 模型与演示配置通过 SSH 白名单同步至 `preview-demo.env`（0600），应用 Secret 独立生成，未复制 Auth0 配置、未打印或提交密钥。进程通过 `CONTEXTLEDGER_ENV_FILE` 加载该运行时文件。
+- 修复初次语义／混合检索失败：显式指定 `HF_HOME=/hy-tmp/data_pyx/contextledger-part-a/hf-cache` 复用既有 MiniLM 缓存；未下载模型、未重建 Qdrant。索引仍为 45,565 文档／293,096 分块。
+- 本机及服务器各 71 项主测试、需求同步和 diff 检查通过。演示服务使用非 TESTING 配置；真实页面经 SSH 回环转发访问。
+- 页面走查 `TitanDB`：Jax 得到 8 条授权混合检索证据，并成功打开技术文档原文；Ariana 的同问题结果为不同的 Slack 证据，未交付 Jax 的工程 Confluence 结果。
+- Jax 的“TitanDB 当前有哪些进展和问题”实际调用 `openai_compatible/glm-5.3-flash`，请求 `8c91194a-3042-40b9-b171-e236cea9cb4a`。模型因召回主要为标题／索引片段而拒答。真实 API 链路通过，不代表此问题回答质量通过；分块与排序质量留待 REQ-018/EC-010 评测，未擅自扩大本轮实现。
+- 基础问题 `What is TitanDB and what is it used for? 请用中文依据证据回答。` 得到中文实质回答及 `[1]` 至 `[5]` 引用，provider 为真实 GLM，请求 `0d6a91b1-6285-4d2a-b412-fb4920ab6a25`；证据来自当前授权 Confluence 分块。引用编号与授权校验通过，不代表已完成逐句语义验证或总体质量评测。
+- 管理员在页面按该请求 ID 找到 answer 事件，provider、权限版本、`identity_mode=isolated_demo` 一致，`integrity.valid=true`；回答和证据因管理员无业务权限而脱敏。
+- 管理员在页面仅对 Jax 添加 Slack 平台拒绝，Jax 权限版本从 3 升为 4，同一查询的 8 条结果不再包含 Slack，Ariana 仍有 Slack 结果。随后移除这条测试拒绝，Jax 版本升为 5、限制列表为空；撤权与恢复分别记录为 permission_change 事件，哈希链有效。没有重置其他用户状态。
+
+上述为 Agent 自动走查，不替代用户验收或生产认证／规模评测。新鲜度仍只校验已知离线快照。服务和 SSH 转发须存活，当前 Flask 开发预览不是生产部署。
