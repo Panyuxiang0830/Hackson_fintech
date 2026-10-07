@@ -29,6 +29,9 @@ SYSTEM_PROMPT = (
     "Explain necessary jargon briefly at first use and group details by what they do. "
     "Give enough relevant detail to make the answer understandable without padding; do "
     "not add unasked migration plans or unrelated facts just because they appear in evidence. "
+    "Separate the direct answer from supporting explanation with a blank line. Answers "
+    "longer than 200 characters MUST contain at least two paragraphs separated by a blank "
+    "line. Multiple-question answers should separate each question into its own paragraph. "
     "For a substantive answer, use short paragraphs separated by blank lines; use a small "
     "numbered list only when it makes parallel points clearer. Use plain text, no Markdown "
     "headings, bold markup, HTML, or tables. Newlines inside the JSON answer string must "
@@ -85,6 +88,8 @@ def _validate_model_output(raw_content: str, evidence_count: int) -> tuple[str, 
         raise ValueError("answered responses must cite at least one evidence item")
     if status == "insufficient" and returned_ids:
         raise ValueError("insufficient responses cannot cite unsupported evidence")
+    if status == "answered" and len(answer.strip()) > 200 and not re.search(r"\n[ \t]*\n", answer):
+        raise ValueError("long model answer must contain separate paragraphs")
 
     return answer.strip(), status
 
@@ -135,7 +140,8 @@ class AnswerService:
                     break  # No automatic retries of network/auth/limit failures.
                 except (ValueError, TypeError, KeyError) as error:
                     reason = "invalid_json" if isinstance(error, json.JSONDecodeError) else (
-                        "citation_validation_failed" if isinstance(error, ValueError) and "citat" in str(error) else "invalid_output")
+                        "citation_validation_failed" if isinstance(error, ValueError) and "citat" in str(error) else (
+                        "readability_validation_failed" if isinstance(error, ValueError) and "paragraph" in str(error) else "invalid_output"))
                     details = self.last_diagnostics
                     details["failures"].append(reason)
                     _DIAGNOSTICS.set(details)
@@ -187,7 +193,7 @@ class AnswerService:
         ]
         system = SYSTEM_PROMPT
         if self.last_diagnostics.get("attempts", 0) > 1:
-            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. Return complete JSON."
+            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON."
         user_prompt = json.dumps({
             "original_question": question,
             "caller_context": {"name": user.name, "role": user.role, "department": user.department},

@@ -154,6 +154,19 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertIn("No reliable answer", answer)
         self.assertNotIn("[99]", answer)
 
+    def test_long_single_paragraph_is_retried_and_validated_before_delivery(self):
+        long_text = "支持的事实。" * 45
+        bad = {"status":"answered", "answer":long_text + " [1]", "citation_ids":[1], "uncertainty":"medium"}
+        good = {"status":"answered", "answer":"简明结论 [1]。\n\n" + long_text + " [1]", "citation_ids":[1], "uncertainty":"medium"}
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            answerer = AnswerService()
+            with patch("urllib.request.urlopen", side_effect=[self._response(bad),self._response(good)]) as transport:
+                answer, decision, _ = answerer.answer(self.user, "请详细说明", self.evidence)
+        self.assertEqual(transport.call_count,2)
+        self.assertEqual(decision,"answered")
+        self.assertIn("\n\n",answer)
+        self.assertEqual(answerer.last_diagnostics["failures"],["readability_validation_failed"])
+
     def test_endpoint_failure_triggers_deterministic_fallback(self):
         with patch.dict(os.environ, self.live_environment, clear=True):
             answerer = AnswerService()
