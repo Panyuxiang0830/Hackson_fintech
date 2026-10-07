@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 import gc
 import hashlib
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 import json
 import math
 from pathlib import Path
@@ -82,6 +82,7 @@ class Reranker:
         import torch
         from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
+        torch.set_num_threads(8)
         self.name, self.device = name, device
         self.max_tokens, self.batch_size = max_tokens, batch_size
         repo, revision = MODELS[name]
@@ -152,13 +153,29 @@ class Reranker:
             torch.cuda.empty_cache()
 
 
-def run(args):
-    import faiss
+def _package_version(name: str):
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return None
+
+
+def _hardware_name(device: str) -> str:
+    if device != "cuda":
+        return "CPU"
     import torch
 
-    torch.set_num_threads(8)
-    faiss.omp_set_num_threads(8)
-    device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
+    return torch.cuda.get_device_name()
+
+
+def run(args):
+    if args.device == "cpu":
+        device = "cpu"
+    else:
+        import torch
+
+        torch.set_num_threads(8)
+        device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
     out = args.out.resolve()
     baseline = json.loads((out / "evaluation.json").read_text())
     previous = json.loads((out / "retrieval_tuning.json").read_text())
@@ -208,8 +225,8 @@ def run(args):
         "configuration": experiment, "questions": len(questions), "full_regression_questions": len(previous["rows"]),
         "applied_to_serving": False, "complete": False, "target_recall10": .99, "target_met": False,
         "previous_tuned_subset_recall10": sum(previous_rows[q.question_id]["document_recall10"] for q in questions) / len(questions),
-        "software": {name: version(name) for name in ("torch", "transformers", "sentence-transformers")},
-        "hardware": torch.cuda.get_device_name() if device == "cuda" else "CPU",
+        "software": {name: _package_version(name) for name in ("torch", "transformers", "sentence-transformers")},
+        "hardware": _hardware_name(device),
         "notes": ["The 180-question set has been inspected previously; this is a regression comparison, not fresh validation.",
                   "Original fixed reference IDs and Top10 are unchanged; reference IDs never enter model inputs.",
                   ("Models receive the same visible document IDs and passage text; tokenizer truncation differs."

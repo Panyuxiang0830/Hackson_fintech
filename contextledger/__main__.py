@@ -57,6 +57,8 @@ def main(argv: list[str] | None = None) -> int:
     eval_parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     eval_parser.add_argument("--modes", nargs="+", choices=("keyword", "vector", "hybrid"), default=["keyword", "vector", "hybrid"])
     eval_parser.add_argument("--top-k", nargs="+", type=int, default=[1, 5, 10, 20])
+    eval_parser.add_argument("--retrieval-depth", type=int, default=20, help="fixed ranking depth, independent of scoring cutoffs (1-80)")
+    eval_parser.add_argument("--report", type=Path, default=None, help="JSON report path; default is OUT/evaluation.json")
     eval_parser.add_argument("--repeats", type=int, default=1)
     eval_parser.add_argument("--seed", type=int, default=42)
     eval_parser.add_argument("--limit", type=int, default=None, help="deterministic question sample; default runs all questions")
@@ -71,11 +73,16 @@ def main(argv: list[str] | None = None) -> int:
         try:
             report = run_evaluation(args.out, modes=tuple(args.modes), cutoffs=tuple(args.top_k),
                                     repeats=args.repeats, seed=args.seed, limit=args.limit,
-                                    ann_queries=args.ann_queries, questions_path=args.questions, threads=args.threads)
+                                    ann_queries=args.ann_queries, questions_path=args.questions, threads=args.threads,
+                                    retrieval_depth=args.retrieval_depth, report_path=args.report)
         except (ValueError, FileNotFoundError, RuntimeError) as error:
             parser.exit(1, f"Evaluation failed: {error}\n")
         scenarios = report["scenarios"]
-        return 0 if scenarios["passed"] == scenarios["total"] and scenarios["mvp_audit"]["passed"] == scenarios["mvp_audit"]["total"] else 1
+        # Exit status covers execution and fixture failures, not final acceptance.
+        passed = (scenarios["passed"] == scenarios["total"]
+                  and scenarios["mvp_audit"]["passed"] == scenarios["mvp_audit"]["total"]
+                  and scenarios["gates"]["extractive_prompt_and_answer_leak"] == "passed")
+        return 0 if passed else 1
     if args.command == "build":
         slack_limit = None if args.erag_slack_limit == 0 else args.erag_slack_limit
         manifest = build(args.out, limit=args.limit, erag_slack_limit=slack_limit)

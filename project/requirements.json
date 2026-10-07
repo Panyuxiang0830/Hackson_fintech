@@ -18,9 +18,9 @@
         "证据不足时系统明确说明限制"
       ],
       "evaluation_experiments": {
-        "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "scripts/tune_part_a_retrieval.py", "scripts/compare_part_a_rerankers.py", "scripts/expand_part_a_candidates.py", "scripts/experiment_part_a_ranking.py", "scripts/experiment_part_a_qwen_shortlist.py"],
+        "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/tune_part_a_retrieval.py", "scripts/compare_part_a_rerankers.py", "scripts/expand_part_a_candidates.py", "scripts/experiment_part_a_ranking.py", "scripts/experiment_part_a_qwen_shortlist.py"],
         "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_tuning.py", "tests/test_part_a_rerankers.py", "tests/test_part_a_ranking_fork.py", "tests/test_part_a_qwen_shortlist.py"],
-        "metric": "Fixed-reference evidence-document Recall@10; offline experiments only.",
+        "metric": "Fixed-reference macro document Recall@K and all-evidence rate, with corpus coverage and all-reference denominators. Extractive checks are lexical diagnostics; generated-answer quality and final-test performance remain unmeasured.",
         "refinement": {
           "code": ["scripts/refine_part_a_retrieval.py", "scripts/part_a.sh", "scripts/tune_part_a_retrieval.py"],
           "tests": ["tests/test_part_a_refinement.py", "tests/test_part_a_launcher.py"],
@@ -33,6 +33,13 @@
           "tests": ["tests/test_part_a_chunking.py", "tests/test_part_a_launcher.py"],
           "docs": ["QUICKSTART.md"],
           "scope": "Token-budgeted source sections with document context; preserve source IDs and ACL; compare on the fixed covered question set."
+        },
+        "protocol": {
+          "authority": "team_decision",
+          "code": ["contextledger/evaluation.py", "contextledger/benchmark_quality.py", "contextledger/eval_scenarios.py", "contextledger/search.py", "contextledger/__main__.py"],
+          "tests": ["tests/test_part_a_evaluation.py"],
+          "docs": ["QUICKSTART.md", "BENCHMARK_QUICKSTART.md"],
+          "scope": "Separate regression retrieval, exact ANN agreement, extractive diagnostics, synthetic security fixtures, and final system acceptance. Preserve gold evidence and record scoring populations, fixed retrieval depth, missing evidence, and unmeasured generation/serving metrics. Provide a concise English benchmark quick start."
         }
       },
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py"],

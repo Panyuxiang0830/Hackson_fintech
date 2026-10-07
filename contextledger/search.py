@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from pathlib import Path
 
 from contextledger.acl import can_see
@@ -27,6 +28,7 @@ def search(
     as_of_day: int | None = None,
     limit: int = 8,
     mode: str = "keyword",
+    profile: bool = False,
 ) -> dict:
     if mode == "vector":
         return search_vector(
@@ -36,6 +38,7 @@ def search(
             principal_id=principal_id,
             as_of_day=as_of_day,
             limit=limit,
+            profile=profile,
         )
     if mode == "hybrid":
         return search_hybrid(
@@ -45,6 +48,7 @@ def search(
             principal_id=principal_id,
             as_of_day=as_of_day,
             limit=limit,
+            profile=profile,
         )
     return search_fts(
         connection,
@@ -53,6 +57,7 @@ def search(
         principal_id=principal_id,
         as_of_day=as_of_day,
         limit=limit,
+        profile=profile,
     )
 
 
@@ -64,13 +69,18 @@ def search_fts(
     principal_id: str,
     as_of_day: int | None = None,
     limit: int = 8,
+    profile: bool = False,
 ) -> dict:
     """Return visible hits plus how many candidates the ACL removed."""
     empty = _empty("keyword")
+    identity_started = time.perf_counter() if profile else 0.0
     principal = load_principal(connection, principal_id)
+    identity_ms = _elapsed_ms(profile, identity_started)
     if principal is None or principal.corpus != corpus:
         return empty
+    retrieve_started = time.perf_counter() if profile else 0.0
     doc_ids = _fts_doc_ids(connection, corpus, query, max(limit * 10, 50))
+    retrieve_ms = _elapsed_ms(profile, retrieve_started)
     if not doc_ids:
         return empty
     return _finish(
@@ -82,6 +92,9 @@ def search_fts(
         mode="keyword",
         snippets={},
         limit=limit,
+        profile=profile,
+        identity_ms=identity_ms,
+        retrieve_ms=retrieve_ms,
     )
 
 
@@ -94,18 +107,25 @@ def search_vector(
     as_of_day: int | None = None,
     limit: int = 8,
     k: int = 80,
+    profile: bool = False,
 ) -> dict:
     empty = _empty("vector")
+    ready_started = time.perf_counter() if profile else 0.0
     ready, detail = _ready(connection, corpus)
+    ready_ms = _elapsed_ms(profile, ready_started)
     if not ready:
         empty["error"] = detail
         return empty
+    identity_started = time.perf_counter() if profile else 0.0
     principal = load_principal(connection, principal_id)
+    identity_ms = _elapsed_ms(profile, identity_started)
     if principal is None or principal.corpus != corpus:
         return empty
     from contextledger.vectors import search_chunks
 
+    retrieve_started = time.perf_counter() if profile else 0.0
     found = search_chunks(_out_dir(connection), corpus, query, k=k)
+    retrieve_ms = ready_ms + _elapsed_ms(profile, retrieve_started)
     doc_ids = [item["doc_id"] for item in found]
     snippets = {item["doc_id"]: item["chunk_id"] for item in found}
     return _finish(
@@ -117,6 +137,9 @@ def search_vector(
         mode="vector",
         snippets=snippets,
         limit=limit,
+        profile=profile,
+        identity_ms=identity_ms,
+        retrieve_ms=retrieve_ms,
     )
 
 
@@ -128,24 +151,34 @@ def search_hybrid(
     principal_id: str,
     as_of_day: int | None = None,
     limit: int = 8,
+    profile: bool = False,
 ) -> dict:
     empty = _empty("hybrid")
+    ready_started = time.perf_counter() if profile else 0.0
     ready, detail = _ready(connection, corpus)
+    ready_ms = _elapsed_ms(profile, ready_started)
     if not ready:
         empty["error"] = detail
         return empty
+    identity_started = time.perf_counter() if profile else 0.0
     principal = load_principal(connection, principal_id)
+    identity_ms = _elapsed_ms(profile, identity_started)
     if principal is None or principal.corpus != corpus:
         return empty
     from contextledger.vectors import search_chunks
 
+    retrieve_started = time.perf_counter() if profile else 0.0
     keyword_ids = _fts_doc_ids(connection, corpus, query, max(limit * 10, 50))
     vector_hits = search_chunks(_out_dir(connection), corpus, query, k=80)
+    retrieve_ms = ready_ms + _elapsed_ms(profile, retrieve_started)
     vector_ids = [item["doc_id"] for item in vector_hits]
     snippets = {item["doc_id"]: item["chunk_id"] for item in vector_hits}
     combined = list(dict.fromkeys([*keyword_ids, *vector_ids]))
+    acl_started = time.perf_counter() if profile else 0.0
     visible, withheld = _partition(connection, principal, combined, as_of_day)
+    acl_ms = _elapsed_ms(profile, acl_started)
     visible_set = set(visible)
+    materialize_started = time.perf_counter() if profile else 0.0
     fused = _rrf(
         [
             [doc_id for doc_id in keyword_ids if doc_id in visible_set],
@@ -153,7 +186,9 @@ def search_hybrid(
         ]
     )
     hits = _materialize(connection, principal.corpus, fused[:limit], query, snippets)
-    return {"hits": hits, "withheld": withheld, "scanned": len(combined), "mode": "hybrid"}
+    materialize_ms = _elapsed_ms(profile, materialize_started)
+    result = {"hits": hits, "withheld": withheld, "scanned": len(combined), "mode": "hybrid"}
+    return _with_stages(result, profile, identity_ms, retrieve_ms, acl_ms, materialize_ms)
 
 
 def open_document(
@@ -196,6 +231,23 @@ def open_document(
 
 def _empty(mode: str) -> dict:
     return {"hits": [], "withheld": 0, "scanned": 0, "mode": mode}
+
+
+def _elapsed_ms(enabled: bool, started: float) -> float:
+    if not enabled:
+        return 0.0
+    return (time.perf_counter() - started) * 1000
+
+
+def _with_stages(result: dict, profile: bool, identity: float, retrieve: float, acl_filter: float, materialize: float) -> dict:
+    if profile:
+        result["stages_ms"] = {
+            "identity": identity,
+            "retrieve": retrieve,
+            "acl_filter": acl_filter,
+            "materialize": materialize,
+        }
+    return result
 
 
 def _ready(connection: sqlite3.Connection, corpus: str) -> tuple[bool, str]:
@@ -278,10 +330,18 @@ def _finish(
     mode: str,
     snippets: dict[str, str],
     limit: int,
+    profile: bool = False,
+    identity_ms: float = 0.0,
+    retrieve_ms: float = 0.0,
 ) -> dict:
+    acl_started = time.perf_counter() if profile else 0.0
     visible, withheld = _partition(connection, principal, doc_ids, as_of_day)
+    acl_ms = _elapsed_ms(profile, acl_started)
+    materialize_started = time.perf_counter() if profile else 0.0
     hits = _materialize(connection, principal.corpus, visible[:limit], query, snippets)
-    return {"hits": hits, "withheld": withheld, "scanned": len(doc_ids), "mode": mode}
+    materialize_ms = _elapsed_ms(profile, materialize_started)
+    result = {"hits": hits, "withheld": withheld, "scanned": len(doc_ids), "mode": mode}
+    return _with_stages(result, profile, identity_ms, retrieve_ms, acl_ms, materialize_ms)
 
 
 def _partition(

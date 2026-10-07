@@ -30,9 +30,12 @@ KINDS = ("postmortem", "runbook", "playbook", "policy", "proposal", "checklist")
 
 
 def query_terms(text: str) -> list[str]:
-    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-
-    stop = set(ENGLISH_STOP_WORDS) | set("does did doing explain describe document documents tell provide know information according using use list based".split())
+    try:
+        from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+        english = set(ENGLISH_STOP_WORDS)
+    except ModuleNotFoundError:
+        english = set()
+    stop = english | set("does did doing explain describe document documents tell provide know information according using use list based".split())
     return list(dict.fromkeys(w.lower() for w in WORD.findall(text)
                              if len(w) >= 2 and w.lower() not in stop))[:48]
 
@@ -78,14 +81,11 @@ def document_recall(gold, ranked, k=10):
 
 def calibrate_reranking(questions, predictions, docs, development_queries):
     """Fit score adjustments on development labels only."""
-    import numpy as np
-
     if len(questions) != len(predictions) or not 1 <= development_queries <= len(questions):
         raise ValueError("calibration requires matching predictions and a valid development split")
     configurations = list(itertools.product((0, 1, 2, 4), (0, 1, 2, 4), (0, 1, 2)))
-    weights = np.asarray(configurations, dtype=np.float64)
     ranked_by_question = []
-    development = np.zeros(len(configurations))
+    development = [0.0] * len(configurations)
     for i, (question, prediction) in enumerate(zip(questions, predictions)):
         query = question.text.lower()
         sources = {source for source in ("jira", "confluence", "slack", "google_drive")
@@ -96,24 +96,30 @@ def calibrate_reranking(questions, predictions, docs, development_queries):
         for did in ids:
             doc = docs[did]
             fields = re.findall(r"(?im)^([\w ]{3,30}):\s*([^\n]{3,80})$", doc["text"])
-            features.append([
+            features.append((
                 -int(bool(sources) and doc["source"] not in sources),
                 sum(value.lower() in query for _, value in fields),
                 int(any(doc["title"].lower().startswith((kind + ":", "p0 incident " + kind + ":"))
                         for kind in kinds)),
-            ])
-        logits = np.asarray([prediction[did] for did in ids], dtype=np.float64)
-        scores = logits[:, None] + np.asarray(features, dtype=np.float64).reshape(-1, 3) @ weights.T
-        # Stable ties follow the candidate ranking used by the raw reranker.
-        rankings = np.argsort(-scores, axis=0, kind="stable")[:10]
-        ranked_by_question.append((ids, rankings))
+            ))
+        logits = [float(prediction[did]) for did in ids]
+        orders = []
+        for source_weight, field_weight, kind_weight in configurations:
+            scored = [
+                logits[index] + features[index][0] * source_weight
+                + features[index][1] * field_weight + features[index][2] * kind_weight
+                for index in range(len(ids))
+            ]
+            # Equal scores keep the raw candidate order, matching a stable argsort.
+            orders.append(sorted(range(len(ids)), key=lambda index: (-scored[index], index))[:10])
+        ranked_by_question.append((ids, orders))
         if i < development_queries:
             gold = set(question.gold)
-            matches = np.asarray([did in gold for did in ids])
-            development += matches[rankings].sum(axis=0) / len(gold)
-    development /= development_queries
-    selected = max(range(len(configurations)), key=lambda j: (development[j], -j))
-    rankings = [[ids[int(j)] for j in order[:, selected]] for ids, order in ranked_by_question]
+            for index, order in enumerate(orders):
+                development[index] += sum(ids[rank] in gold for rank in order) / len(gold)
+    development = [value / development_queries for value in development]
+    selected = max(range(len(configurations)), key=lambda index: (development[index], -index))
+    rankings = [[ids[rank] for rank in orders[selected]] for ids, orders in ranked_by_question]
     source, field, kind = configurations[selected]
     return {
         "configurations": len(configurations),
@@ -164,6 +170,8 @@ def collect_candidates(out_dir, connection, questions, docs, selected_device):
     from sentence_transformers import SentenceTransformer
     from contextledger import vectors
 
+    torch.set_num_threads(8)
+    faiss.omp_set_num_threads(8)
     dense = SentenceTransformer(DENSE_MODEL, revision=DENSE_REVISION, device=selected_device)
     if selected_device == "cuda":
         dense.half()

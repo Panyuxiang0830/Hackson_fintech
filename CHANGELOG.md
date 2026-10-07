@@ -4,7 +4,8 @@
 
 ## Unreleased
 
-- Add the Part A evidence-document Recall@10 benchmark. The development-selected offline refinement reaches 91.98% on 180 covered questions (development 96.67%, validation 91.40%). Serving is unchanged.
+- Correct the Part A evaluation protocol: fixed retrieval depth, explicit scoring populations and recall ceilings, lexical extractive diagnostics, and unmeasured final-answer/serving metrics. Add a concise English benchmark quick start and separate report output. Include reference precision, opt-in stage timings, fixture throughput and scoped ACL checks. Serving is unchanged.
+- Add the Part A evidence-document Recall@10 benchmark. The development-selected offline refinement reaches 91.98% on 180 covered questions (development 96.67%, reused validation split 91.40%). Serving is unchanged.
 
 - Add an offline ranking fork for co-located query constraints and cited sibling evidence. It does not change serving.
 - Add an offline Qwen3-Reranker shortlist. Development questions choose the setting. It does not change serving.
