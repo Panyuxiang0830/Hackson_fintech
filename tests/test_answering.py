@@ -128,9 +128,9 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertEqual(decision, "answered")
         self.assertTrue(provider.startswith("openai_compatible/"))
         system = captured["messages"][0]["content"]
-        for instruction in ("own words", "blank lines", "jargon", "unasked migration", "do not invent facts",
-                            "non-technical colleague", "Explain the flow", "monitoring metrics",
-                            "ORIGINAL", "explicitly requests", "FINAL ANSWER STYLE CHECK"):
+        for instruction in ("用自己的话", "blank lines", "非技术同事", "不提迁移、监控或测试",
+                            "do not invent facts", "数据从哪里来", "只有原问题明确询问技术实现",
+                            "code or a verbatim quote is explicitly requested"):
             self.assertIn(instruction, system)
 
     def test_out_of_range_model_citation_triggers_deterministic_fallback(self):
