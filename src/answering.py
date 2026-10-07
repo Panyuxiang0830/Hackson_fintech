@@ -14,7 +14,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v4-2026-10-07"
+PROMPT_VERSION = "answer-v5-2026-10-07"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 SYSTEM_PROMPT = (
@@ -51,7 +51,17 @@ SYSTEM_PROMPT = (
     "status distinctions; do not invent facts, motivations, or scenarios to sound vivid. "
     "Quote verbatim or return code only when the user requests it. Explain relevant "
     "relationships across sources when supported, and explicitly state material evidence "
-    "gaps or conflicts rather than invent a resolution. Return JSON only with "
+    "gaps or conflicts rather than invent a resolution. "
+    "FINAL ANSWER STYLE CHECK: For a basic what-is/what-is-it-used-for question, "
+    "write one plain-language conclusion, then two or three numbered responsibilities "
+    "with a blank line between each point. Describe the data and practical use in "
+    "ordinary language; no implementation-stack inventory. Mention framework names, "
+    "programming languages, acronyms other than the queried entity, implementation "
+    "mechanics, monitoring, testing, or future/migration plans ONLY if the ORIGINAL "
+    "question explicitly requests that detail. Do not append a technical summary. "
+    "For Chinese answers: 先用一句话直接回答，再把具体用途分点讲清楚；用同事交流的自然语言，"
+    "不要把框架名或英文缩写堆成说明，不额外展开用户没问到的技术细节和未来方案。 "
+    "Return JSON only with "
     'exactly these fields: {"status":"answered|insufficient","answer":"claims with [n] '
     'citations","citation_ids":[1,2],"uncertainty":"low|medium|high"}. Every citation ID '
     "must refer to the numbered evidence supplied here. The citation_ids list must exactly "
