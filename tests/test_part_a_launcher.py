@@ -79,6 +79,8 @@ class PartALauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(database.read_bytes(), b"existing data")
         self.assertNotIn(["-m", "contextledger", "build"], self.calls())
+        self.assertLess(self.calls().index(["-m", "contextledger", "rechunk"]),
+                        self.calls().index(["-m", "contextledger", "vectors"]))
 
     def test_interrupted_import_is_rebuilt(self):
         self.fake_python(self.root / ".venv/bin/python")
@@ -108,6 +110,24 @@ class PartALauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("bash scripts/part_a.sh setup", result.stderr)
         self.assertFalse((self.root / ".venv").exists())
+
+    def test_eval_forwards_options_without_rebuilding(self):
+        self.fake_python(self.root / ".venv/bin/python")
+        result = self.run_launcher("eval", "--limit", "10")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [["-m", "contextledger", "eval", "--limit", "10"]])
+
+    def test_tune_forwards_the_target_without_rebuilding(self):
+        self.fake_python(self.root / ".venv/bin/python")
+        result = self.run_launcher("tune", "--target", ".99")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [["scripts/tune_part_a_retrieval.py", "--target", ".99"]])
+
+    def test_refine_forwards_options_without_rebuilding(self):
+        self.fake_python(self.root / ".venv/bin/python")
+        result = self.run_launcher("refine", "--target", ".90")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [["scripts/refine_part_a_retrieval.py", "--target", ".90"]])
 
 
 if __name__ == "__main__":

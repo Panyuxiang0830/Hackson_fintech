@@ -20,9 +20,9 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import numpy as np
 
-from contextledger.store import connect
+from contextledger.processors import MODEL_NAME, MODEL_REVISION
+from contextledger.store import chunk_digest, connect
 
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 DIM = 384
 NBITS = 8
 METRIC = "ip"
@@ -48,10 +48,11 @@ _LOCK = threading.Lock()
 
 
 class CorpusIndex:
-    def __init__(self, index, rows: list[tuple[str, str]], nprobe: int):
+    def __init__(self, index, rows: list[tuple[str, str]], nprobe: int, status_signature=None):
         self.index = index
         self.rows = rows
         self.nprobe = nprobe
+        self.status_signature = status_signature
 
     @property
     def n(self) -> int:
@@ -107,6 +108,7 @@ def build_vectors(out_dir: Path, *, batch_size: int = 256) -> dict:
         )
     meta = {
         "model": MODEL_NAME,
+        "revision": MODEL_REVISION,
         "dim": DIM,
         "normalized": True,
         "metric": METRIC,
@@ -139,8 +141,13 @@ def get_store(out_dir: Path, corpus: str) -> CorpusIndex:
     out_dir = out_dir.resolve()
     key = (str(out_dir), corpus)
     with _LOCK:
+        status_path = corpus_dir(out_dir, corpus) / "status.json"
+        if not status_path.exists():
+            raise FileNotFoundError(f"missing vector status for {corpus}; rebuild vectors")
+        stat = status_path.stat()
+        status_signature = (stat.st_mtime_ns, stat.st_size, stat.st_ino)
         cached = _STORES.get(key)
-        if cached is not None:
+        if cached is not None and cached.status_signature == status_signature:
             return cached
         directory = corpus_dir(out_dir, corpus)
         status_path = directory / "status.json"
@@ -154,7 +161,7 @@ def get_store(out_dir: Path, corpus: str) -> CorpusIndex:
 
         index = IvfIndex.load(str(directory / "ivf.index"))
         rows = _load_rows(directory / "rows.sqlite", int(status["rows"]))
-        store = CorpusIndex(index, rows, int(status["nprobe"]))
+        store = CorpusIndex(index, rows, int(status["nprobe"]), status_signature)
         _STORES[key] = store
         return store
 
@@ -195,18 +202,21 @@ def _build_corpus(
         n = connection.execute(
             "SELECT COUNT(*) AS n FROM chunks WHERE corpus = ?", (corpus,)
         ).fetchone()["n"]
+        signature = chunk_digest(connection, corpus)
     nlist = _choose_nlist(n, num_clusters)
     nprobe = min(nprobe, nlist)
     status_path = directory / "status.json"
     index_path = directory / "ivf.index"
     if status_path.exists() and index_path.exists():
         status = json.loads(status_path.read_text(encoding="utf-8"))
-        if status.get("index_done") and int(status.get("rows", -1)) == n and status.get("model") == MODEL_NAME:
+        if (status.get("index_done") and int(status.get("rows", -1)) == n
+                and status.get("model") == MODEL_NAME and status.get("revision") == MODEL_REVISION
+                and status.get("chunks_sha256") == signature):
             print(f"{corpus}: index already built ({n} chunks)", flush=True)
             return _public_status(status)
 
     print(f"{corpus}: embedding {n} chunks", flush=True)
-    _embed_corpus(db_path, directory, corpus, n, batch_size)
+    _embed_corpus(db_path, directory, corpus, n, batch_size, signature=signature)
     _preview_nearest(directory, n, _PREVIEW.get(corpus, []))
     print(f"{corpus}: clustering into {nlist} lists", flush=True)
     data = np.memmap(directory / "embeddings.f32", dtype=np.float32, mode="r", shape=(n, DIM))
@@ -228,6 +238,7 @@ def _build_corpus(
     status = {
         "corpus": corpus,
         "model": MODEL_NAME,
+        "revision": MODEL_REVISION,
         "dim": DIM,
         "rows": n,
         "normalized": True,
@@ -237,6 +248,7 @@ def _build_corpus(
         "nprobe": nprobe,
         "fast_quantization": True,
         "index_done": True,
+        "chunks_sha256": signature,
         "quantize_seconds": round(time.time() - started, 1),
     }
     status_path.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
@@ -245,10 +257,33 @@ def _build_corpus(
     return _public_status(status)
 
 
-def _embed_corpus(db_path: Path, directory: Path, corpus: str, n: int, batch_size: int) -> None:
+def _embed_corpus(db_path: Path, directory: Path, corpus: str, n: int, batch_size: int,
+                  *, signature: str | None = None) -> None:
     embed_path = directory / "embeddings.f32"
     progress_path = directory / "embed_rows.txt"
     rows_path = directory / "rows.sqlite"
+    if signature is None:
+        with connect(db_path) as connection:
+            signature = chunk_digest(connection, corpus)
+    signature_path = directory / "embed_signature.json"
+    expected_signature = {"model": MODEL_NAME, "revision": MODEL_REVISION,
+                          "dim": DIM, "chunks_sha256": signature}
+    existing_signature = json.loads(signature_path.read_text()) if signature_path.exists() else None
+    if existing_signature != expected_signature:
+        model = _model()
+        with connect(db_path) as connection:
+            cursor = connection.execute("SELECT text FROM chunks WHERE corpus=? ORDER BY rowid", (corpus,))
+            while True:
+                batch = cursor.fetchmany(batch_size)
+                if not batch:
+                    break
+                tokens = model.tokenizer([row["text"] or "" for row in batch],
+                                         add_special_tokens=True, truncation=False)["input_ids"]
+                if any(len(ids) > model.max_seq_length for ids in tokens):
+                    raise RuntimeError("chunk exceeds embedding token limit; run contextledger rechunk")
+        for path in (embed_path, rows_path, progress_path):
+            path.unlink(missing_ok=True)
+        signature_path.write_text(json.dumps(expected_signature) + "\n")
     expected = n * DIM * 4
     done = int(progress_path.read_text()) if progress_path.exists() else 0
     if embed_path.exists() and embed_path.stat().st_size != expected:
@@ -296,6 +331,9 @@ def _embed_corpus(db_path: Path, directory: Path, corpus: str, n: int, batch_siz
             if not batch:
                 break
             texts = [row["text"] or "" for row in batch]
+            lengths = model.tokenizer(texts, add_special_tokens=True, truncation=False)["input_ids"]
+            if any(len(tokens) > model.max_seq_length for tokens in lengths):
+                raise RuntimeError("chunk exceeds embedding token limit; run contextledger rechunk")
             encoded = model.encode(
                 texts,
                 batch_size=batch_size,
@@ -447,7 +485,7 @@ def _model():
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"loading {MODEL_NAME} on {device}", flush=True)
-        _MODEL = SentenceTransformer(MODEL_NAME, device=device)
+        _MODEL = SentenceTransformer(MODEL_NAME, revision=MODEL_REVISION, device=device)
     return _MODEL
 
 

@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- Add the Part A evidence-document Recall@10 benchmark. The development-selected offline refinement reaches 91.98% on 180 covered questions (development 96.67%, validation 91.40%). Serving is unchanged.
+
+- Add an offline ranking fork for co-located query constraints and cited sibling evidence. It does not change serving.
+- Add an offline Qwen3-Reranker shortlist. Development questions choose the setting. It does not change serving.
+- Bound chunks by model tokens, preserve titles/section paths, and invalidate changed vector inputs.
+- Add offline fixed-candidate reranker comparisons with original document IDs, coverage and timing.
+
 - 实现 REQ-004 至 REQ-008：新鲜度过滤、实时权限撤销、完整审计、哈希链和合规审计查询。
 - 新增审计 head checkpoint，可检测内容修改、重排、中间删除及仅删除末尾事件。
 - Streamlit 增加权限变化、新鲜度变化、审计完整性和自然语言审计查询演示。

@@ -17,6 +17,24 @@
         "回答至少引用一条有权限访问的证据并提供来源链接",
         "证据不足时系统明确说明限制"
       ],
+      "evaluation_experiments": {
+        "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "scripts/tune_part_a_retrieval.py", "scripts/compare_part_a_rerankers.py", "scripts/expand_part_a_candidates.py", "scripts/experiment_part_a_ranking.py", "scripts/experiment_part_a_qwen_shortlist.py"],
+        "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_tuning.py", "tests/test_part_a_rerankers.py", "tests/test_part_a_ranking_fork.py", "tests/test_part_a_qwen_shortlist.py"],
+        "metric": "Fixed-reference evidence-document Recall@10; offline experiments only.",
+        "refinement": {
+          "code": ["scripts/refine_part_a_retrieval.py", "scripts/part_a.sh", "scripts/tune_part_a_retrieval.py"],
+          "tests": ["tests/test_part_a_refinement.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
+          "target_recall10": 0.90,
+          "scope": "Combine the existing calibrated ranking with token-budgeted vector candidates and bounded Qwen replacements. Select settings on development questions and report the reused validation split separately; no serving changes."
+        },
+        "chunking": {
+          "code": ["contextledger/processors.py", "contextledger/rechunk.py", "contextledger/store.py", "contextledger/vectors.py", "contextledger/__main__.py", "scripts/part_a.sh", "scripts/evaluate_part_a_chunking.py"],
+          "tests": ["tests/test_part_a_chunking.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
+          "scope": "Token-budgeted source sections with document context; preserve source IDs and ACL; compare on the fixed covered question set."
+        }
+      },
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py"],
       "tests": ["tests/test_end_to_end.py"],
       "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]

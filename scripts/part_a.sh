@@ -7,9 +7,13 @@ PART_A_PYTHON="$PART_A_ROOT/.venv/bin/python"
 
 usage() {
     cat <<'EOF'
-Usage: bash scripts/part_a.sh [setup|start] [demo options]
+Usage: bash scripts/part_a.sh [setup|start|eval|tune|chunking|refine] [options]
   setup  Install dependencies, import datasets, build indexes and check them.
   start  Start the demo (default).
+  eval   Evaluate the existing store; save runtime/part_a/evaluation.json.
+  tune   Tune document retrieval; report whether validation meets 90% recall.
+  chunking  Compare chunking on the existing store without changing it.
+  refine  Combine contextual candidates and bounded reranking; target 90%.
 EOF
 }
 
@@ -33,16 +37,30 @@ case "$PART_A_COMMAND" in
         "$PART_A_PYTHON" scripts/setup_part_a_vectors.py
         if [ ! -f runtime/part_a/canonical.sqlite ] || [ ! -f runtime/part_a/manifest.json ]; then
             "$PART_A_PYTHON" -m contextledger build
+        else
+            "$PART_A_PYTHON" -m contextledger rechunk
         fi
         "$PART_A_PYTHON" -m contextledger augment
         "$PART_A_PYTHON" -m contextledger vectors
         "$PART_A_PYTHON" -m contextledger check
         echo "Setup complete. Run: bash scripts/part_a.sh"
         ;;
-    start)
+    start|eval|tune|chunking|refine)
         if [ ! -x "$PART_A_PYTHON" ]; then
             echo "Run first: bash scripts/part_a.sh setup" >&2
             exit 1
+        fi
+        if [ "$PART_A_COMMAND" = "eval" ]; then
+            exec "$PART_A_PYTHON" -m contextledger eval "$@"
+        fi
+        if [ "$PART_A_COMMAND" = "tune" ]; then
+            exec "$PART_A_PYTHON" scripts/tune_part_a_retrieval.py "$@"
+        fi
+        if [ "$PART_A_COMMAND" = "chunking" ]; then
+            exec "$PART_A_PYTHON" scripts/evaluate_part_a_chunking.py "$@"
+        fi
+        if [ "$PART_A_COMMAND" = "refine" ]; then
+            exec "$PART_A_PYTHON" scripts/refine_part_a_retrieval.py "$@"
         fi
         exec "$PART_A_PYTHON" -m contextledger demo "$@"
         ;;
