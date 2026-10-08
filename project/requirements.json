@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-07",
+  "updated_at": "2026-10-08",
   "requirements": [
     {
       "id": "REQ-001",
@@ -19,6 +19,31 @@
         "回答至少引用一条有权限访问的证据并提供来源链接",
         "证据不足时系统明确说明限制"
       ],
+      "evaluation_experiments": {
+        "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/tune_part_a_retrieval.py", "scripts/compare_part_a_rerankers.py", "scripts/expand_part_a_candidates.py", "scripts/experiment_part_a_ranking.py", "scripts/experiment_part_a_qwen_shortlist.py"],
+        "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_tuning.py", "tests/test_part_a_rerankers.py", "tests/test_part_a_ranking_fork.py", "tests/test_part_a_qwen_shortlist.py"],
+        "metric": "Fixed-reference macro document Recall@K and all-evidence rate, with corpus coverage and all-reference denominators. Extractive checks are lexical diagnostics; generated-answer quality and final-test performance remain unmeasured.",
+        "refinement": {
+          "code": ["scripts/refine_part_a_retrieval.py", "scripts/part_a.sh", "scripts/tune_part_a_retrieval.py"],
+          "tests": ["tests/test_part_a_refinement.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
+          "target_recall10": 0.90,
+          "scope": "Combine the existing calibrated ranking with token-budgeted vector candidates and bounded Qwen replacements. Select settings on development questions and report the reused validation split separately; no serving changes."
+        },
+        "chunking": {
+          "code": ["contextledger/processors.py", "contextledger/rechunk.py", "contextledger/store.py", "contextledger/vectors.py", "contextledger/__main__.py", "scripts/part_a.sh", "scripts/evaluate_part_a_chunking.py"],
+          "tests": ["tests/test_part_a_chunking.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
+          "scope": "Token-budgeted source sections with document context; preserve source IDs and ACL; compare on the fixed covered question set."
+        },
+        "protocol": {
+          "authority": "team_decision",
+          "code": ["contextledger/evaluation.py", "contextledger/benchmark_quality.py", "contextledger/eval_scenarios.py", "contextledger/search.py", "contextledger/__main__.py"],
+          "tests": ["tests/test_part_a_evaluation.py"],
+          "docs": ["QUICKSTART.md", "BENCHMARK_QUICKSTART.md"],
+          "scope": "Separate regression retrieval, exact ANN agreement, extractive diagnostics, synthetic security fixtures, and final system acceptance. Preserve gold evidence and record scoring populations, fixed retrieval depth, missing evidence, and unmeasured generation/serving metrics. Provide a concise English benchmark quick start."
+        }
+      },
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py", "contextledger/unified_service.py", "contextledger/web.py"],
       "tests": ["tests/test_end_to_end.py", "tests/test_integration.py"],
       "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
@@ -70,7 +95,7 @@
         "旧版本被保留但不会进入当前检索视图，删除、撤回和回滚使用显式状态表达",
         "系统可以通过 active version 指针或等效机制安全回退，并记录回退审计事件"
       ],
-      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json", "contextledger/filtered_index.py"],
+      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json", "contextledger/filtered_index.py", "contextledger/rechunk.py", "contextledger/vectors.py"],
       "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
       "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/index-and-freshness.md"]
     },
@@ -256,8 +281,8 @@
         "统一分类字段至少覆盖来源、内容类型、部门、项目、业务实体、时间、权威等级、安全密级和当前状态",
         "明确字段保存在结构化索引，语义内容按需进入向量索引，内容未变化时不重复生成向量",
         "Query 路由提取意图、实体、时间和来源范围，并结合当前身份生成检索过滤条件",
-        "待实现的问题理解层保留原用户问题，按需以大模型输出受限 JSON 的意图、关键词、语义改写与歧义候选；格式失败回退原问题，所有分支继续使用服务端权限过滤，不能由模型决定身份或扩大访问范围",
-        "检索扩展数量与成本有上限，原问题检索保留；可能的拼写错误或话外意思只作为候选，不擅自更换实体、时间、否定或比较条件，改变问题含义时先要求用户确认，并用召回质量、延迟和调用成本评估是否值得启用",
+        "待实现的问题理解层位于首次证据索引检索之前，保留原用户问题，按需以大模型输出受限 JSON 的意图、子问题、关键词、语义检索改写与歧义候选；关键词交给关键词索引，语义改写交给向量索引，子问题结果去重融合；格式失败回退原问题，所有分支继续使用服务端权限过滤，不能由模型决定身份或扩大访问范围",
+        "子问题与检索扩展数量、总模型调用和成本有上限，原问题检索保留，最终回答仍针对原问题；可能的拼写错误或话外意思只作为候选，不擅自更换实体、时间、否定或比较条件，改变问题含义时先要求用户确认，并用召回质量、延迟和调用成本评估是否值得启用",
         "先执行元数据和关键词过滤，再进行向量召回与排序，最后只把少量 Top-K 证据交给模型",
         "物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分",
         "向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权",
@@ -309,10 +334,11 @@
         "外部权限自动同步的阶段性延期不取消既有来源 ACL 保真要求，界面和文档明确区分离线权限快照与实时来源权限",
         "不重新加入已取消的四个数据摄取审计模块",
         "中文与英文实体相邻输入可检索；未知实体不强行用无关候选作答，拼写建议仅来自当前授权资料且不自动替换；模型降级明确标记未生成可靠答案，记录不含密钥或原始模型输出的失败原因",
-        "本次集成在独立工作分支实施；2026-10-07 用户授权提交 Pull Request，由其授权协作者人工审查后决定合并，Agent 不自动合并到 main"
+        "本次集成在独立工作分支实施；2026-10-08 用户授权在修复审查问题、补齐依赖并完成真实索引重建与验证后，通过 Pull Request 合并到 main；条件未满足时不得合并",
+        "重新分块后旧 Qdrant 快照明确失效；元数据主键、授权过滤字段与分块变化进入变更检查；新向量与新 collection 校验通过后才发布，旧 collection、身份权限与审计保留，不把整快照重建冒充高可用增量同步"
       ],
-      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt"],
-      "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_oidc.py", "tests/test_integration_dependencies.py"],
+      "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "contextledger/rechunk.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt", ".github/workflows/ci.yml"],
+      "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_prepare_preview.py", "tests/test_oidc.py", "tests/test_integration_dependencies.py"],
       "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/part-a-integration-review.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md"]
     },
     {
@@ -320,8 +346,8 @@
       "title": "端到端质量、安全与性能评测",
       "source": "engineering challenges confirmed by user on 2026-10-06",
       "authority": "team_decision",
-      "status": "planned",
-      "description": "以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。",
+      "status": "in_progress",
+      "description": "以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。已接入 Part A 固定参考证据召回、覆盖率、耗时与合成安全回归；离线 BGE/Qwen 排序实验不自动接入前端。真实回答质量、未见测试集、模型费用和完整规模评测仍未完成。",
       "acceptance_criteria": [
         "测试集保存问题、身份权限真值、期望证据和期望拒答行为",
         "分别评估信息筛选的关键事实召回、授权范围内检索质量和回答证据支持程度",
@@ -329,9 +355,9 @@
         "记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长",
         "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测"
       ],
-      "code": [],
-      "tests": [],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md"]
+      "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh"],
+      "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py"],
+      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md"]
     },
     {
       "id": "REQ-019",

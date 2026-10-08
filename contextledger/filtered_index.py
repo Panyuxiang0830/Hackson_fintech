@@ -20,11 +20,12 @@ from qdrant_client import models as qm
 
 from contextledger.identity_store import Actor, IdentityStore
 from contextledger.search import _fts_query, _rrf, _snippet, contains_terms, entity_terms
-from contextledger.store import connect
+from contextledger.store import chunk_digest, connect
 
 LEVELS = {"public": 0, "internal": 1, "confidential": 2, "restricted": 3}
 POLICY_VERSION = "snapshot-acl-and-local-deny-v1"
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+GUARD_VERSION = 2
 
 
 class IndexUnavailable(RuntimeError):
@@ -180,14 +181,14 @@ class FilteredIndex:
                 self.state(db)
             except IndexUnavailable:
                 return
-            _ensure_guard_schema(db)
+            upgraded = _ensure_guard_schema(db)
             for (corpus,) in db.execute("SELECT DISTINCT corpus FROM cl_metadata"):
-                if db.execute("SELECT 1 FROM cl_mutation_published WHERE corpus=?", (corpus,)).fetchone():
+                if not upgraded and db.execute("SELECT 1 FROM cl_mutation_published WHERE corpus=?", (corpus,)).fetchone():
                     continue
                 _scan_snapshot(db, corpus)
                 db.execute("INSERT INTO cl_mutation(corpus, n) VALUES (?, 0) ON CONFLICT(corpus) DO NOTHING", (corpus,))
                 current = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (corpus,)).fetchone()[0]
-                db.execute("INSERT INTO cl_mutation_published(corpus, n) VALUES (?, ?)", (corpus, current))
+                db.execute("INSERT INTO cl_mutation_published(corpus, n) VALUES (?, ?) ON CONFLICT(corpus) DO UPDATE SET n=excluded.n", (corpus, current))
             db.commit()
 
     def search(self, scope: Scope, query: str, mode="hybrid", limit=8):
@@ -322,6 +323,17 @@ def _scan_snapshot(db, corpus):
         ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE m.corpus=? AND d.doc_id IS NULL LIMIT 1""", (corpus,)).fetchone()
     if mismatch or removed:
         raise IndexUnavailable("Known source snapshot changed; rebuild before retrieval.")
+    # Also validate legacy publications before enabling the new O(1) guard.
+    # Rechunking may leave document versions unchanged while changing evidence.
+    removed_chunk = db.execute("""SELECT 1 FROM cl_chunks m LEFT JOIN chunks c
+        ON m.chunk_id=c.chunk_id AND m.corpus=c.corpus AND m.doc_id=c.doc_id
+        WHERE m.corpus=? AND c.chunk_id IS NULL LIMIT 1""", (corpus,)).fetchone()
+    if removed_chunk:
+        raise IndexUnavailable("Derived chunks changed; rebuild before retrieval.")
+    for row in db.execute("""SELECT c.text,m.content_hash FROM chunks c LEFT JOIN cl_chunks m
+        ON m.chunk_id=c.chunk_id AND m.corpus=c.corpus AND m.doc_id=c.doc_id WHERE c.corpus=?""", (corpus,)):
+        if row["content_hash"] != hashlib.sha256(row["text"].encode()).hexdigest():
+            raise IndexUnavailable("Derived chunks changed; rebuild before retrieval.")
 
 
 def _ensure_guard_schema(db):
@@ -331,6 +343,20 @@ def _ensure_guard_schema(db):
             corpus TEXT PRIMARY KEY, n INTEGER NOT NULL)""",
         """CREATE TABLE IF NOT EXISTS cl_mutation_published (
             corpus TEXT PRIMARY KEY, n INTEGER NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS cl_guard_schema (
+            id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)""",
+    ]
+    for statement in statements:
+        db.execute(statement)
+    installed = db.execute("SELECT version FROM cl_guard_schema WHERE id=1").fetchone()
+    if installed is not None and installed[0] == GUARD_VERSION:
+        return False
+    # Upgrade existing deployments too: CREATE IF NOT EXISTS would retain the
+    # old trigger with its missing corpus/doc_id and authorization fields.
+    for table in ("documents", "metadata", "chunks", "acl", "chunk_snapshot"):
+        for operation in ("ai", "au", "ad"):
+            db.execute(f"DROP TRIGGER IF EXISTS cl_guard_{table}_{operation}")
+    statements = [
         """CREATE TRIGGER IF NOT EXISTS cl_guard_documents_ai AFTER INSERT ON documents BEGIN
             INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
             ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
@@ -350,10 +376,13 @@ def _ensure_guard_schema(db):
             ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
         END""",
         """CREATE TRIGGER IF NOT EXISTS cl_guard_metadata_au AFTER UPDATE ON cl_metadata
-        WHEN OLD.source <> NEW.source OR OLD.version <> NEW.version OR OLD.content_hash <> NEW.content_hash
+        WHEN OLD.corpus <> NEW.corpus OR OLD.doc_id <> NEW.doc_id
+            OR OLD.source <> NEW.source OR OLD.version <> NEW.version OR OLD.content_hash <> NEW.content_hash
             OR OLD.acl_snapshot <> NEW.acl_snapshot OR OLD.extra_snapshot <> NEW.extra_snapshot
             OR NOT (OLD.day IS NEW.day) OR NOT (OLD.ts IS NEW.ts)
             OR OLD.department <> NEW.department OR OLD.title <> NEW.title
+            OR OLD.project <> NEW.project OR OLD.classification <> NEW.classification
+            OR OLD.roles_json <> NEW.roles_json OR OLD.departments_json <> NEW.departments_json
         BEGIN
             INSERT INTO cl_mutation(corpus, n) VALUES (NEW.corpus, 1)
             ON CONFLICT(corpus) DO UPDATE SET n = n + 1;
@@ -367,10 +396,25 @@ def _ensure_guard_schema(db):
     ]
     for statement in statements:
         db.execute(statement)
+    for table, label in (("chunks", "chunks"), ("cl_acl", "acl"), ("cl_chunks", "chunk_snapshot")):
+        for operation, event, reference in (("ai", "INSERT", "NEW"), ("au", "UPDATE", "NEW"), ("ad", "DELETE", "OLD")):
+            old_corpus = "" if event != "UPDATE" else """
+                INSERT INTO cl_mutation(corpus,n) VALUES (OLD.corpus,1)
+                ON CONFLICT(corpus) DO UPDATE SET n=n+1 WHERE OLD.corpus<>NEW.corpus;"""
+            db.execute(f"""CREATE TRIGGER cl_guard_{label}_{operation} AFTER {event} ON {table} BEGIN
+                INSERT INTO cl_mutation(corpus,n) VALUES ({reference}.corpus,1)
+                ON CONFLICT(corpus) DO UPDATE SET n=n+1;
+                {old_corpus}
+            END""")
+    db.execute("INSERT OR REPLACE INTO cl_guard_schema VALUES (1,?)", (GUARD_VERSION,))
+    return True
 
 
 def _published_guard_matches(db, corpus):
     try:
+        installed = db.execute("SELECT version FROM cl_guard_schema WHERE id=1").fetchone()
+        if installed is None or installed[0] != GUARD_VERSION:
+            return False
         published = db.execute("SELECT n FROM cl_mutation_published WHERE corpus=?", (corpus,)).fetchone()
         current = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (corpus,)).fetchone()
     except sqlite3.OperationalError:
@@ -453,7 +497,7 @@ def migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
     """Build a new collection, validate count, then publish; failed builds stay blocked."""
     import numpy as np
 
-    from contextledger.vectors import DIM, _model
+    from contextledger.vectors import DIM, MODEL_REVISION, _model
 
     generation = uuid.uuid4().hex
     collection = "contextledger_" + generation
@@ -475,7 +519,9 @@ def migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
                 directory = Path(db_path).parent / "vectors" / corpus
                 status = json.loads((directory / "status.json").read_text())
                 count = db.execute("SELECT COUNT(*) FROM chunks WHERE corpus=?", (corpus,)).fetchone()[0]
-                if status.get("model") != MODEL or status.get("dim") != DIM or status.get("rows") != count:
+                if (status.get("model") != MODEL or status.get("dim") != DIM or status.get("rows") != count
+                        or status.get("revision") != MODEL_REVISION
+                        or status.get("chunks_sha256") != chunk_digest(db, corpus)):
                     raise ValueError("Part A embedding cache configuration does not match")
                 matrix = np.memmap(directory / "embeddings.f32", dtype=np.float32, mode="r", shape=(count, DIM))
                 cache = sqlite3.connect((directory / "rows.sqlite").resolve().as_uri() + "?mode=ro", uri=True)

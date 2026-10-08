@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- 2026-10-08 按用户条件授权整合评测分支最新版与 PR #6（含性能优化）：修复元数据主键／授权字段／分块变更计数、旧触发器升级与重新分块后的 Qdrant 失效，补齐 CI 的轻量 Part A 依赖；缓存复用核对模型修订与分块摘要，重建副本使用私有向量目录，不破坏原 Part A 共享缓存。真实 gpushare 重建、部署验证通过前不合并，不把自动测试当作已完成服务器重建或完整质量评测。
+- 2026-10-07 按用户补充明确既有 REQ-015 的检索前 Query Planner：受限子问题、关键词与语义检索句分别进入 FTS／Qdrant，保留原问题并融合结果、限制扩展与总调用预算；同步下一轮建议顺序。只更新需求和待实现设计，不新增重复需求，不增加模型调用或改变当前检索行为。
 - 缩短集成检索耗时：英文问句的全文条件去掉 what/is/for 这类功能词，避免一次 OR 扫过大量无关文档；快照未变化时用文档与元数据变更计数代替每次请求的全库一致性扫描。文档、元数据或分块被改过仍然阻断检索。
 - 修复 PR #6 的干净 CI 环境依赖遗漏：Authlib Flask 客户端需要 Requests，但 Authlib 未将其作为默认安装依赖；集成清单显式声明 requests 并添加清单回归测试，避免只在已有 Part A 环境里通过测试。未改业务功能、未恢复浏览器登录。
 - 2026-10-07 按用户授权准备 REQ-017 集成版 Pull Request，记录与 main Part A 的逐项对比、同事审查顺序、已验证与未完成边界及复用现有需求的后续方向；由用户授权协作者人工审查后决定合并，Agent 不自动合并。未扩大功能实现或把进行中需求改成已验收。
@@ -33,6 +35,14 @@
 - REQ-009 接入 TokenHub 结构化回答，服务端校验引用，异常或非法输出自动降级到确定性回答。
 - 新增 REQ-014 与 REQ-015，管理异构来源清洗、信息筛选、统一分类、混合索引和身份感知 Query 路由。
 - 扩充 REQ-002 与 REQ-004，纳入索引层权限过滤、历史版本和安全回退；约定 `【新需求】` 自动去重写入需求台账。
+- Correct the Part A evaluation protocol: fixed retrieval depth, explicit scoring populations and recall ceilings, lexical extractive diagnostics, and unmeasured final-answer/serving metrics. Add a concise English benchmark quick start and separate report output. Include reference precision, opt-in stage timings, fixture throughput and scoped ACL checks. Serving is unchanged.
+- Add the Part A evidence-document Recall@10 benchmark. The development-selected offline refinement reaches 91.98% on 180 covered questions (development 96.67%, reused validation split 91.40%). Serving is unchanged.
+
+- Add an offline ranking fork for co-located query constraints and cited sibling evidence. It does not change serving.
+- Add an offline Qwen3-Reranker shortlist. Development questions choose the setting. It does not change serving.
+- Bound chunks by model tokens, preserve titles/section paths, and invalidate changed vector inputs.
+- Add offline fixed-candidate reranker comparisons with original document IDs, coverage and timing.
+
 - 实现 REQ-004 至 REQ-008：新鲜度过滤、实时权限撤销、完整审计、哈希链和合规审计查询。
 - 新增审计 head checkpoint，可检测内容修改、重排、中间删除及仅删除末尾事件。
 - Streamlit 增加权限变化、新鲜度变化、审计完整性和自然语言审计查询演示。

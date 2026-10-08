@@ -18,7 +18,7 @@ from contextledger.audit_store import AuditStore
 from contextledger.filtered_index import FilteredIndex, IndexUnavailable, MODEL, migrate, payload_for, point_id, prepare_snapshot
 from contextledger.identity_store import IdentityStore
 from contextledger.models import CanonicalDoc, Chunk, Principal
-from contextledger.store import connect, init_db, insert_documents, insert_principals
+from contextledger.store import chunk_digest, connect, init_db, insert_documents, insert_principals
 from contextledger.unified_service import PermissionChanged, UnifiedService, validate_security_path
 from contextledger.web import create_app
 from src.audit import AuditIntegrityError
@@ -164,6 +164,94 @@ class IntegrationTests(unittest.TestCase):
         with self.assertRaises(IndexUnavailable):
             self.index.search(self.index.scope(self.ids.get(self.alice.id), "alpha"), "TitanDB", mode="keyword")
 
+    def test_metadata_identity_and_authorization_changes_block_all_search_modes(self):
+        mutations = {
+            "corpus": "beta", "doc_id": "renamed", "project": "other",
+            "classification": 0, "roles_json": '["other"]', "departments_json": '["other"]',
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field), connect(self.db_path) as db:
+                db.execute("SAVEPOINT mutation")
+                db.execute(f"UPDATE cl_metadata SET {field}=? WHERE corpus='alpha' AND doc_id='doc-0'", (value,))
+                with self.assertRaises(IndexUnavailable):
+                    self.index.consistent(db, "alpha")
+                db.execute("ROLLBACK TO mutation")
+                db.execute("RELEASE mutation")
+
+    def test_chunks_and_derived_acl_changes_are_counted(self):
+        mutations = (
+            "UPDATE chunks SET text='Changed chunk' WHERE chunk_id='doc-0-0'",
+            "DELETE FROM chunks WHERE chunk_id='doc-0-0'",
+            "UPDATE cl_acl SET principal_id='alpha:b' WHERE doc_id='doc-0'",
+            "DELETE FROM cl_chunks WHERE chunk_id='doc-0-0'",
+        )
+        for sql in mutations:
+            with self.subTest(sql=sql), connect(self.db_path) as db:
+                db.execute("SAVEPOINT mutation")
+                db.execute(sql)
+                with self.assertRaises(IndexUnavailable):
+                    self.index.consistent(db, "alpha")
+                db.execute("ROLLBACK TO mutation")
+                db.execute("RELEASE mutation")
+
+    def test_legacy_guard_is_upgraded_and_revalidates_existing_chunks(self):
+        from contextledger.filtered_index import GUARD_VERSION
+        with connect(self.db_path) as db:
+            db.execute("DROP TABLE cl_guard_schema")
+            db.execute("DROP TRIGGER cl_guard_metadata_au")
+            db.execute("CREATE TRIGGER cl_guard_metadata_au AFTER UPDATE ON cl_metadata BEGIN SELECT 1; END")
+            db.commit()
+        self.index.install_snapshot_guard()
+        with connect(self.db_path) as db:
+            self.assertEqual(db.execute("SELECT version FROM cl_guard_schema").fetchone()[0], GUARD_VERSION)
+            db.execute("UPDATE cl_metadata SET corpus='beta' WHERE corpus='alpha' AND doc_id='doc-0'")
+            with self.assertRaises(IndexUnavailable):
+                self.index.consistent(db, "alpha")
+            db.rollback()
+            db.execute("DROP TABLE cl_guard_schema")
+            db.execute("DROP TRIGGER cl_guard_chunks_au")
+            db.execute("UPDATE chunks SET text='Changed before upgrade' WHERE chunk_id='doc-0-0'")
+            db.commit()
+        with self.assertRaises(IndexUnavailable):
+            self.index.install_snapshot_guard()
+
+    def test_unchanged_snapshot_skips_scan_and_timestamp_refresh_is_not_content_change(self):
+        with connect(self.db_path) as db:
+            db.execute("UPDATE cl_metadata SET indexed_at='new timestamp'")
+            with patch("contextledger.filtered_index._scan_snapshot", side_effect=AssertionError("full scan")):
+                self.assertEqual(self.index.consistent(db, "alpha")["state"], "ready")
+
+    def test_rechunk_blocks_all_modes_until_snapshot_is_republished(self):
+        from contextledger.rechunk import rechunk
+        from test_part_a_chunking import CharacterTokenizer
+        rechunk(self.content, tokenizer=CharacterTokenizer())
+        scope = self.index.scope(self.ids.get(self.alice.id), "alpha")
+        for mode in ("keyword", "vector", "hybrid"):
+            with self.subTest(mode=mode), self.assertRaises(IndexUnavailable):
+                self.index.search(scope, "TitanDB", mode=mode)
+        with connect(self.db_path) as db:
+            prepare_snapshot(db, "fixture", "rebuilt-generation", "test-embedding", 2)
+            points = []
+            for chunk in db.execute("SELECT * FROM chunks"):
+                meta = db.execute("SELECT * FROM cl_metadata WHERE corpus=? AND doc_id=?",
+                                  (chunk["corpus"], chunk["doc_id"])).fetchone()
+                points.append(qm.PointStruct(id=point_id(chunk["corpus"], chunk["doc_id"], meta["version"], chunk["chunk_id"]),
+                                             vector=[1.0, 0.0], payload=payload_for(chunk, meta)))
+            self.qdrant.delete_collection("fixture")
+            self.qdrant.create_collection("fixture", vectors_config=qm.VectorParams(size=2, distance=qm.Distance.COSINE))
+            self.qdrant.upsert("fixture", points)
+            db.execute("UPDATE cl_index_state SET state='ready'")
+            db.commit()
+        for mode in ("keyword", "vector", "hybrid"):
+            with self.subTest(mode=mode):
+                hits, generation = self.index.search(scope, "TitanDB", mode=mode)
+                self.assertEqual({hit["doc_id"] for hit in hits}, {"doc-0", "doc-1"})
+                self.assertEqual(generation, "rebuilt-generation")
+        repeated = rechunk(self.content, tokenizer=CharacterTokenizer())
+        self.assertFalse(any(summary["changed"] for summary in repeated["corpora"].values()))
+        with connect(self.db_path) as db:
+            self.assertEqual(self.index.consistent(db, "alpha")["state"], "ready")
+
     def test_empty_question_has_actionable_chinese_error(self):
         response = self.post("/api/ask", {"corpus":"alpha","q":"  "})
         self.assertEqual(response.status_code,400)
@@ -217,6 +305,7 @@ class IntegrationTests(unittest.TestCase):
     def test_migration_reuses_embedding_row_maps_in_read_only_mode(self):
         import numpy as np
         import warnings
+        from contextledger.processors import MODEL_REVISION
 
         with connect(self.db_path) as db:
             for corpus in ("alpha", "beta"):
@@ -226,7 +315,8 @@ class IntegrationTests(unittest.TestCase):
                 matrix = np.zeros((len(chunks), 384), dtype=np.float32)
                 matrix[:, 0] = 1.0
                 (directory / "embeddings.f32").write_bytes(matrix.tobytes())
-                (directory / "status.json").write_text(json.dumps({"model": MODEL, "dim": 384, "rows": len(chunks)}))
+                (directory / "status.json").write_text(json.dumps({"model": MODEL, "dim": 384, "rows": len(chunks),
+                    "revision": MODEL_REVISION, "chunks_sha256": chunk_digest(db, corpus)}))
                 with sqlite3.connect(directory / "rows.sqlite") as cache:
                     cache.execute("CREATE TABLE vec_rows (row_id INTEGER,doc_id TEXT,chunk_id TEXT)")
                     cache.executemany("INSERT INTO vec_rows VALUES (?,?,?)",
@@ -244,6 +334,23 @@ class IntegrationTests(unittest.TestCase):
                 with self.assertRaises(sqlite3.OperationalError):
                     cache.execute("DELETE FROM vec_rows")
 
+    def test_reused_vectors_reject_same_count_with_wrong_digest_or_revision(self):
+        import warnings
+        from contextledger.processors import MODEL_REVISION
+        for field in ("revision", "chunks_sha256"):
+            with self.subTest(field=field), connect(self.db_path) as db:
+                count = db.execute("SELECT COUNT(*) FROM chunks WHERE corpus='alpha'").fetchone()[0]
+                directory = self.content / "vectors" / "alpha"
+                directory.mkdir(parents=True, exist_ok=True)
+                status = {"model": MODEL, "dim": 384, "rows": count,
+                          "revision": MODEL_REVISION, "chunks_sha256": chunk_digest(db, "alpha")}
+                status[field] = "old-input"
+                (directory / "status.json").write_text(json.dumps(status))
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message="Payload indexes have no effect in the local Qdrant.*")
+                    with self.assertRaisesRegex(ValueError, "cache configuration"):
+                        migrate(self.db_path, self.qdrant, reuse_embeddings=True)
+                self.assertEqual(db.execute("SELECT state FROM cl_index_state").fetchone()[0], "failed")
     def test_both_indexes_filter_before_candidates_and_isolate_corpora(self):
         for mode in ("keyword", "vector", "hybrid"):
             with patch.object(self.qdrant, "query_points", wraps=self.qdrant.query_points) as call:

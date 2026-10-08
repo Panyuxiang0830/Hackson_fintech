@@ -18,6 +18,14 @@ class IntegrationDependencyTests(unittest.TestCase):
         self.assertIn("authlib", names)
         self.assertIn("requests", names, "Authlib's Flask client imports the Requests transport")
 
+    def test_ci_installs_both_integration_and_part_a_test_dependencies(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/ci.yml").read_text()
+        self.assertIn("-r requirements-integration.txt -r requirements-part-a-test.txt", workflow)
+        lightweight = (root / "requirements-part-a-test.txt").read_text()
+        self.assertIn("huggingface-hub", lightweight)
+        self.assertIn("pyarrow", lightweight)
+
 
 if __name__ == "__main__":
     unittest.main()

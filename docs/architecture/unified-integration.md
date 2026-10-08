@@ -2,6 +2,8 @@
 
 更新：2026-10-07。工作分支：`codex/REQ-017-unified-integration`。未经用户验收确认不合并 main。
 
+2026-10-08 补充：用户已授权完成审查修复、依赖补齐、真实索引重建和部署验证后合并。当前索引重建尚未执行，不以本地自动测试代替部署证据。评测分支的两次提交都纳入整合，不只使用较旧的 PR #5 头提交；离线排序实验与前端线上检索仍分开。
+
 用户已澄清：Tool 是后续设想，本轮仍在 Part A 前端验收集成，只延期真实浏览器登录，不取消身份权限库。现行范围见修正后的 [ADR-0003](../decisions/ADR-0003-tool-first-and-deferred-browser-login.md)。用户已确认并在分支实现独立管理员与六员工的隔离演示入口，取消登录不等于匿名开放生产业务 API。
 
 ## 已实施代码边界
@@ -32,6 +34,22 @@
 构建新 Qdrant collection，构建中阻断查询，完成并核对数量、来源元数据后才发布。版本、哈希、ACL、标题或元数据变化阻断该数据集并要求重建；读取再检查文档与分块哈希。失败不回退到无前置 ACL 的 RaBitQ 路径，也不静默使用旧代次。
 
 这是保守的整快照发布，不是高可用增量同步。完整历史、回滚、删除事件、同步窗口与细粒度不中断切换仍属于 EC-001/004。废弃 collection 不自动删除，运维清理与备份须另行确认。
+
+2026-10-08 审查修复：变更计数覆盖元数据主键、项目／密级／角色／部门过滤字段、原始分块与派生 ACL／分块快照；触发器版本升级时重新扫描并核对已有分块，不能沿用旧计数直接跳过。仅刷新索引发布时间不算内容变化，未变快照仍走常数时间门闩。重新分块在同一事务中将旧 Qdrant 发布标记为 stale，检索、原文和模型交付失败关闭，重新发布才恢复。缓存复用还必须匹配模型修订与当前分块摘要；条数、ID 一样不足以证明内容相同。
+
+## 重新分块与 Qdrant 重建
+
+先在独立快照上准备，不修改原 Part A 的共享向量缓存；保留原文、旧 collection、身份权限库与审计。`--fresh-vectors` 不链接 vectors，已有共享向量目录的快照不能直接 rechunk。
+
+```bash
+python scripts/prepare_integration_preview.py --source /absolute/current-content --target /absolute/new-content --fresh-vectors
+python -m contextledger rechunk --out /absolute/new-content
+# 新分块必须使用新生成的向量，此处不复用旧分块缓存。
+python -m contextledger.integration --out /absolute/new-content --security-dir /absolute/existing-security index
+python scripts/verify_unified_snapshot.py --out /absolute/new-content
+```
+
+这是操作模板，不是已完成重建的声明。索引命令在新 SQLite 快照中创建新 collection，校验并发布；核对测试结果后才将服务的 --out 指向新目录，权限／审计目录保持原路径，必要时短暂停止旧前端进程。不要先删旧 collection，也不要对链接来的 embeddings/rows/status 做写入。原旧目录保留便于运维恢复，不宣称已实现业务历史版本的安全回滚。
 
 ## 启动
 
