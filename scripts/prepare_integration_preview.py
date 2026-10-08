@@ -33,7 +33,10 @@ def main():
             continue
         original = source / name
         if original.exists():
-            (target / name).symlink_to(original, target_is_directory=True)
+            # Preserve the actual store, not the source directory's indirection.
+            # Replacing a source content directory must not make raw point to
+            # itself when source/raw was already a link to a separate raw store.
+            (target / name).symlink_to(original.resolve(), target_is_directory=True)
     artifacts = "raw reused; vector artifacts isolated for rebuilding" if args.fresh_vectors else "raw/vector artifacts reused without copying"
     print(f"Preview snapshot ready: {destination}; {artifacts}")
 

@@ -31,6 +31,23 @@ class PreparePreviewTests(unittest.TestCase):
                 self.assertEqual(db.execute("SELECT value FROM example").fetchone()[0], "original")
             self.assertEqual((source / "vectors/meta.json").read_text(), '{"sentinel":true}')
 
+    def test_external_raw_store_survives_content_directory_swap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target, raw_store = root / "content", root / "build", root / "raw-store"
+            source.mkdir()
+            raw_store.mkdir()
+            (raw_store / "sentinel.txt").write_text("preserved")
+            (source / "raw").symlink_to(raw_store, target_is_directory=True)
+            with sqlite3.connect(source / "canonical.sqlite") as db:
+                db.execute("CREATE TABLE example (value TEXT)")
+            with patch("sys.argv", ["prepare", "--source", str(source), "--target", str(target), "--fresh-vectors"]):
+                main()
+            source.rename(root / "content-backup")
+            target.rename(source)
+            self.assertEqual((source / "raw").resolve(), raw_store)
+            self.assertEqual((source / "raw/sentinel.txt").read_text(), "preserved")
+
     def test_existing_target_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
