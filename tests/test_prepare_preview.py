@@ -45,7 +45,7 @@ class PreparePreviewTests(unittest.TestCase):
                 main()
             source.rename(root / "content-backup")
             target.rename(source)
-            self.assertEqual((source / "raw").resolve(), raw_store)
+            self.assertEqual((source / "raw").resolve(), raw_store.resolve())
             self.assertEqual((source / "raw/sentinel.txt").read_text(), "preserved")
 
     def test_existing_target_is_not_overwritten(self):
