@@ -4,6 +4,48 @@
 
 ## Unreleased
 
+- 2026-10-08 完成 gpushare 真实重建与 17860 切换：45,565 篇原文／版本／ACL 不变，591,294 条新 MiniLM 向量通过 Qdrant 发布核对；旧 collection、旧快照、原 7860、身份库和审计保留。实际验证三模式检索、两员工隔离、管理员文档撤权／恢复、真实 GLM 回答及请求审计脱敏；原 54 条审计保留、当前 79 条链有效。本机／服务器 162 项主测试通过，不把该结果冒充完整质量／规模或语义引用验收。
+- 2026-10-08 原 Part A 解析／ACL 测试使用确定性测试分词器，避免轻量测试清单隐式依赖 Transformers 或在线下载；将独立测试加入 CI，真实 MiniLM 与 GLM 仍通过服务器快照／HTTP 冒烟验证，不用测试替身冒充线上模型。
+- 2026-10-08 重建切换准备中修复原始数据链接：副本直接引用真实 Raw Store，避免新旧 content 目录换位后循环引用；新增目录切换回归，不删除原始数据。
+- 2026-10-08 按用户条件授权整合评测分支最新版与 PR #6（含性能优化）：修复元数据主键／授权字段／分块变更计数、旧触发器升级与重新分块后的 Qdrant 失效，补齐 CI 的轻量 Part A 依赖；缓存复用核对模型修订与分块摘要，重建副本使用私有向量目录，不破坏原 Part A 共享缓存。真实 gpushare 重建、部署验证通过前不合并，不把自动测试当作已完成服务器重建或完整质量评测。
+- 2026-10-07 按用户补充明确既有 REQ-015 的检索前 Query Planner：受限子问题、关键词与语义检索句分别进入 FTS／Qdrant，保留原问题并融合结果、限制扩展与总调用预算；同步下一轮建议顺序。只更新需求和待实现设计，不新增重复需求，不增加模型调用或改变当前检索行为。
+- 缩短集成检索耗时：英文问句的全文条件去掉 what/is/for 这类功能词，避免一次 OR 扫过大量无关文档；快照未变化时用文档与元数据变更计数代替每次请求的全库一致性扫描。文档、元数据或分块被改过仍然阻断检索。
+- 修复 PR #6 的干净 CI 环境依赖遗漏：Authlib Flask 客户端需要 Requests，但 Authlib 未将其作为默认安装依赖；集成清单显式声明 requests 并添加清单回归测试，避免只在已有 Part A 环境里通过测试。未改业务功能、未恢复浏览器登录。
+- 2026-10-07 按用户授权准备 REQ-017 集成版 Pull Request，记录与 main Part A 的逐项对比、同事审查顺序、已验证与未完成边界及复用现有需求的后续方向；由用户授权协作者人工审查后决定合并，Agent 不自动合并。未扩大功能实现或把进行中需求改成已验收。
+- 按用户反馈将回答 Prompt 升为 v6：独立系统指令、原问题与授权证据 JSON，要求直接回答、自然解释、分段与就近引用，默认面向非技术读者解释用途和数据流；精简重复指令、限制未询问的技术／计划信息。超过 200 字符的回答未分段时使用现有一次格式重试预算，纯文本界面保留换行，输出上限 1600。本机与 gpushare 各 85 项测试通过；17860 已部署，真实 GLM TitanDB 回答与 v6 审计记录验证通过，哈希链有效。但表达质量未完全达标：真实输出仍夹带技术栈／迁移，Top-K 不能证明全库没有定位文档；未宣称彻底修复或完成逐句事实校验。扩充 REQ-015 的按需 Query Planner 与纠错确认需求，保留为待实现设计，不增加规划模型调用；完整质量评测仍待完成，不合并 main。
+- 修复集成问答可用性：中英文边界分词、显式实体相关性门槛、授权范围内的拼写建议与实质分块选择；Prompt v2 明确无引用拒答，格式最多重试一次且重试前复核权限。失败不再拼接证据充当正常答案，返回中文拒答与安全诊断审计；优化空输入、管理账号和重复提交提示。本机／gpushare 各 82 项测试通过，17860 真实页面验证中文 TitanDB 回答、未知名称澄清及审计诊断；仍留在工作分支，等待用户验收，不代表通用检索质量评测完成。
+- 2026-10-07 将七账号隔离演示同步到 gpushare 17860，保留 main／7860；本机与服务器各 71 项测试通过。实际页面验证权限检索、GLM API、脱敏哈希链审计及 Jax 的 Slack 撤权／恢复，测试限制已恢复。发现“当前进展”样例召回多为标题而拒答，质量评测仍待完成；用户人工验收前不合并。
+- 修复隔离预览离线 Embedding 缓存路径缺失：配置同步支持显式服务器 HF_HOME，校验绝对路径与远端目录，继续复用 Part A 模型缓存、不重新下载；新增配置路径回归测试。
+- 按用户确认实现隔离演示模式：独立“ContextLedger 管理员”与六员工固定名单，复用真实权限、Qdrant／FTS 检索、回答和审计服务；默认关闭，限制回环 Host／Origin、保留 CSRF、拒绝旧生产权限库和 OIDC 混用。初始化／重启不重置撤权，新增演示权限与配置白名单测试；通过 SSH 安全同步模型配置，不打印或提交密钥。
+- 按用户澄清纠正范围：本轮保留 Part A 前端验收 REQ-017，只延期真实浏览器登录，不取消身份权限库；REQ-020 Tool 记为 deferred 的未来设想，不再作为当前前置条件。同步修正需求、ADR、路线图和页面提示，不放开未验证业务访问；当时隔离演示入口待确认，后续已确认、实现并部署。
+- 延期浏览器登录：OIDC 默认停用，旧配置和旧会话不能意外恢复访问。身份权限库、Qdrant/FTS 过滤、撤权与审计保持；增加两个内部身份对同一问题的隔离与撤权回归。已创建的 Auth0 应用不删除、不读取密钥、不接入服务器。当时修改仅在本地，后续已随演示版同步服务器。
+- 本机隔离合成证据实测真实 GLM 回答，按请求 ID 核对 answer 审计与 provider、哈希链和管理员脱敏；当时 60 项主测试通过、服务器尚无 Key 或演示入口，后续服务器验证见本文件 2026-10-07 记录；本机冒烟测试不等于用户前端验收。
+
+- 记录团队 planned 需求 REQ-019：回答 Prompt 的模板、版本与质量评测；保存当前实际 Prompt 和真实登录人工走查，不修改业务 Prompt。用户选择 Auth0 托管登录及独立的“ContextLedger 管理员”，扩充 REQ-016；默认不绑定数据集员工或授予资料权限，应用配置和真实账号绑定仍待完成。
+
+- 在 gpushare 的独立目录和 17860 预览验证 45,565 文档／293,096 分块 Qdrant 迁移、真实 Embedding 检索与系统内撤权；56 项主测试和 8 项 Part A 测试通过，原 main 与 7860 服务未替换。REQ-006 保持进行中，明确候选审计不等于全库逐文档审计。
+- 增加真实 Part A 快照与运行中 Qdrant 的隔离冒烟检查脚本；补测移除 OIDC 配置后旧会话也被拒绝，测试身份不写入部署身份库。
+
+- 在独立 REQ-017 分支对齐 Part A 与新版模型回答能力；保留 7860 入口，增加通用 OIDC、持久化身份与显式来源绑定、本地平台／项目／文档拒绝规则，以及系统内撤权的模型前后／交付检查。
+- 集成 Qdrant payload 过滤与 SQL FTS 授权条件、候选二次检查和整快照发布门闩；事实库、身份和审计分离，已知快照变化阻断检索，不声称已完成实时来源新鲜度与完整版本回滚。
+- 查询审计采用 SQLite 事务哈希链与本地 checkpoint，增加角色受控查询、证据权限脱敏、源权限未启用接口；加入集成与 OIDC 协议测试，真实提供方配置和人工验收待完成，不合并 main。
+
+- 按用户确认保存 EC-001 至 EC-010 工程难题固定清单与回顾约定；新增 planned 的 REQ-018 端到端评测，先在独立分支实施集成，未经用户确认不合并 main；OIDC 先做通用接入，提供方稍后配置。
+
+- 保存两套现有实现与集成目标的 Mermaid 架构图；确认保留 Part A 7860 页面、OIDC 和持久化身份权限库，新增 planned 状态的 REQ-016/017；登录提供方和离线 ACL 重构仍待确认，未修改业务代码。
+- 确认集成版使用可过滤的 Qdrant 后端，扩充既有 REQ-015/017，不创建重复需求；本轮只保障系统内撤权、预留未启用的来源权限检查与同步接口，并保存索引和新鲜度设计草案，未安装或迁移后端。
+- 实测比较 `deepseek-v4.1-flash`、`glm-5.3-flash` 和 `hy4-preview`，选择 `glm-5.3-flash` 作为 MVP 默认回答模型。
+- REQ-009 接入 TokenHub 结构化回答，服务端校验引用，异常或非法输出自动降级到确定性回答。
+- 新增 REQ-014 与 REQ-015，管理异构来源清洗、信息筛选、统一分类、混合索引和身份感知 Query 路由。
+- 扩充 REQ-002 与 REQ-004，纳入索引层权限过滤、历史版本和安全回退；约定 `【新需求】` 自动去重写入需求台账。
+- Correct the Part A evaluation protocol: fixed retrieval depth, explicit scoring populations and recall ceilings, lexical extractive diagnostics, and unmeasured final-answer/serving metrics. Add a concise English benchmark quick start and separate report output. Include reference precision, opt-in stage timings, fixture throughput and scoped ACL checks. Serving is unchanged.
+- Add the Part A evidence-document Recall@10 benchmark. The development-selected offline refinement reaches 91.98% on 180 covered questions (development 96.67%, reused validation split 91.40%). Serving is unchanged.
+
+- Add an offline ranking fork for co-located query constraints and cited sibling evidence. It does not change serving.
+- Add an offline Qwen3-Reranker shortlist. Development questions choose the setting. It does not change serving.
+- Bound chunks by model tokens, preserve titles/section paths, and invalidate changed vector inputs.
+- Add offline fixed-candidate reranker comparisons with original document IDs, coverage and timing.
+
 - 实现 REQ-004 至 REQ-008：新鲜度过滤、实时权限撤销、完整审计、哈希链和合规审计查询。
 - 新增审计 head checkpoint，可检测内容修改、重排、中间删除及仅删除末尾事件。
 - Streamlit 增加权限变化、新鲜度变化、审计完整性和自然语言审计查询演示。

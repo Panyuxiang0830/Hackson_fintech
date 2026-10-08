@@ -72,6 +72,16 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def chunk_digest(connection: sqlite3.Connection, corpus: str) -> str:
+    digest = hashlib.sha256()
+    for row in connection.execute("SELECT chunk_id,text FROM chunks WHERE corpus=? ORDER BY rowid", (corpus,)):
+        for value in row:
+            encoded = (value or "").encode("utf-8")
+            digest.update(len(encoded).to_bytes(8, "big"))
+            digest.update(encoded)
+    return digest.hexdigest()
+
+
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(db_path)

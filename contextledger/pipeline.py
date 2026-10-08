@@ -54,6 +54,13 @@ def _dedupe(docs: list[SourceDoc]) -> tuple[list[SourceDoc], int]:
 
 
 def _reset_output(out_dir: Path) -> None:
+    import os
+    from contextledger.unified_service import validate_security_path
+
+    validate_security_path(out_dir, Path(os.getenv("SECURITY_DIR", "runtime/security")))
+    # A misplaced state directory is protected even if SECURITY_DIR was changed.
+    if out_dir.exists() and (list(out_dir.rglob("identities.sqlite")) or list(out_dir.rglob("audit.sqlite"))):
+        raise ValueError("Refusing to rebuild a directory containing identity/audit state")
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)

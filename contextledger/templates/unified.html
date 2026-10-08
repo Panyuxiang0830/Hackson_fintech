@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ContextLedger · 集成版</title>
+  <link rel="stylesheet" href="/static/unified.css">
+  <script src="/static/unified.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>ContextLedger · 集成版</h1>
+    <p>四来源授权检索、问答、权限管理与审计 · Part A 数据链路与前端验收</p>
+    <span id="identity">正在检查可信身份接入状态…</span>
+    {% if demo_mode %}
+    <div class="demo-entry">
+      <label for="demoidentity">演示身份（非真实登录）</label>
+      <select id="demoidentity" aria-label="演示身份"></select>
+      <button id="demoselect">切换演示身份</button>
+    </div>
+    {% endif %}
+    {% if browser_login_enabled or demo_mode %}
+    {% if browser_login_enabled %}
+    <a id="login" href="/auth/login">OIDC 登录</a>
+    {% endif %}
+    <button id="logout" hidden>退出</button>
+    {% endif %}
+  </header>
+  <div class="notice" id="notice">{% if demo_mode %}隔离演示模式：可切换固定虚拟身份，不是真实登录；仅用于回环／SSH 预览。{% endif %}离线来源 ACL 快照 + 系统内权限。未启用原平台权限同步，不宣称实时新鲜度。</div>
+  <main>
+    <section class="panel">
+      <h2>查询</h2>
+      <label for="corpus">数据集／组织</label><select id="corpus"></select>
+      <label for="mode">检索方式</label><select id="mode">
+        <option value="hybrid">混合 · 关键词 + Qdrant</option>
+        <option value="keyword">关键词 · SQL 权限过滤</option>
+        <option value="vector">语义 · Qdrant 权限过滤</option>
+      </select>
+      <label for="question">问题</label><textarea id="question" rows="4" maxlength="4000" placeholder="例如：TitanDB 是做什么的？"></textarea>
+      <div class="row"><button id="search">搜索证据</button><button id="ask" class="primary">生成回答</button></div>
+      <p class="muted">{% if demo_mode %}当前选定的演示账号由服务端会话固定；搜索不能另行指定员工。生产环境仍需真实身份验证。{% else %}本轮保留 Part A 数据链路与前端验收，真实登录已延期；普通模式不开放演示身份选择。生产身份仍需服务端验证，不能由模型或普通参数指定。{% endif %}</p>
+      <p class="muted">回答校验引用编号与授权范围，不宣称已完成逐句语义依据验证。无模型配置时使用确定性回答。</p>
+    </section>
+    <section>
+      <p id="status" role="status"></p>
+      <article id="answer" class="panel" hidden></article>
+      <div id="hits"></div>
+      <article id="reader" class="panel" hidden></article>
+    </section>
+    <section id="admin" class="panel wide" hidden>
+      <h2>系统内权限管理</h2>
+      <p class="muted">原平台 ACL 是基础限制。本地规则只收窄；来源身份必须由管理员明确绑定。此处不修改原平台账号。</p>
+      <div class="grid">
+        <div><label for="target">系统账号</label><select id="target"></select></div>
+        <div><label for="binding">来源身份（明确确认后绑定）</label><select id="binding"></select></div>
+      </div>
+      <div class="row"><button id="bind">绑定／恢复来源身份</button><button id="unbind">撤销来源身份</button></div>
+      <div class="grid">
+        <div><label for="role">系统角色</label><select id="role"><option>member</option><option>compliance</option><option>admin</option></select></div>
+        <div><label for="clearance">密级上限</label><select id="clearance"><option value="0">public</option><option value="1" selected>internal</option><option value="2">confidential</option><option value="3">restricted</option></select></div>
+      </div>
+      <div class="row"><button id="saveaccount">保存角色与密级</button><button id="disable">停用账号</button><button id="enable">恢复账号</button></div>
+      <div class="grid">
+        <div><label for="rulekind">本地限制类型</label><select id="rulekind"><option value="source">平台</option><option value="project">项目</option><option value="department">文档部门</option><option value="document">文档 ID</option><option value="corpus">整个数据集</option></select></div>
+        <div><label for="rulevalue">限制值</label><input id="rulevalue" placeholder="slack / jira / confluence / google_drive"></div>
+      </div>
+      <p class="muted">规则的数据集取上方“来源身份”的数据集。整数据集限制填 *。项目和部门按导入元数据精确匹配。</p>
+      <div class="row"><button id="deny">增加拒绝规则</button><button id="restore">移除拒绝规则</button></div>
+      <pre id="permissions"></pre><p id="adminstatus" role="status"></p>
+    </section>
+    <section id="auditpanel" class="panel wide" hidden>
+      <h2>合规审计</h2>
+      <label for="auditquestion">自然语言条件，或用户 ID／请求 ID</label>
+      <input id="auditquestion" placeholder="最近 7 天谁访问过信息？">
+      <div class="row"><button id="auditgo">查询审计与完整性</button><button id="auditexport" disabled>导出当前脱敏结果</button></div>
+      <p class="muted">哈希链使用本地事务存储；外部不可变锚定尚未实现。看不到证据的审计人员只能看到脱敏记录。</p>
+      <pre id="auditresults"></pre>
+    </section>
+  </main>
+</body>
+</html>

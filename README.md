@@ -4,6 +4,12 @@ Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO 
 
 [Part A Quick Start](QUICKSTART.md)
 
+## Unified integration
+
+The unified service connects Part A data to filtered Qdrant/FTS retrieval, persistent system permissions, grounded answer generation and query audit. The Part A-style frontend remains the current integration and manual acceptance interface. Browser OIDC is deferred and disabled by default; identity/permissions are not removed. An Agent tool is a **deferred future idea**, not a prerequisite for this release. An explicit, loopback-only isolated demo offers one independent administrator and six employees, reusing the real services; it is **not production authentication**. Ordinary unauthenticated APIs remain locked. See [demo acceptance](docs/product/demo-acceptance.md), [integration setup](docs/architecture/unified-integration.md), and [future tool scope](docs/product/tool-entry-scope.md).
+
+The sections below describe the original Streamlit v0 reference, not the integration's live state. Integration, Part A evaluation and compatibility fixes are delivered together through [PR #6](https://github.com/Panyuxiang0830/Hackson_fintech/pull/6). On 2026-10-08 gpushare was rebuilt with 45,565 documents and 591,294 Qdrant points; the loopback preview on 17860 passed retrieval, revocation, real-model and audit checks. The original 7860 service and old snapshot are retained. Offline reranker experiments do not automatically change frontend ranking.
+
 ## What v0 proves
 
 The MVP demonstrates one security-critical vertical slice:
@@ -17,7 +23,7 @@ The MVP demonstrates one security-critical vertical slice:
 7. Apply live permission changes on the next query.
 8. Let compliance users query the audit trail.
 
-It uses synthetic data and runs in deterministic mock mode by default. A real OpenAI-compatible model can be connected later through environment variables.
+It uses synthetic data and runs in deterministic mock mode when no API key is configured. With a TokenHub API key it uses the benchmark-selected `glm-5.3-flash` model, validates every model citation against the authorised Top-K evidence, and falls back to deterministic synthesis when the endpoint or output is unsafe.
 
 ## Run
 
@@ -25,6 +31,8 @@ It uses synthetic data and runs in deterministic mock mode by default. A real Op
 cd /Users/panyuxiang/Desktop/hackson
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cp .env.example .env
+# Put the TokenHub key in .env; leave it empty to use mock mode.
 .venv/bin/streamlit run app.py
 ```
 
@@ -32,10 +40,11 @@ python3 -m venv .venv
 
 ```bash
 cd /Users/panyuxiang/Desktop/hackson
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m pip install -r requirements-integration.txt -r requirements-part-a-test.txt
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-The core tests use only Python's standard library, so they do not require Streamlit.
+The original core tests do not require Streamlit. The unified suite also needs the integration and lightweight Part A test dependencies. Part A's parser/ACL tests run separately with `python -m pytest tests_part_a -q` using a deterministic test tokenizer, without downloading models. Real-model snapshot checks are separate and require the Part A model environment; unit tests do not prove production model quality.
 
 Run the isolated tamper-evidence demo without touching the runtime audit log:
 
@@ -43,12 +52,12 @@ Run the isolated tamper-evidence demo without touching the runtime audit log:
 python3 scripts/demo_audit_tamper.py
 ```
 
-## Current limitations
+## v0 reference limitations
 
 - Synthetic data only.
 - Fixed demo identities; this is not production authentication.
 - Lexical retrieval rather than embeddings.
-- Mock answer synthesis by default.
+- Real model answers still use the small synthetic corpus and lexical Top-K retrieval.
 - No real Confluence/Slack/Jira/Google Drive connector yet.
 - No temporal-authority conflict engine yet.
 - The audit head checkpoint is local; production deployment would anchor it in external immutable storage.

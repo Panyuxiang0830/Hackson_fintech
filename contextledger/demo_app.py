@@ -257,8 +257,16 @@ def create_app(db_path: Path) -> Flask:
 
 
 def serve(db_path: Path, host: str = "127.0.0.1", port: int = 7860) -> None:
-    from contextledger.vectors import preload
+    # The old create_app remains an offline ACL diagnostic for dataset tests.
+    # The public launcher always uses the unified, authenticated boundary.
+    import os
+    from dotenv import load_dotenv
+    from contextledger.web import create_app as unified_app
 
-    preload(db_path.parent)
-    app = create_app(db_path)
+    load_dotenv(os.getenv("CONTEXTLEDGER_ENV_FILE") or None)
+    security_dir = Path(os.getenv("SECURITY_DIR", "runtime/security"))
+    app = unified_app(db_path, security_dir)
+    if app.config["DEMO_MODE"]:
+        from contextledger.demo_identity import require_loopback_bind
+        require_loopback_bind(host)
     app.run(host=host, port=port, debug=False)

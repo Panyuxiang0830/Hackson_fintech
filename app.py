@@ -3,12 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from src.data import load_documents, load_users
 from src.service import KnowledgeService
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(PROJECT_ROOT / ".env")
 PRESET_QUESTIONS = [
     "SG Batch Payments v2.3 是否已经正式上线？最近失败事故的原因是什么？我们现在能否向客户确认服务已经恢复？",
     "What was the technical root cause of the SG Batch Payments incident?",
@@ -134,6 +136,8 @@ with query_col:
         else:
             st.markdown(result.answer)
         st.caption(f"Provider: {result.provider} · Request: {result.request_id}")
+        if result.provider == "mock_fallback":
+            st.warning("The live model was unavailable or returned invalid citations, so this answer used the deterministic fallback.")
     else:
         st.markdown("#### Answer")
         st.write("Submit a question to create the first audited answer.")

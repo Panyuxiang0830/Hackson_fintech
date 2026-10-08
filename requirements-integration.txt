@@ -1,0 +1,6 @@
+Flask==3.1.3
+Authlib==1.8.0
+requests>=2.32,<3
+qdrant-client==1.19.1
+python-dotenv>=1.0,<2
+certifi>=2024.8.30

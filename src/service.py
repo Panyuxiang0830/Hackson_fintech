@@ -104,7 +104,7 @@ class KnowledgeService:
             limit=limit,
             freshness_by_id=freshness_by_id,
         )
-        answer, decision = self.answerer.answer(current_user, question, evidence)
+        answer, decision, answer_provider = self.answerer.answer(current_user, question, evidence)
 
         authorised_ids = {document.id for document, _ in authorised}
         evidence_ids = [item.document.id for item in evidence]
@@ -127,7 +127,7 @@ class KnowledgeService:
             "retrieved_document_ids": evidence_ids,
             "final_answer": answer,
             "decision": decision,
-            "provider": self.answerer.provider,
+            "provider": answer_provider,
         }
         sealed = self.audit.append(record)
         safe_audit_summary = {
@@ -157,7 +157,7 @@ class KnowledgeService:
             denied_document_count=denied_count,
             stale_document_count=stale_count,
             decision=decision,
-            provider=self.answerer.provider,
+            provider=answer_provider,
             audit_record=safe_audit_summary,
         )
 
