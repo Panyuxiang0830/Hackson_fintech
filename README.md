@@ -4,11 +4,11 @@ Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO 
 
 [Part A Quick Start](QUICKSTART.md)
 
-## Unified integration branch
+## Unified integration
 
 The unified service connects Part A data to filtered Qdrant/FTS retrieval, persistent system permissions, grounded answer generation and query audit. The Part A-style frontend remains the current integration and manual acceptance interface. Browser OIDC is deferred and disabled by default; identity/permissions are not removed. An Agent tool is a **deferred future idea**, not a prerequisite for this release. An explicit, loopback-only isolated demo offers one independent administrator and six employees, reusing the real services; it is **not production authentication**. Ordinary unauthenticated APIs remain locked. See [demo acceptance](docs/product/demo-acceptance.md), [integration setup](docs/architecture/unified-integration.md), and [future tool scope](docs/product/tool-entry-scope.md).
 
-The sections below describe the original Streamlit v0 reference, not the integration's live state. Integration remains on `codex/REQ-017-unified-integration` until user acceptance; main is not changed.
+The sections below describe the original Streamlit v0 reference, not the integration's live state. Integration, Part A evaluation and compatibility fixes are delivered together through [PR #6](https://github.com/Panyuxiang0830/Hackson_fintech/pull/6). On 2026-10-08 gpushare was rebuilt with 45,565 documents and 591,294 Qdrant points; the loopback preview on 17860 passed retrieval, revocation, real-model and audit checks. The original 7860 service and old snapshot are retained. Offline reranker experiments do not automatically change frontend ranking.
 
 ## What v0 proves
 
@@ -40,11 +40,11 @@ cp .env.example .env
 
 ```bash
 cd /Users/panyuxiang/Desktop/hackson
-.venv/bin/python -m pip install -r requirements-integration.txt
+.venv/bin/python -m pip install -r requirements-integration.txt -r requirements-part-a-test.txt
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The original core tests do not require Streamlit. The unified suite also needs the pinned integration dependencies for actual Qdrant filtering and OIDC protocol tests. Part A's parser tests run separately with `python -m pytest tests_part_a -q` after installing `requirements-part-a-test.txt`.
+The original core tests do not require Streamlit. The unified suite also needs the integration and lightweight Part A test dependencies. Part A's parser/ACL tests run separately with `python -m pytest tests_part_a -q` using a deterministic test tokenizer, without downloading models. Real-model snapshot checks are separate and require the Part A model environment; unit tests do not prove production model quality.
 
 Run the isolated tamper-evidence demo without touching the runtime audit log:
 
@@ -52,7 +52,7 @@ Run the isolated tamper-evidence demo without touching the runtime audit log:
 python3 scripts/demo_audit_tamper.py
 ```
 
-## Current limitations
+## v0 reference limitations
 
 - Synthetic data only.
 - Fixed demo identities; this is not production authentication.

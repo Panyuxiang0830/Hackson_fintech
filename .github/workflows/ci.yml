@@ -19,3 +19,4 @@ jobs:
         run: |
           python3 -m pip install -r requirements-integration.txt -r requirements-part-a-test.txt
           python3 -m unittest discover -s tests -v
+          python3 -m pytest tests_part_a -q
