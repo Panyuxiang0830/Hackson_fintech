@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-08",
+  "updated_at": "2026-10-10",
   "requirements": [
     {
       "id": "REQ-001",
@@ -46,7 +46,7 @@
       },
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py", "contextledger/unified_service.py", "contextledger/web.py"],
       "tests": ["tests/test_end_to_end.py", "tests/test_integration.py"],
-      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-002",
@@ -64,7 +64,7 @@
       ],
       "code": ["src/policy.py", "src/service.py", "contextledger/filtered_index.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_policy.py", "tests/test_no_leakage.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-003",
@@ -79,7 +79,7 @@
       ],
       "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/source_permissions.py"],
       "tests": ["tests/test_policy.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-004",
@@ -97,7 +97,7 @@
       ],
       "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json", "contextledger/filtered_index.py", "contextledger/rechunk.py", "contextledger/vectors.py"],
       "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/index-and-freshness.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/index-and-freshness.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-005",
@@ -114,7 +114,7 @@
       ],
       "code": ["src/identity.py", "src/policy.py", "src/service.py", "app.py", "contextledger/identity_store.py", "contextledger/web.py", "contextledger/unified_service.py", "contextledger/static/unified.js"],
       "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-006",
@@ -132,7 +132,7 @@
       ],
       "code": ["src/audit.py", "src/service.py", "app.py", "contextledger/audit_store.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/unified-integration.md", "docs/product/engineering-challenges.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/unified-integration.md", "docs/product/engineering-challenges.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-007",
@@ -148,7 +148,7 @@
       ],
       "code": ["src/audit.py", "scripts/demo_audit_tamper.py", "contextledger/audit_store.py"],
       "tests": ["tests/test_audit.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-008",
@@ -164,7 +164,7 @@
       ],
       "code": ["src/audit.py", "src/audit_query.py", "src/service.py", "app.py", "contextledger/unified_service.py", "contextledger/web.py"],
       "tests": ["tests/test_audit_query.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-009",
@@ -184,7 +184,7 @@
       ],
       "code": ["src/answering.py", "src/service.py", "app.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_end_to_end.py", "tests/test_integration.py"],
-      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-010",
@@ -215,7 +215,7 @@
       ],
       "code": [],
       "tests": [],
-      "docs": ["docs/product/roadmap.md", "docs/product/mvp-v0.md"]
+      "docs": ["docs/product/roadmap.md", "docs/product/mvp-v0.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-012",
@@ -248,7 +248,7 @@
       ],
       "code": [],
       "tests": [],
-      "docs": ["docs/source/submission-open-questions.md", "docs/source/handbook-fintech-track.md"]
+      "docs": ["docs/source/submission-open-questions.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-014",
@@ -268,7 +268,7 @@
       ],
       "code": [],
       "tests": [],
-      "docs": ["docs/product/roadmap.md"]
+      "docs": ["docs/product/roadmap.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-015",
@@ -291,7 +291,7 @@
       ],
       "code": ["contextledger/filtered_index.py", "contextledger/search.py"],
       "tests": ["tests/test_integration.py"],
-      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/architecture/query-planning.md", "docs/product/demo-acceptance.md"]
+      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/architecture/query-planning.md", "docs/product/demo-acceptance.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-016",
@@ -314,7 +314,7 @@
       ],
       "code": ["contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/web.py", "contextledger/integration.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "scripts/sync_preview_config.py", ".env.integration.example"],
       "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_oidc.py"],
-      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/prompt-and-login-walkthrough.md", "docs/product/tool-entry-scope.md"]
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/prompt-and-login-walkthrough.md", "docs/product/tool-entry-scope.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-017",
@@ -339,7 +339,7 @@
       ],
       "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "contextledger/rechunk.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt", ".github/workflows/ci.yml"],
       "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_prepare_preview.py", "tests/test_oidc.py", "tests/test_integration_dependencies.py", "tests_part_a/test_supplemental.py", "tests_part_a/conftest.py"],
-      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/part-a-integration-review.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md"]
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/part-a-integration-review.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-018",
@@ -353,11 +353,13 @@
         "分别评估信息筛选的关键事实召回、授权范围内检索质量和回答证据支持程度",
         "安全测试覆盖越权访问、系统内撤权、缓存或历史绕过及不可信来源指令",
         "记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长",
-        "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测"
+        "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测",
+        "2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证",
+        "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过"
       ],
       "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh"],
       "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py"],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md"]
+      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-019",
@@ -376,7 +378,7 @@
       ],
       "code": ["src/answering.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_answering.py"],
-      "docs": ["docs/product/prompt-and-login-walkthrough.md", "docs/product/demo-acceptance.md", "docs/architecture/query-planning.md", "docs/evaluation/model-selection.md"]
+      "docs": ["docs/product/prompt-and-login-walkthrough.md", "docs/product/demo-acceptance.md", "docs/architecture/query-planning.md", "docs/evaluation/model-selection.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-020",
@@ -396,7 +398,7 @@
       ],
       "code": ["contextledger/unified_service.py", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/web.py"],
       "tests": ["tests/test_integration.py"],
-      "docs": ["docs/product/tool-entry-scope.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/roadmap.md"]
+      "docs": ["docs/product/tool-entry-scope.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/roadmap.md", "docs/product/workload.md"]
     }
   ]
 }

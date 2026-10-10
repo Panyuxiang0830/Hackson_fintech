@@ -26,6 +26,7 @@
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
+- `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；

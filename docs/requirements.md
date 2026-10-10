@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-08
+最后更新：2026-10-10
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -46,7 +46,7 @@
 
   - 代码：`app.py`, `src/retrieval.py`, `src/answering.py`, `src/service.py`, `contextledger/unified_service.py`, `contextledger/web.py`
   - 测试：`tests/test_end_to_end.py`, `tests/test_integration.py`
-  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-002 · 检索前确定性权限过滤
 
@@ -66,7 +66,7 @@
 
   - 代码：`src/policy.py`, `src/service.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_policy.py`, `tests/test_no_leakage.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-003 · 保留来源访问控制语义
 
@@ -83,7 +83,7 @@
 
   - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/source_permissions.py`
   - 测试：`tests/test_policy.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-004 · 新鲜度与来源状态
 
@@ -103,7 +103,7 @@
 
   - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`, `contextledger/filtered_index.py`, `contextledger/rechunk.py`, `contextledger/vectors.py`
   - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`, `docs/product/workload.md`
 
 ## REQ-005 · 权限变更即时生效
 
@@ -122,7 +122,7 @@
 
   - 代码：`src/identity.py`, `src/policy.py`, `src/service.py`, `app.py`, `contextledger/identity_store.py`, `contextledger/web.py`, `contextledger/unified_service.py`, `contextledger/static/unified.js`
   - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-006 · 可查询的完整审计记录
 
@@ -142,7 +142,7 @@
 
   - 代码：`src/audit.py`, `src/service.py`, `app.py`, `contextledger/audit_store.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_end_to_end.py`, `tests/test_audit_query.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/unified-integration.md`, `docs/product/engineering-challenges.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/unified-integration.md`, `docs/product/engineering-challenges.md`, `docs/product/workload.md`
 
 ## REQ-007 · 防篡改审计链
 
@@ -160,7 +160,7 @@
 
   - 代码：`src/audit.py`, `scripts/demo_audit_tamper.py`, `contextledger/audit_store.py`
   - 测试：`tests/test_audit.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-008 · 自然语言审计查询
 
@@ -178,7 +178,7 @@
 
   - 代码：`src/audit.py`, `src/audit_query.py`, `src/service.py`, `app.py`, `contextledger/unified_service.py`, `contextledger/web.py`
   - 测试：`tests/test_audit_query.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-009 · LLM 安全边界
 
@@ -200,7 +200,7 @@
 
   - 代码：`src/answering.py`, `src/service.py`, `app.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_answering.py`, `tests/test_no_leakage.py`, `tests/test_end_to_end.py`, `tests/test_integration.py`
-  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/evaluation/model-selection.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/evaluation/model-selection.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-010 · 单一案例选择与展示声明
 
@@ -235,7 +235,7 @@
 
   - 代码：—
   - 测试：—
-  - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`
+  - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`, `docs/product/workload.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作
 
@@ -272,7 +272,7 @@
 
   - 代码：—
   - 测试：—
-  - 文档：`docs/source/submission-open-questions.md`, `docs/source/handbook-fintech-track.md`
+  - 文档：`docs/source/submission-open-questions.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
 
 ## REQ-014 · 异构来源摄取、清洗与高价值信息筛选
 
@@ -294,7 +294,7 @@
 
   - 代码：—
   - 测试：—
-  - 文档：`docs/product/roadmap.md`
+  - 文档：`docs/product/roadmap.md`, `docs/product/workload.md`
 
 ## REQ-015 · 统一分类、混合索引与身份感知查询路由
 
@@ -319,7 +319,7 @@
 
   - 代码：`contextledger/filtered_index.py`, `contextledger/search.py`
   - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`, `docs/architecture/query-planning.md`, `docs/product/demo-acceptance.md`
+  - 文档：`docs/product/roadmap.md`, `docs/architecture/integration-plan.md`, `docs/architecture/index-and-freshness.md`, `docs/architecture/query-planning.md`, `docs/product/demo-acceptance.md`, `docs/product/workload.md`
 
 ## REQ-016 · 可信调用身份与持久化身份权限库
 
@@ -344,7 +344,7 @@
 
   - 代码：`contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `scripts/sync_preview_config.py`, `.env.integration.example`
   - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_oidc.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/product/tool-entry-scope.md`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/product/tool-entry-scope.md`, `docs/product/workload.md`
 
 ## REQ-017 · Part A 与安全问答服务统一集成
 
@@ -371,7 +371,7 @@
 
   - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `contextledger/rechunk.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `scripts/sync_preview_config.py`, `requirements-integration.txt`, `.github/workflows/ci.yml`
   - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 
@@ -386,12 +386,14 @@
   - 安全测试覆盖越权访问、系统内撤权、缓存或历史绕过及不可信来源指令
   - 记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长
   - 测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测
+  - 2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证
+  - 五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过
 
 - 影响范围：
 
   - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`
   - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`
-  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 
@@ -412,7 +414,7 @@
 
   - 代码：`src/answering.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_answering.py`
-  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`
+  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`, `docs/product/workload.md`
 
 ## REQ-020 · 面向上游 Agent 的权限感知工具接口
 
@@ -434,4 +436,4 @@
 
   - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/web.py`
   - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`
+  - 文档：`docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`
