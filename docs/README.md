@@ -27,6 +27,7 @@
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
+- `docs/product/llm-feature-plan.md`：2026-10-11 待实现的模型审计问答、独立引用复核、检索前规划和零证据撤权 Demo，包含输入/权限/降级边界；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
@@ -51,6 +52,8 @@ python3 scripts/project_sync.py --check
 ```
 
 第一条命令重新生成 `docs/requirements.md`；第二条命令用于本地或 CI，发现生成文档过期、重复需求 ID、非法状态、非法权威级别或不存在的影响文件时会失败。
+
+同一目标的团队新增功能放在已有 REQ 的 `extensions` 中，使用唯一 `key` 和独立的 `authority`、`status`、验收与影响范围，生成视图也会分别展示。官方基础能力不自动要求特定 LLM 实现方式；团队 planned 扩展不能继承成官方要求或已实现。包含未完成扩展的 REQ 整体不能标为 implemented/validated。
 
 ## 权威级别
 

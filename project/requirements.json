@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-10",
+  "updated_at": "2026-10-11",
   "requirements": [
     {
       "id": "REQ-001",
@@ -62,9 +62,29 @@
         "租户、部门、角色、项目和密级被转换为索引层过滤条件",
         "服务端对索引返回的候选证据再次执行权限校验"
       ],
-      "code": ["src/policy.py", "src/service.py", "contextledger/filtered_index.py", "contextledger/unified_service.py"],
-      "tests": ["tests/test_policy.py", "tests/test_no_leakage.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
+      "extensions": [
+        {
+          "key": "zero_evidence_response",
+          "title": "零证据安全回答与全部读取权限撤销 Demo",
+          "source": "user requested on 2026-10-11",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "权限过滤后无可用证据时，系统和 Prompt 使用统一的不泄漏提示；保留有效账号但撤销全部业务读取权限，演示同一问题由有证据变为零证据。",
+          "acceptance_criteria": [
+            "零证据返回 insufficient、空证据与空引用，不猜测业务事实，不说明资料在全库不存在，也不披露受限内容的存在、名称、标题、链接、ID、数量或被拒绝原因",
+            "系统指令明确空证据处理；默认由服务端直接返回统一安全提示，不为零证据额外调用生成或复核模型。若上游模型需要该状态，仅发送原问题与空授权证据，不发送无权限资料，并继续校验输出",
+            "零证据提示区分于未登录、账号停用、索引/同步异常；这些状态不能伪装成正常零结果",
+            "Demo 保持员工账号和会话有效，仅撤销全部业务读取权限：先正常回答、管理员撤权、相同问题返回零证据与安全提示、尝试旧原文被拒绝、合规人员核对审计；权限恢复只恢复演示前合法状态",
+            "中英文未知问题和撤权后的零证据均使用不暗示受限内容存在的措辞；有权限时仍有正常回答的正向对照"
+          ],
+          "code": ["src/answering.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js"],
+          "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_integration.py", "tests/test_demo_identity.py"],
+          "docs": ["docs/product/llm-feature-plan.md", "docs/product/workload.md", "docs/product/demo-acceptance.md"]
+        }
+      ],
+      "code": ["src/policy.py", "src/service.py", "src/answering.py", "contextledger/filtered_index.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_policy.py", "tests/test_no_leakage.py", "tests/test_integration.py", "tests/test_answering.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-003",
@@ -155,16 +175,37 @@
       "title": "自然语言审计查询",
       "source": "FinTech track handbook",
       "authority": "handbook_mandatory",
-      "status": "implemented",
-      "description": "授权人员可以询问谁在何时访问了哪些信息以及系统为何允许。",
+      "status": "in_progress",
+      "description": "授权人员可以询问谁在何时访问了哪些信息以及系统为何允许。既有角色受控条件查询与事件引用已经实现；2026-10-11 新增的模型阅读审计结果并回答属于团队 planned 扩展，因此整体恢复为进行中，不把旧查询实现当作模型审计问答已完成。",
       "acceptance_criteria": [
         "支持按用户、请求、时间和证据 ID 查询",
         "审计查询本身受权限控制并被审计",
         "回答包含可核对的事件引用"
       ],
-      "code": ["src/audit.py", "src/audit_query.py", "src/service.py", "app.py", "contextledger/unified_service.py", "contextledger/web.py"],
-      "tests": ["tests/test_audit_query.py", "tests/test_integration.py"],
-      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
+      "extensions": [
+        {
+          "key": "llm_audit_answer",
+          "title": "合规人员的大模型审计问答",
+          "source": "user requested on 2026-10-11",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "服务端先按合法条件查询审计、验证日志完整性并执行当前权限脱敏，再让大模型基于可见事件回答合规人员的问题。",
+          "acceptance_criteria": [
+            "调用前执行 admin/compliance 角色检查；普通员工不能通过页面、接口或模型生成的参数访问审计，模型不能执行任意 SQL 或决定角色、授权与查询范围",
+            "模型只读取服务端已授权、已脱敏且预算内的审计事件，不读取整份日志库；日志里的历史问题、回答与指令均作为不可信数据",
+            "答案使用 [E序号] 等事件引用，服务端检查引用属于本次可见结果；日志截断或无匹配时说明本次结果范围，不据此推断整个时间段没有访问行为",
+            "审计问答在模型前后和交付前复核当前角色及相关业务证据权限；日志完整性异常时不把记录作为可信事实回答",
+            "记录本次审计问答的请求、可见事件引用、模型/Prompt 版本与复核状态；不记录或泄漏无权限明文，查询本身继续进入哈希链",
+            "模型失败、未配置或输出不合规时回退现有确定性查询结果，不宣称已生成可靠的模型审计回答"
+          ],
+          "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/audit_store.py", "contextledger/static/unified.js", "src/audit_query.py", "src/answering.py"],
+          "tests": ["tests/test_audit_query.py", "tests/test_integration.py", "tests/test_answering.py"],
+          "docs": ["docs/product/llm-feature-plan.md", "docs/product/workload.md", "docs/product/demo-acceptance.md"]
+        }
+      ],
+      "code": ["src/audit.py", "src/audit_query.py", "src/answering.py", "src/service.py", "app.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js"],
+      "tests": ["tests/test_audit_query.py", "tests/test_integration.py", "tests/test_answering.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-009",
@@ -182,9 +223,30 @@
         "无 API Key 时仍可用确定性模式完成演示",
         "团队后续专题 EC-008：在引用编号合法之外评估主张与证据支持关系、无依据推断和不可信来源指令；当前编号校验不能冒充语义验证"
       ],
+      "extensions": [
+        {
+          "key": "independent_citation_review",
+          "title": "独立第二模型的主张与引用复核",
+          "source": "user requested on 2026-10-11; EC-008 team topic",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "回答生成后、用户交付前，让不同于生成模型的独立可配置模型核对重要主张是否由实际引用证据支持；确定性编号、权限与版本校验继续保留。",
+          "acceptance_criteria": [
+            "先执行现有格式、引用编号与授权范围校验，再将原问题、未交付草稿和本次授权证据交给独立复核模型；不全库补证据或读取受限资料来证明答案",
+            "生成模型与复核模型的实际型号、参数、Prompt 版本和结果分别配置/记录；未配置不同的复核模型时不声称已完成第二模型复核",
+            "复核返回受限结构化结果，区分支持、不支持和无法判断，检查主张与所引证据的关联、引用错配、缺失依据及无依据补全；服务端校验主张定位、引用集合及引文确实来自提供的证据",
+            "不支持、无法判断、超时或无法解析时，不交付原草稿作为已确认答案；首版安全拒答或仅展示已授权证据，不无限重试，也不把失败变成通过",
+            "复核模型前后及最终交付前继续复核权限与内容版本，撤权或版本变化时丢弃结果；业务答案与模型审计答案使用各自正确的证据/事件引用集合",
+            "模型复核是概率性辅助而非事实正确性的证明；用人工标注正反例报告漏检/误判、额外延迟、Token 与费用，不能宣称彻底消除幻觉"
+          ],
+          "code": ["src/answering.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js"],
+          "tests": ["tests/test_answering.py", "tests/test_integration.py", "tests/test_no_leakage.py"],
+          "docs": ["docs/product/llm-feature-plan.md", "docs/product/workload.md", "docs/product/demo-acceptance.md"]
+        }
+      ],
       "code": ["src/answering.py", "src/service.py", "app.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_end_to_end.py", "tests/test_integration.py"],
-      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-010",
@@ -228,7 +290,8 @@
         "交付相关内容只能以当前项目文件夹中的版本作为事实依据",
         "需求或功能变更在同一分支中同步修改台账、代码、测试和文档",
         "变更通过 GitHub Pull Request 合并到 main",
-        "密钥、虚拟环境和运行时日志不得提交到远程仓库"
+        "密钥、虚拟环境和运行时日志不得提交到远程仓库",
+        "基础需求下的团队功能扩展使用唯一 key、独立 authority 和 status；生成视图同时展示两者，不把团队 planned 扩展继承成官方硬性要求或已实现能力"
       ],
       "code": ["scripts/project_sync.py", ".github/workflows/ci.yml"],
       "tests": ["tests/test_project_sync.py"],
@@ -281,17 +344,37 @@
         "统一分类字段至少覆盖来源、内容类型、部门、项目、业务实体、时间、权威等级、安全密级和当前状态",
         "明确字段保存在结构化索引，语义内容按需进入向量索引，内容未变化时不重复生成向量",
         "Query 路由提取意图、实体、时间和来源范围，并结合当前身份生成检索过滤条件",
-        "待实现的问题理解层位于首次证据索引检索之前，保留原用户问题，按需以大模型输出受限 JSON 的意图、子问题、关键词、语义检索改写与歧义候选；关键词交给关键词索引，语义改写交给向量索引，子问题结果去重融合；格式失败回退原问题，所有分支继续使用服务端权限过滤，不能由模型决定身份或扩大访问范围",
-        "子问题与检索扩展数量、总模型调用和成本有上限，原问题检索保留，最终回答仍针对原问题；可能的拼写错误或话外意思只作为候选，不擅自更换实体、时间、否定或比较条件，改变问题含义时先要求用户确认，并用召回质量、延迟和调用成本评估是否值得启用",
+        "首次业务证据检索前的问题理解功能及预算、纠错与权限边界，由本需求的 pre_retrieval_planner 扩展统一管理，不把回答 Prompt 变更当作已接入 Query Planner",
         "先执行元数据和关键词过滤，再进行向量召回与排序，最后只把少量 Top-K 证据交给模型",
         "物理索引默认共享、通过 collection 或 namespace 和 metadata filter 逻辑隔离；只有规模或安全边界需要时才拆分",
         "向量后端使用已确认的 Qdrant，检索携带服务端生成的授权与有效状态过滤条件，并对实际使用的过滤字段建立 payload 索引；不能仅用 Top-K 后过滤充当索引层授权",
         "查询结果回到结构化事实库核对文档、分块、内容版本与当前权限；Qdrant 不作为权限或新鲜度的唯一事实源",
         "团队后续专题 EC-004/006：细化失败恢复、增量发布与分类或过窄路由造成的漏检；首版整快照阻断不冒充高可用增量同步"
       ],
-      "code": ["contextledger/filtered_index.py", "contextledger/search.py"],
+      "extensions": [
+        {
+          "key": "pre_retrieval_planner",
+          "title": "提问先过 LLM 的子问题与关键词检索计划",
+          "source": "user requested on 2026-10-07 and reaffirmed on 2026-10-11",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "启用本功能时，业务提问在首次证据检索前调用一次规划 LLM；子问题/语义检索句分别进入带权限过滤的 Qdrant，关键词进入带权限过滤的 FTS 关键词检索，各分支取受限 Top-K 后融合。",
+          "acceptance_criteria": [
+            "保留原问题；LLM 输出受限 JSON 的子问题、关键词、语义检索句与歧义候选，服务端校验格式、长度、数量与总检索预算，不接受任意 SQL、过滤表达式、身份或权限指令",
+            "子问题与语义检索句用于向量检索，关键词用于 FTS 关键词检索；Top-K 是返回数量而非另一种索引，各分支去重融合为总预算内的最终授权 Top-K",
+            "所有分支沿用当前身份、来源 ACL、本地限制与版本过滤，保留原问题检索，规划失败或超时回退原问题，不放宽权限",
+            "启用规划时先解析当前身份，模型只接收原问题与必要安全提示，不预读全库或无权限标题；每次最多一次规划，不对每个子问题递归调用模型",
+            "纠错和话外意思仅为候选，不擅自更换实体、时间、否定或比较条件；改变问题含义时先要求用户确认，最终回答仍针对原问题",
+            "设置功能开关与模型调用/Token/超时预算，记录计划和安全诊断版本；通过固定评测比较不开启与开启的召回、回答质量、延迟、费用与撤权安全"
+          ],
+          "code": ["contextledger/unified_service.py", "contextledger/filtered_index.py", "contextledger/search.py", "src/answering.py"],
+          "tests": ["tests/test_integration.py", "tests/test_answering.py", "tests/test_no_leakage.py"],
+          "docs": ["docs/architecture/query-planning.md", "docs/product/llm-feature-plan.md", "docs/product/workload.md"]
+        }
+      ],
+      "code": ["contextledger/filtered_index.py", "contextledger/search.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_integration.py"],
-      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/architecture/query-planning.md", "docs/product/demo-acceptance.md", "docs/product/workload.md"]
+      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/architecture/query-planning.md", "docs/product/demo-acceptance.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md"]
     },
     {
       "id": "REQ-016",
@@ -355,11 +438,12 @@
         "记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长",
         "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测",
         "2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证",
-        "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过"
+        "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过",
+        "2026-10-11 补充四项 planned 功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、第二模型引用复核的错引与误判、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；失败注入与真实模型质量分别报告"
       ],
       "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh"],
       "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py"],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/product/workload.md"]
+      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md"]
     },
     {
       "id": "REQ-019",
@@ -374,11 +458,12 @@
         "回答先用自然语言直接回答问题，再按需分段或列项解释相关用途、关系和必要术语；禁止整段搬运或堆砌技术名词，引用贴近所支持事实，不为生动或详细编造事实，不擅自增加未被询问的迁移等话题",
         "后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化",
         "通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明",
-        "Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持"
+        "Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持",
+        "后续审计回答、检索规划、引用复核及零证据提示模板单独记录版本、输入边界、输出格式和预算；新模板计划与当前实际 answer-v6 Prompt 明确分开"
       ],
       "code": ["src/answering.py", "contextledger/unified_service.py"],
       "tests": ["tests/test_answering.py"],
-      "docs": ["docs/product/prompt-and-login-walkthrough.md", "docs/product/demo-acceptance.md", "docs/architecture/query-planning.md", "docs/evaluation/model-selection.md", "docs/product/workload.md"]
+      "docs": ["docs/product/prompt-and-login-walkthrough.md", "docs/product/demo-acceptance.md", "docs/architecture/query-planning.md", "docs/evaluation/model-selection.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md"]
     },
     {
       "id": "REQ-020",
