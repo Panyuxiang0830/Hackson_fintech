@@ -27,7 +27,8 @@
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
-- `docs/product/llm-feature-plan.md`：2026-10-11 待实现的模型审计问答、独立引用复核、检索前规划和零证据撤权 Demo，包含输入/权限/降级边界；
+- `docs/product/llm-feature-plan.md`：2026-10-11 四项模型功能的需求与边界；代码已在工作分支接入，真实模型和录制验收仍待完成；
+- `docs/architecture/llm-workflows.md`：新增规划／审计生成／独立复核的实际配置、预算、安全门闩、回归和评测入口；尚未部署；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
@@ -36,7 +37,7 @@
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
 - `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
 - `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
-- `docs/architecture/query-planning.md`：待实现的问题理解、关键词／语义改写和纠错确认，保持检索权限边界；
+- `docs/architecture/query-planning.md`：有开关的受限问题规划、FTS／Qdrant 分流和纠错确认；实际收益待评测；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
 - `CONTRIBUTING.md`：分支、提交和评审流程；

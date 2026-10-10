@@ -234,6 +234,20 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertEqual(answerer.last_diagnostics["failures"], ["api_unavailable"])
         self.assertNotIn("secret-test-key", json.dumps(answerer.last_diagnostics))
 
+    def test_format_retry_usage_and_latency_include_both_attempts(self):
+        bad = {"status":"answered","answer":"Unsupported [99]","citation_ids":[99],"uncertainty":"low"}
+        good = {"status":"answered","answer":"Approved [1]","citation_ids":[1],"uncertainty":"low"}
+        def reply(payload):
+            return io.BytesIO(json.dumps({"model":"glm-5.3-flash", "usage":{"total_tokens":100},
+                "choices":[{"finish_reason":"stop","message":{"content":json.dumps(payload)}}]}).encode())
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            answerer = AnswerService()
+            with patch("urllib.request.urlopen", side_effect=[reply(bad), reply(good)]):
+                answer, decision, _ = answerer.answer(self.user, "Approved?", self.evidence)
+        self.assertEqual(decision, "answered")
+        self.assertEqual(answerer.last_diagnostics["usage"]["total_tokens"], 200)
+        self.assertEqual(len(answerer.last_diagnostics["attempt_latencies_ms"]), 2)
+
     def test_diagnostics_are_isolated_between_concurrent_requests(self):
         from concurrent.futures import ThreadPoolExecutor
         from threading import Barrier
@@ -284,7 +298,9 @@ class AnswerServiceTests(unittest.TestCase):
 
         self.assertEqual(decision, "insufficient")
         self.assertEqual(provider, "deterministic")
-        self.assertIn("could not find enough authorised evidence", answer)
+        self.assertIn("insufficient usable evidence", answer)
+        self.assertNotIn("access scope", answer)
+        self.assertNotIn("permission", answer)
         urlopen.assert_not_called()
 
 

@@ -33,6 +33,17 @@ class PreviewConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 preview_config(values, url, "/tmp/isolated-demo", "http://127.0.0.1:6335")
 
+    def test_workflow_fields_explicitly_whitelisted_and_multiline_rejected(self):
+        payload = preview_config({"LLM_API_KEY":"fixture-token", "LLM_REVIEW_API_KEY":"judge-key",
+            "LLM_REVIEW_MODEL":"independent", "LLM_PLANNER_ENABLED":"true", "UNRELATED_KEY":"excluded"},
+            "http://127.0.0.1:17860", "/tmp/isolated-demo", "http://127.0.0.1:6335")
+        self.assertEqual(payload["LLM_REVIEW_MODEL"], "independent")
+        self.assertEqual(payload["LLM_REVIEW_API_KEY"], "judge-key")
+        self.assertNotIn("UNRELATED_KEY", payload)
+        with self.assertRaises(ValueError):
+            preview_config({"LLM_API_KEY":"fixture-token", "LLM_REVIEW_MODEL":"bad\nvalue"},
+                "http://127.0.0.1:17860", "/tmp/isolated-demo", "http://127.0.0.1:6335")
+
 
 if __name__ == "__main__":
     unittest.main()
