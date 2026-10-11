@@ -59,7 +59,7 @@
 
 输出带分母的漏检/误拒数量、未成功的状态、调用/Token/耗时，不能把 9 个合成用例当生产准确率。规划开关的固定检索评测、五场景完整验收、新鲜度、来源撤权同步、费用和录制 Demo 仍待完成。新版隔离预览已启动，不代表真实模型质量通过，也没有推送或合并分支。
 
-## gpushare 新版隔离预览（2026-10-11）
+## gpushare 首次新版隔离预览（2026-10-11，历史快照）
 
 用户要求打开前端进行人工操作后，将 Git 提交 `1fa92b23` 的已跟踪代码打包至 `/hy-tmp/data_pyx/contextledger-integration/releases/llm-workflows-1fa92b23`；没有修改服务器原 Git checkout 或 main。新的预览进程 PID 为 4093059，仅监听服务器 `127.0.0.1:17861`；本机 SSH 转发 `127.0.0.1:17860 → 服务器 127.0.0.1:17861`，页面打开于 `http://127.0.0.1:17860/`。
 
@@ -73,3 +73,18 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCount
 ```
 
 服务器启动日志：`/hy-tmp/data_pyx/contextledger-integration/logs/llm-workflows-preview-1fa92b23.log`；203 项主测试日志同目录 `llm-workflows-regression-1fa92b23.log`。预览是本次代码快照，后续代码提交不会自动热更新。用户尚未完成完整验收，不能因页面可打开就标记模型功能 validated。
+
+## 反馈重答版预览（2026-10-11）
+
+代码提交 `87a07d6e` 独立部署至 `/hy-tmp/data_pyx/contextledger-integration/releases/llm-workflows-87a07d6e`，PID 4094988 监听服务器回环 17862。服务器需求检查和 208 项主回归通过；复用原 0600 模型配置、事实库/Qdrant 和 security-demo，不初始化权限或重建索引。17861 的前版及旧 17860/7860 保留，可恢复旧预览。
+
+本机 17860 的转发目标改为服务器 17862；前端须刷新加载新脚本，已有账号/会话保留。恢复命令：
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+  -L 127.0.0.1:17860:127.0.0.1:17862 gpushare
+```
+
+新启动日志：`/hy-tmp/data_pyx/contextledger-integration/logs/llm-workflows-preview-87a07d6e.log`；208 项测试日志：同目录 `llm-workflows-regression-87a07d6e.log`。规划/复核配置就绪；真实质量和用户完整验收仍待完成，不自动推送/合并。
+
+真实 GLM 小样本：在独立 HTTP 测试会话选择已有 Jax，提问“TitanDB 是做什么的？”，未更改权限。请求 `cb6875e4-6fd5-4156-a873-be774d833a76` 返回 answered、5 条授权证据；首次复核 invalid_review，重答 1 次、regeneration=revised_not_reviewed，页面警告字段存在。首次生成/复核/重答分别 1 次且审计链有效；未在事件中保存自由反馈。这只验证真实调用与失败后的重答控制流，不证明语义正确性、总体复核质量或完整验收。
