@@ -38,6 +38,23 @@ JSON 输入 ≤60000 字符、HTTP 响应 ≤128 KiB。字符不是精确 Token 
 
 本轮实际部署/回归结果在下方另记。真实 GLM 质量、规划收益、五场景录制、新鲜度和原平台撤权自动同步仍需分别验收。Codex 插件为未来计划，当前没有工具适配层，不恢复真实浏览器登录。
 
+## 当前取消复核版部署（2026-10-11）
+
+代码快照 `0cebdbf3` 已部署至 `/hy-tmp/data_pyx/contextledger-integration/releases/llm-workflows-0cebdbf3`。本机与服务器传输包 SHA-256 相同，服务器 195 项主测试、需求同步检查通过；本机 195 项主测试、8 项 Part A、需求同步、JavaScript 语法及 diff 检查通过。移除专用模型复核测试并新增取消/基本安全回归，所以测试数变化不代表未跑完。
+
+新 PID 4102192 仅监听 gpushare `127.0.0.1:17863`，本机 SSH 转发 PID 5651 / 执行会话 59531 将 `127.0.0.1:17860` 转至新端口。访问 `http://127.0.0.1:17860/` 后刷新即可加载新版。原 17862/17861/17860/7860 和 Qdrant 6335 保留；既有 content、security-demo、0600 配置均复用，没有重建索引、重置身份权限或删除日志。旧复核配置即使存在，也没有代码读取。
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+  -L 127.0.0.1:17860:127.0.0.1:17863 gpushare
+```
+
+日志：`/hy-tmp/data_pyx/contextledger-integration/logs/llm-workflows-preview-0cebdbf3.log`；回归日志同目录 `llm-workflows-regression-0cebdbf3.log`。会话 API 不再返回 review_enabled/review_configured，实际 HTML/JS 没有反馈卡片、重答或复核加载状态。配置继续允许规划；下列真实调用为关闭规划的小样本，未验证规划收益。
+
+在独立 HTTP 测试会话选择已有 Jax，未修改其权限，提问“TitanDB 是做什么的？”：请求 `9bfab443-46c2-4233-afee-c588f26dd821` 返回 answered、GLM-5.3-Flash、5 条授权证据，生成 1 次、answer-v9；没有复核或 regeneration 字段。随后使用独立管理员只解释该请求：审计请求 `73712d58-cb5b-47e9-9726-288d07d10cb1` 返回 answered、同 GLM 生成 1 次、E 事件引用、业务内容继续脱敏，审计链有效（当时 98 事件）。这些操作产生正常查询/身份选择审计事件，不是伪造开发工具证明。
+
+这只确认两条真实调用及取消控制流，不证明样本事实逐句正确、规划提升 Recall、五场景全部通过或整体模型质量。未推送/合并分支；后续文档提交不改变该部署的代码快照。
+
 ## 历史预览记录（复核/重答链已取消，不再使用下列配置）
 
 ## gpushare 首次新版隔离预览（2026-10-11，历史快照）
