@@ -226,18 +226,18 @@
       "extensions": [
         {
           "key": "independent_citation_review",
-          "title": "独立第二模型的主张与引用复核",
-          "source": "user requested on 2026-10-11; EC-008 team topic",
+          "title": "单独调用模型的主张与引用复核",
+          "source": "user requested on 2026-10-11; same GLM confirmed on 2026-10-11; EC-008 team topic",
           "authority": "team_decision",
           "status": "in_progress",
-          "description": "已接独立可配置模型的逐段覆盖、引用集合与精确摘录检查，失败/不确定/未配置/同型号时不展示草稿，继续权限与版本校验。合成控制流回归通过；实际不同型号配置、误判与成本评测待完成，因此保持进行中。",
+          "description": "用户确认复核复用当前 GLM，通过单独一次调用和专用复核 Prompt 完成逐段覆盖、引用集合与精确摘录检查；默认沿用 LLM_MODEL/地址/Key，仍可另配型号。保留既有 key 避免重复需求；同模型复核不是独立模型验证。失败/不确定/无配置时不展示草稿，继续权限与版本校验；真实误判与成本评测待完成。",
           "acceptance_criteria": [
-            "先执行现有格式、引用编号与授权范围校验，再将原问题、未交付草稿和本次授权证据交给独立复核模型；不全库补证据或读取受限资料来证明答案",
-            "生成模型与复核模型的实际型号、参数、Prompt 版本和结果分别配置/记录；未配置不同的复核模型时不声称已完成第二模型复核",
+            "先执行现有格式、引用编号与授权范围校验，再将原问题、未交付草稿和本次授权证据交给单独调用的复核阶段；不全库补证据或读取受限资料来证明答案",
+            "默认复用当前 GLM，允许生成与复核采用同型号、同 API；各阶段的调用、实际型号、参数、Prompt 版本和结果分别记录，并明确标注同模型复核而非独立模型验证；仍支持另配复核型号",
             "复核返回受限结构化结果，区分支持、不支持和无法判断，检查主张与所引证据的关联、引用错配、缺失依据及无依据补全；服务端校验主张定位、引用集合及引文确实来自提供的证据",
             "不支持、无法判断、超时或无法解析时，不交付原草稿作为已确认答案；首版安全拒答或仅展示已授权证据，不无限重试，也不把失败变成通过",
             "复核模型前后及最终交付前继续复核权限与内容版本，撤权或版本变化时丢弃结果；业务答案与模型审计答案使用各自正确的证据/事件引用集合",
-            "模型复核是概率性辅助而非事实正确性的证明；用人工标注正反例报告漏检/误判、额外延迟、Token 与费用，不能宣称彻底消除幻觉"
+            "模型复核是概率性辅助而非事实正确性的证明，同型号可能重复同一错误；用人工标注正反例报告漏检/误判、额外延迟、Token 与费用，不能宣称彻底消除幻觉"
           ],
           "code": ["src/answering.py", "contextledger/llm_workflows.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js", ".env.integration.example", "scripts/sync_preview_config.py", "scripts/evaluate_llm_review.py"],
           "tests": ["tests/test_answering.py", "tests/test_integration.py", "tests/test_no_leakage.py", "tests/test_llm_workflows.py", "tests/test_llm_integration.py", "tests/test_llm_evaluation.py", "tests/fixtures/llm_review_cases.json", "tests/test_preview_config.py"],
@@ -439,7 +439,7 @@
         "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测",
         "2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证",
         "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过",
-        "2026-10-11 四项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、第二模型引用复核的错引与误判、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；失败注入与真实模型质量分别报告"
+        "2026-10-11 四项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、单独调用模型复核的错引与误判（允许复用 GLM）、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；失败注入与真实模型质量分别报告"
       ],
       "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh", "scripts/evaluate_llm_review.py"],
       "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py", "tests/test_llm_workflows.py", "tests/test_llm_integration.py", "tests/test_llm_evaluation.py", "tests/fixtures/llm_review_cases.json"],

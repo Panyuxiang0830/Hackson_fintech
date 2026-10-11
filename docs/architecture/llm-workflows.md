@@ -4,9 +4,9 @@
 
 ## 当前代码已接的链路
 
-业务请求：可信会话与当前权限 → 固定索引快照 → 可选规划 → 原问题＋有限分支的授权检索 → 文档 RRF 去重 Top-5 → 再次检查 → 回答生成及编号校验 → 独立复核 → 权限/版本交付检查 → 页面与审计。
+业务请求：可信会话与当前权限 → 固定索引快照 → 可选规划 → 原问题＋有限分支的授权检索 → 文档 RRF 去重 Top-5 → 再次检查 → 回答生成及编号校验 → 单独调用复核 → 权限/版本交付检查 → 页面与审计。
 
-审计请求：admin/compliance → 确定性条件查询与哈希链验证 → 当前业务权限脱敏/白名单投影 → 最多 20 个事件给模型 → `[E序号]` 校验与独立复核 → 再次验证角色、证据和链 → 交付及追加审计。未复核草稿不写进最终回答记录。
+审计请求：admin/compliance → 确定性条件查询与哈希链验证 → 当前业务权限脱敏/白名单投影 → 最多 20 个事件给模型 → `[E序号]` 校验与单独调用复核 → 再次验证角色、证据和链 → 交付及追加审计。未复核草稿不写进最终回答记录。
 
 实现集中在 `contextledger/llm_workflows.py`，由 `unified_service.py` 编排。规划与复核没有检索工具、SQL 或身份接口。API：`/api/search`、`/api/ask` 支持 planning 开关；新增 CSRF/角色受控的 `POST /api/audit/ask`；旧 `GET /api/audit` 保留确定性查询。
 
@@ -16,8 +16,8 @@
 
 - 回答继续使用 `LLM_MODEL`；规划和审计型号分别用 `LLM_PLANNER_MODEL`、`LLM_AUDIT_MODEL`，省略时复用回答型号。各阶段的 `BASE_URL/API_KEY/REASONING_EFFORT` 可独立配置；省略/空的地址与 Key 复用基础配置。
 - `LLM_PLANNER_ENABLED` 的代码默认 false，示例配置为 true。页面复选框可开启或关闭；关闭用于原问题基线。配置缺失、超时或计划不合规都回退原问题，不放宽权限。
-- `LLM_REVIEW_ENABLED` 默认 true。必须填写**不同且已开通**的 `LLM_REVIEW_MODEL`。未配置、配置同型号或服务返回同实际型号，均不能通过；保留授权证据、返回安全提示，不交付草稿。false 仅用于明确标记 disabled 的未复核基线，不等于已确认。
-- 页面显示 planning/review 的实际状态：supported、unsupported、uncertain、not_configured、same_model_rejected、api_unavailable、disabled、not_reviewed_mock、not_required。supported 是模型辅助判断，不是事实证明。实际型号别名是否真正独立仍需运营方确认，不能仅因字符串不同就保证能力/错误独立。
+- `LLM_REVIEW_ENABLED` 默认 true。用户确认复用当前 GLM：`LLM_REVIEW_MODEL` 省略/空值时沿用 `LLM_MODEL`，地址和 Key 同样默认沿用基础配置，无需开通另一型号。复核使用单独的一次调用、专用 Prompt 和受限输入，不共享生成阶段的对话。仍可显式另配型号。同型号不会仅因型号相同被拒绝，但失败/不确定/无配置仍不交付草稿。false 仅用于明确标记 disabled 的未复核基线，不等于已确认。
+- 页面显示 planning/review 的实际状态：supported、unsupported、uncertain、not_configured、api_unavailable、disabled、not_reviewed_mock、not_required。同模型时显示“同模型单独调用”；审计诊断保留生成/复核实际型号、`review_mode=separate_call`、`model_relation` 和 `independence=not_established`。supported 是模型辅助判断，不是独立事实证明；同型号可能重复相同错误，即使配置不同字符串也不能保证模型或错误独立。
 - `scripts/sync_preview_config.py` 已扩充白名单，可同步这些运行配置，继续不打印凭据；本次没有执行远程同步或部署。
 
 ## 输入、输出与预算
@@ -27,7 +27,7 @@
 | 规划 | query-plan-v1-2026-10-11 | 原问题；3 子问题、3 语义句、8 关键词、2 候选；900 输出 Token | 0/1 次，15 秒网络超时 |
 | 生成 | answer-v7-2026-10-11 | 原问题＋Top-5，每段最多 4000 字符；1600 输出 Token | 最多 2 次，30 秒网络超时/次；只有格式失败重试 |
 | 审计生成 | audit-answer-v1-2026-10-11 | 最多 20 可见事件、事件 JSON 总计 ≤40000 字符；1600 输出 Token | 0/1 次，20 秒网络超时 |
-| 复核 | citation-review-v1-2026-10-11 | 原问题、未交付回答、实际输入证据；最多 24 段；2400 输出 Token | 0/1 次，20 秒网络超时 |
+| 复核 | citation-review-v2-2026-10-11 | 原问题、未交付回答、实际输入证据；最多 24 段；2400 输出 Token | 0/1 次，20 秒网络超时 |
 
 新阶段 JSON 输入总计 ≤60000 字符、HTTP 响应 ≤128 KiB。字符限制不是精确输入 Token 预算；网络超时不是完整链路的 SLA。正常业务最多规划一次＋生成两次＋复核一次（最多 4 次），正常审计最多 2 次；不无限重试。返回安全状态、耗时、模型、参数、Prompt 版本与平台报告的 Token 用量，不保存 Key、原始异常或失败草稿。币种费用和真实链路延迟仍待测。
 
@@ -41,13 +41,13 @@
 
 `tests/test_llm_workflows.py` 和 `tests/test_llm_integration.py` 使用真实本地 Qdrant/SQLite、合成语料及受控 API 返回，验证调用顺序、各路 ACL、模型前后/HTTP 交付撤权、版本变化、完整性异常、脱敏、错误摘录/引用、覆盖缺失、预算、失败降级和零证据。**不证明真实模型遵守 Prompt、规划提高 Recall，或复核错误率可接受。**
 
-本次本机回归：`unittest discover -s tests` 199 项、`pytest tests_part_a` 8 项全部通过；需求同步检查、JavaScript 语法检查与 `git diff --check` 通过。测试中的模型响应由受控替身提供，没有调用真实付费模型，也没有更新 gpushare。
+本次本机回归：`unittest discover -s tests` 203 项、`pytest tests_part_a` 8 项全部通过，包含同 GLM 默认配置、单独生成/复核调用、同模型仍拦截伪造摘录以及评测入口复用型号；需求同步检查、JavaScript 语法检查与 `git diff --check` 通过。测试中的模型响应由受控替身提供，没有调用真实付费模型，也没有更新 gpushare。
 
-独立复核的 9 个固定合成正反例在 `tests/fixtures/llm_review_cases.json`，含时间、状态、错引、同名、缺引、来源注入与审计脱敏。评测脚本默认 dry-run，无 API 调用：
+单独调用复核的 9 个固定合成正反例在 `tests/fixtures/llm_review_cases.json`，含时间、状态、错引、同名、缺引、来源注入与审计脱敏。评测脚本允许复用当前 GLM，单独报告同模型评判的数量；默认 dry-run，无 API 调用：
 
 ```bash
 .venv/bin/python scripts/evaluate_llm_review.py
-# 明确配置不同模型并决定消耗调用额度后：
+# 已有 GLM 配置、决定消耗调用额度后（不要求另配复核型号）：
 .venv/bin/python scripts/evaluate_llm_review.py --run-models --config .env
 ```
 

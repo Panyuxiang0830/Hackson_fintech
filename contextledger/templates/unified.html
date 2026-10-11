@@ -40,7 +40,7 @@
       <label for="question">问题</label><textarea id="question" rows="4" maxlength="4000" placeholder="例如：TitanDB 是做什么的？"></textarea>
       <div class="row"><button id="search">搜索证据</button><button id="ask" class="primary">生成回答</button></div>
       <p class="muted">{% if demo_mode %}当前选定的演示账号由服务端会话固定；搜索不能另行指定员工。生产环境仍需真实身份验证。{% else %}本轮保留 Part A 数据链路与前端验收，真实登录已延期；普通模式不开放演示身份选择。生产身份仍需服务端验证，不能由模型或普通参数指定。{% endif %}</p>
-      <p class="muted">模型答案交付前可由独立模型复核。复核是辅助判断，不是事实保证；未配置或失败不会显示通过。无证据时不调用生成与复核。</p>
+      <p class="muted">模型答案交付前单独调用模型复核，默认复用当前 GLM。同模型可能重复相同错误，不是独立事实保证；失败不会显示通过。无证据时不调用生成与复核。</p>
     </section>
     <section>
       <p id="status" role="status"></p>

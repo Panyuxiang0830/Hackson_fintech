@@ -31,17 +31,17 @@ class LLMIntegrationTests(unittest.TestCase):
         payload = json.loads(body["messages"][1]["content"])
         model = body["model"]
         self.calls.append((model, payload))
-        if model == "planner":
-            result = plan(payload["original_query"], semantic_queries=[])
-        elif model == "writer":
-            result = {"status":"answered", "answer":"TitanDB 的决定已获批准 [1]。", "citation_ids":[1], "uncertainty":"low"}
-        elif model == "audit-writer":
-            eid = payload["visible_events"][0]["id"]
-            result = {"status":"answered", "answer":f"本次记录显示有一次回答请求 [{eid}]。", "citation_ids":[eid], "uncertainty":"medium"}
-        else:
+        if "claims" in payload:
             evidence = {e["id"]:e["content"] for e in payload["authorised_evidence"]}
             result = {"claims": [{"claim_id":c["claim_id"], "verdict":"supported", "citations":[
                 {"id":i, "quote":evidence[i][:100]} for i in sorted(markers(c["text"], "[E" in c["text"]))]} for c in payload["claims"]]}
+        elif "original_query" in payload:
+            result = plan(payload["original_query"], semantic_queries=[])
+        elif "visible_events" in payload:
+            eid = payload["visible_events"][0]["id"]
+            result = {"status":"answered", "answer":f"本次记录显示有一次回答请求 [{eid}]。", "citation_ids":[eid], "uncertainty":"medium"}
+        else:
+            result = {"status":"answered", "answer":"TitanDB 的决定已获批准 [1]。", "citation_ids":[1], "uncertainty":"low"}
         return completion(result, model)
 
     def ask(self, **extra):
@@ -49,7 +49,7 @@ class LLMIntegrationTests(unittest.TestCase):
         with patch.dict(os.environ, {"LLM_API_KEY":"fixture-key"}), patch("urllib.request.urlopen", side_effect=self.transport):
             return self.post("/api/ask", {"corpus":"alpha","q":"TitanDB 用途","mode":"keyword",**extra})
 
-    def test_full_pipeline_plan_first_filtered_branches_and_independent_review(self):
+    def test_full_pipeline_plan_first_filtered_branches_and_separate_review(self):
         self.enable_workflows()
         with patch.object(self.index, "search", wraps=self.index.search) as search:
             response = self.ask()
@@ -65,6 +65,29 @@ class LLMIntegrationTests(unittest.TestCase):
         event = self.audit.query(request_id=response.json["request_id"])[0]
         self.assertEqual(event["citation_review"]["status"], "supported")
         self.assertNotIn("fixture-key", json.dumps(event))
+
+    def test_same_model_business_and_audit_use_separate_review_prompts(self):
+        self.enable_workflows()
+        self.service.reviewer.stage.model = "writer"
+        response = self.ask(planning=False)
+        self.assertEqual(response.json["decision"], "answered")
+        self.assertEqual([m for m,_ in self.calls], ["writer", "writer"])
+        self.assertNotIn("claims", self.calls[0][1])
+        self.assertIn("claims", self.calls[1][1])
+        self.assertEqual(response.json["citation_review"]["model_relation"], "same_model")
+        self.login(self.admin)
+        self.service.reviewer.stage.model = "audit-writer"
+        self.calls.clear()
+        with patch("urllib.request.urlopen", side_effect=self.transport):
+            result = self.post("/api/audit/ask", {"q":"谁进行了查询？"})
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual(result.json["decision"], "answered")
+        self.assertEqual([m for m,_ in self.calls], ["audit-writer", "audit-writer"])
+        self.assertIn("visible_events", self.calls[0][1])
+        self.assertIn("claims", self.calls[1][1])
+        self.assertEqual(result.json["citation_review"]["model_relation"], "same_model")
+        event = self.audit.query(request_id=result.json["request_id"])[0]
+        self.assertEqual(event["citation_review"]["independence"], "not_established")
 
     def test_baseline_switch_and_planner_failure_retain_original_query(self):
         self.enable_workflows()

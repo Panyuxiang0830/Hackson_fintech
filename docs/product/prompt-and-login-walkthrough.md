@@ -2,7 +2,7 @@
 
 更新：2026-10-11。关联需求：REQ-019、REQ-016、REQ-017。
 
-当前 Prompt 为 `answer-v7-2026-10-11`：在 v6 上增加空证据不得暗示受限资料存在、每个事实段落引用的规则。集成版已接有开关的检索前规划、独立复核和审计模型回答，详见 [模型链路实施说明](../architecture/llm-workflows.md)。当前验证为本机合成夹具；新版本尚未部署，复核实际型号待配置，不能引用下方 10-07 的部署结果当作新版本通过。登录与 Tool 仍延期，独立管理员不自动拥有业务读取权。
+当前 Prompt 为 `answer-v7-2026-10-11`：在 v6 上增加空证据不得暗示受限资料存在、每个事实段落引用的规则。集成版已接有开关的检索前规划、单独调用复核和审计模型回答；复核已按用户选择默认复用当前 GLM，Prompt 为 citation-review-v2，不宣称独立模型验证。详见 [模型链路实施说明](../architecture/llm-workflows.md)。当前验证为本机合成夹具；新版本尚未部署，不能引用下方 10-07 的部署结果当作新版本通过。登录与 Tool 仍延期，独立管理员不自动拥有业务读取权。
 
 ## 1. 当前实际发送给回答模型的内容
 
@@ -40,7 +40,7 @@ You are a permission-aware enterprise knowledge assistant. The user message is J
 - 无授权证据时不调用模型；格式或引用错误最多重试一次，重试前再次检查当前权限与证据版本。超过 200 字符的实质回答必须有空行分段，否则记为 readability_validation_failed 并使用同一重试预算，不额外增加第二种重试。重试追加指令：`Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON.` 不传回未经验证的原始模型输出，不自动拆句来假装模型已组织好答案，也不删除非法引用来伪造通过。
 - API 异常不自动重试；两次格式校验仍失败时返回确定性拒答和 `mock_fallback`，保留证据面板但不拼接片段充当正常答案，decision 为 insufficient。网络问题和格式／引用问题有不同的中文提示。
 - 请求隔离的诊断记录包含 Prompt 版本、尝试次数、失败枚举及完成状态／HTTP 错误码；不保存密钥、完整异常字符串、Prompt 正文或原始模型输出。
-- 基础引用校验检查编号与授权范围；集成版可增加独立模型的主张与引用复核，服务端再检查每段覆盖、引用集合及摘录确实在输入中。模型结论是概率性辅助，不是事实正确性证明。权限在规划、生成、复核前后及 HTTP 交付时继续检查；撤权时丢弃，不用旧证据回退。
+- 基础引用校验检查编号与授权范围；集成版可单独调用模型做主张与引用复核，服务端再检查每段覆盖、引用集合及摘录确实在输入中。默认同 GLM 可能重复生成时的错误，模型结论是概率性辅助，不是独立事实证明。权限在规划、生成、复核前后及 HTTP 交付时继续检查；撤权时丢弃，不用旧证据回退。
 
 ### 已记录的后续改进
 

@@ -74,7 +74,8 @@ async function query(ask) {
     renderHits(result.evidence || result.hits || []);
     const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="clarification_required" ? "请确认问题含义" : result.decision==="insufficient" ? "未生成可靠答案，请查看提示" : "回答已生成" : result.query_plan && result.query_plan.status==="clarification_required" ? "请确认问题含义后重新提问" : "检索完成";
     el("status").textContent=`${state} · ${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条${!ask && result.query_suggestions && result.query_suggestions.length ? ` · 请确认是否指：${result.query_suggestions.join(" / ")}` : ""}`;
-    el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1} · 引用复核：${result.citation_review ? result.citation_review.status : "未调用"}（模型判断并非事实保证）`;
+    const review=result.citation_review;
+    el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1} · 引用复核：${review ? review.status : "未调用"}${review && review.review_mode==="separate_call" ? review.model_relation==="same_model" ? " · 同模型单独调用" : " · 单独模型调用" : ""}（模型判断并非独立事实保证）`;
   } catch(error) { if (current===generation || !el("status").textContent) el("status").textContent=error.message; }
   finally { queryBusy=false; for(const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=!me; }
 }

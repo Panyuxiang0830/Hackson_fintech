@@ -194,7 +194,7 @@ class UnifiedService:
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
                 "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation, "query_plan": plan, "citation_review": review,
-                "citation_validation": "ID/scope/quote validation plus optional probabilistic independent model review; not proof"}, hits
+                "citation_validation": "ID/scope/quote validation plus optional probabilistic separate-call model review; not independent proof"}, hits
 
     def open(self, user_id, corpus, doc_id, day=None):
         actor = self.current(user_id)

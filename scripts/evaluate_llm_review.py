@@ -25,8 +25,9 @@ def evaluate(cases, reviewer, generation_model):
                 r["diagnostics"]["status"] in {"supported","unsupported","uncertain"}]
     negative = [r for r in measured if r["expected"] != "supported"]
     positive = [r for r in measured if r["expected"] == "supported"]
-    return {"scope":"small synthetic independent-review diagnostic, not production accuracy",
+    return {"scope":"small synthetic separate-call review diagnostic, not independent proof or production accuracy",
         "cases":len(cases), "measured_verdicts":len(measured),
+        "same_model_verdicts":sum(r["diagnostics"].get("model_relation") == "same_model" for r in measured),
         "deterministic_rejections":sum(r["diagnostics"].get("attempts",0) == 0 and r["diagnostics"]["status"] == "unsupported" for r in results),
         "false_accept_count":sum(r["diagnostics"]["status"] == "supported" for r in negative),
         "negative_denominator":len(negative),
@@ -53,8 +54,8 @@ def main():
     load_dotenv(args.config, override=False)
     reviewer = CitationReviewer(enabled=True)
     generation_model = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-    if not reviewer.stage.ready or reviewer.stage.model.casefold() == generation_model.casefold():
-        raise SystemExit("Configure a different accessible LLM_REVIEW_MODEL before running the judge diagnostic")
+    if not reviewer.stage.ready:
+        raise SystemExit("Configure an accessible LLM_MODEL/API key or reviewer override before running the judge diagnostic")
     print(json.dumps(evaluate(cases, reviewer, generation_model), ensure_ascii=False, indent=2))
 
 

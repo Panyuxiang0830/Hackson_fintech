@@ -108,17 +108,42 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(diag["status"], "planned")
         self.assertFalse(result["needs_clarification"])
 
-    def test_reviewer_requires_different_configured_and_reported_model(self):
-        reviewer = CitationReviewer(stage("writer"), True)
-        with patch("urllib.request.urlopen") as call:
-            self.assertEqual(reviewer.review("q", "Approved [1]", [{"id":"1","content":"Approved"}], "writer", Mock())["status"], "same_model_rejected")
-            self.assertEqual(reviewer.review("q", "Approved [1]", [{"id":"1","content":"Approved"}], "writer-v2", Mock(),
-                             generation_configured_model="writer")["status"], "same_model_rejected")
-            call.assert_not_called()
-        reviewer.stage.model = "alias"
+    def test_reviewer_defaults_to_current_glm_and_allows_explicit_override(self):
+        with patch.dict(os.environ, {"LLM_MODEL":"glm-5.3-flash", "LLM_API_KEY":"fixture-key",
+                                    "LLM_BASE_URL":"https://example.test/v1", "LLM_REVIEW_MODEL":""}, clear=True):
+            reviewer = CitationReviewer()
+            self.assertTrue(reviewer.stage.ready)
+            self.assertEqual(reviewer.stage.model, "glm-5.3-flash")
+            self.assertEqual(reviewer.stage.base_url, "https://example.test/v1")
+            self.assertEqual(reviewer.stage.key, "fixture-key")
+            with patch.dict(os.environ, {"LLM_REVIEW_MODEL":"other-reviewer"}):
+                self.assertEqual(CitationReviewer().stage.model, "other-reviewer")
+
+    def test_reviewer_same_configured_or_reported_model_is_a_real_separate_call(self):
         payload = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Approved"}]}]}
+        for configured, reported, generator, generator_config in (
+                ("writer", "writer", "writer", "writer"),
+                ("writer", "writer-v2", "writer-v2", "writer"),
+                ("alias", "writer", "writer", "writer")):
+            guard = Mock()
+            with self.subTest(configured=configured), patch("urllib.request.urlopen", return_value=completion(payload, reported)) as call:
+                diag = CitationReviewer(stage(configured), True).review("q", "Approved [1]",
+                    [{"id":"1","content":"Approved"}], generator, guard,
+                    generation_configured_model=generator_config)
+            self.assertEqual(diag["status"], "supported")
+            self.assertEqual(diag["model_relation"], "same_model")
+            self.assertEqual(diag["review_mode"], "separate_call")
+            self.assertEqual(diag["independence"], "not_established")
+            self.assertEqual(guard.call_count, 2)
+            self.assertEqual(call.call_count, 1)
+
+    def test_same_model_still_rejects_fabricated_quote(self):
+        payload = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Fabricated"}]}]}
         with patch("urllib.request.urlopen", return_value=completion(payload, "writer")):
-            self.assertEqual(reviewer.review("q", "Approved [1]", [{"id":"1","content":"Approved"}], "writer", Mock())["status"], "same_model_rejected")
+            diag = CitationReviewer(stage("writer"), True).review("q", "Approved [1]",
+                [{"id":"1","content":"Approved"}], "writer", Mock())
+        self.assertEqual(diag["status"], "invalid_review")
+        self.assertEqual(diag["model_relation"], "same_model")
 
     def test_reviewer_coverage_quote_membership_and_verdict(self):
         good = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Approved"}]},
