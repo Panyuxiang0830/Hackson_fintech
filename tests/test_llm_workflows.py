@@ -5,7 +5,7 @@ import unittest
 import urllib.error
 from unittest.mock import Mock, patch
 
-from contextledger.llm_workflows import (AuditAnswerer, CitationReviewer, ModelStage,
+from contextledger.llm_workflows import (AuditAnswerer, ModelStage,
                                         QueryPlanner, MAX_BRANCHES)
 
 
@@ -107,81 +107,6 @@ class WorkflowTests(unittest.TestCase):
             result, diag = QueryPlanner(stage(), True).plan(query, Mock())
         self.assertEqual(diag["status"], "planned")
         self.assertFalse(result["needs_clarification"])
-
-    def test_reviewer_defaults_to_current_glm_and_allows_explicit_override(self):
-        with patch.dict(os.environ, {"LLM_MODEL":"glm-5.3-flash", "LLM_API_KEY":"fixture-key",
-                                    "LLM_BASE_URL":"https://example.test/v1", "LLM_REVIEW_MODEL":""}, clear=True):
-            reviewer = CitationReviewer()
-            self.assertTrue(reviewer.stage.ready)
-            self.assertEqual(reviewer.stage.model, "glm-5.3-flash")
-            self.assertEqual(reviewer.stage.base_url, "https://example.test/v1")
-            self.assertEqual(reviewer.stage.key, "fixture-key")
-            with patch.dict(os.environ, {"LLM_REVIEW_MODEL":"other-reviewer"}):
-                self.assertEqual(CitationReviewer().stage.model, "other-reviewer")
-
-    def test_reviewer_same_configured_or_reported_model_is_a_real_separate_call(self):
-        payload = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Approved"}]}]}
-        for configured, reported, generator, generator_config in (
-                ("writer", "writer", "writer", "writer"),
-                ("writer", "writer-v2", "writer-v2", "writer"),
-                ("alias", "writer", "writer", "writer")):
-            guard = Mock()
-            with self.subTest(configured=configured), patch("urllib.request.urlopen", return_value=completion(payload, reported)) as call:
-                diag = CitationReviewer(stage(configured), True).review("q", "Approved [1]",
-                    [{"id":"1","content":"Approved"}], generator, guard,
-                    generation_configured_model=generator_config)
-            self.assertEqual(diag["status"], "supported")
-            self.assertEqual(diag["model_relation"], "same_model")
-            self.assertEqual(diag["review_mode"], "separate_call")
-            self.assertEqual(diag["independence"], "not_established")
-            self.assertEqual(guard.call_count, 2)
-            self.assertEqual(call.call_count, 1)
-
-    def test_same_model_still_rejects_fabricated_quote(self):
-        payload = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Fabricated"}]}]}
-        with patch("urllib.request.urlopen", return_value=completion(payload, "writer")):
-            diag = CitationReviewer(stage("writer"), True).review("q", "Approved [1]",
-                [{"id":"1","content":"Approved"}], "writer", Mock())
-        self.assertEqual(diag["status"], "invalid_review")
-        self.assertEqual(diag["model_relation"], "same_model")
-
-    def test_reviewer_coverage_quote_membership_and_verdict(self):
-        good = {"claims": [{"claim_id":"C1", "verdict":"supported", "citations":[{"id":"1","quote":"Approved"}]},
-                           {"claim_id":"C2", "verdict":"supported", "citations":[{"id":"2","quote":"Pending"}]}]}
-        variants = [(good, "supported"), ({"claims":good["claims"][:1]}, "invalid_review")]
-        for field, value, expected in (("quote", "Fabricated", "invalid_review"), ("id", "99", "invalid_review")):
-            wrong = json.loads(json.dumps(good))
-            wrong["claims"][0]["citations"][0][field] = value
-            variants.append((wrong, expected))
-        for verdict in ("uncertain", "unsupported"):
-            wrong = json.loads(json.dumps(good))
-            wrong["claims"][0]["verdict"] = verdict
-            variants.append((wrong, verdict))
-        for payload, expected in variants:
-            with self.subTest(expected=expected), patch("urllib.request.urlopen", return_value=completion(payload, "judge")):
-                diag = CitationReviewer(stage("judge"), True).review("q", "Approved [1]\n\nPending [2]",
-                    [{"id":"1","content":"Approved"},{"id":"2","content":"Pending"}], "writer", Mock())
-            self.assertEqual(diag["status"], expected)
-
-    def test_reviewer_uncited_block_cannot_be_omitted_or_approved(self):
-        with patch("urllib.request.urlopen") as call:
-            diag = CitationReviewer(stage("judge"), True).review("q", "Approved [1]\n\nUnsupported extra fact",
-                [{"id":"1","content":"Approved"}], "writer", Mock())
-        self.assertEqual(diag["status"], "unsupported")
-        call.assert_not_called()
-
-    def test_reviewer_feedback_reasons_are_bounded_and_consumed_out_of_diagnostics(self):
-        from contextledger.llm_workflows import review_feedback
-        for reason, status in (("审批状态没有确切依据。", "uncertain"), ("x" * 601, "invalid_review")):
-            payload = {"claims":[{"claim_id":"C1", "verdict":"uncertain", "reason":reason, "citations":[]}]}
-            with patch("urllib.request.urlopen", return_value=completion(payload)):
-                diag = CitationReviewer(stage(), True).review("q", "Approved [1]",
-                    [{"id":"1", "content":"Pending"}], "writer", Mock())
-            self.assertEqual(diag["status"], status)
-            feedback = review_feedback(diag)
-            self.assertNotIn("_feedback", diag)
-            self.assertEqual(len(feedback), 1)
-            self.assertLessEqual(len(feedback[0]["reason"]), 600)
 
     def test_audit_answer_validates_event_namespace_and_selection(self):
         valid = {"status":"answered","answer":"A query occurred [E8].","citation_ids":["E8"],"uncertainty":"low"}

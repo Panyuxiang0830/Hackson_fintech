@@ -5,7 +5,7 @@ function clearEvidence() {
   generation++;
   for (const id of ["answer", "reader", "hits"]) { el(id).replaceChildren(); if (id !== "hits") el(id).hidden = true; }
   el("auditresults").textContent = ""; auditData = null; el("auditexport").disabled = true;
-  el("workflowstatus").textContent=""; el("reviewfeedback").textContent=""; el("reviewfeedback").hidden=true;
+  el("workflowstatus").textContent="";
   el("auditanswer").textContent=""; el("auditanswer").hidden=true;
 }
 async function api(path, body) {
@@ -65,7 +65,7 @@ async function query(ask) {
   if(!el("question").value.trim()) { el("status").textContent="请先输入问题。灰色示例文字不是已输入的问题。"; el("question").focus(); return; }
   queryBusy=true;
   for(const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=true;
-  clearEvidence(); const current=generation; el("status").textContent=ask ? "正在理解问题、检索授权证据并生成／复核回答…" : "正在理解问题并检索…";
+  clearEvidence(); const current=generation; el("status").textContent=ask ? "正在理解问题、检索授权证据并生成回答…" : "正在理解问题并检索…";
   try {
     if (!el("corpus").value) throw new Error("请先绑定来源身份。");
     const params={corpus:el("corpus").value,q:el("question").value,mode:el("mode").value,planning:el("planning").checked};
@@ -73,15 +73,9 @@ async function query(ask) {
     if (current!==generation) return;
     if (ask) { el("answer").hidden=false; el("answer").textContent=result.answer; }
     renderHits(result.evidence || result.hits || []);
-    const revised=result.regeneration && result.regeneration.status==="revised_not_reviewed";
-    const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="clarification_required" ? "请确认问题含义" : result.decision==="insufficient" ? "未生成可靠答案，请查看提示" : revised ? "已重答一次（未再次语义复核）" : "回答已生成" : result.query_plan && result.query_plan.status==="clarification_required" ? "请确认问题含义后重新提问" : "检索完成";
+    const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="clarification_required" ? "请确认问题含义" : result.decision==="insufficient" ? "未生成可靠答案，请查看提示" : "回答已生成" : result.query_plan && result.query_plan.status==="clarification_required" ? "请确认问题含义后重新提问" : "检索完成";
     el("status").textContent=`${state} · ${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条${!ask && result.query_suggestions && result.query_suggestions.length ? ` · 请确认是否指：${result.query_suggestions.join(" / ")}` : ""}`;
-    const review=result.citation_review;
-    el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1} · 首次引用复核：${review ? review.status : "未调用"}${review && review.review_mode==="separate_call" ? review.model_relation==="same_model" ? " · 同模型单独调用" : " · 单独模型调用" : ""}${revised ? " · 第二版未再次复核" : ""}（模型判断并非独立事实保证）`;
-    if(ask && result.review_feedback && result.review_feedback.length) {
-      el("reviewfeedback").hidden=false;
-      el("reviewfeedback").textContent=[result.answer_notice || "首次复核未通过，以下是反馈：", ...result.review_feedback.map(f=>`${f.claim_id} · ${f.verdict}：${f.reason}`)].join("\n\n");
-    }
+    el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1}${ask ? " · 仅校验引用编号与授权范围，不做模型语义复核" : ""}`;
   } catch(error) { if (current===generation || !el("status").textContent) el("status").textContent=error.message; }
   finally { queryBusy=false; for(const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=!me; }
 }
@@ -148,8 +142,7 @@ async function auditQuery(generateAnswer) {
     const result=generateAnswer ? await api("/api/audit/ask",params) : await api(`/api/audit?${new URLSearchParams(params)}`);
     if(current!==generation) return;
     auditData=result; el("auditanswer").hidden=false;
-    el("auditanswer").textContent=[result.answer_notice, result.answer,
-      ...(result.review_feedback || []).map(f=>`首次复核 ${f.claim_id} · ${f.verdict}：${f.reason}`)].filter(Boolean).join("\n\n");
+    el("auditanswer").textContent=result.answer;
     el("auditresults").textContent=JSON.stringify(result,null,2); el("auditexport").disabled=false;
   } catch(error) { if(current===generation) el("auditresults").textContent=error.message; }
   finally { auditBusy=false; for(const id of ["auditgo","auditask"]) el(id).disabled=!me || !["admin","compliance"].includes(me.role); }

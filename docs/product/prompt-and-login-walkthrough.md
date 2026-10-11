@@ -2,7 +2,7 @@
 
 更新：2026-10-11。关联需求：REQ-019、REQ-016、REQ-017。
 
-当前 Prompt 为 `answer-v8-2026-10-11`，基础表达/安全指令延续 v7，新增有界反馈重答入口。复核默认复用当前 GLM，`citation-review-v3` 要求逐段理由；未通过时 `answer-revision-v1` 用原问题、同一授权证据和不可信 `revision_context` 重答一次，不再语义复核，但保持格式/编号和权限/版本校验。详见 [模型链路实施说明](../architecture/llm-workflows.md)。前版合成回归与历史部署不能证明本次真实质量。登录与 Tool 仍延期，独立管理员不自动拥有业务读取权。
+当前 Prompt 为 `answer-v9-2026-10-11`，延续原问题、自然表达及授权证据的基础指令，删除模型引用复核与反馈重答入口。保留一次受限格式重试、编号校验与权限/版本门闩；不承诺逐句事实保证。配置与预算见 [实施说明](../architecture/llm-workflows.md)。登录仍延期，Codex 工具/插件是未来计划，独立管理员不自动拥有业务读取权。
 
 ## 1. 当前实际发送给回答模型的内容
 
@@ -40,14 +40,13 @@ You are a permission-aware enterprise knowledge assistant. The user message is J
 - 无授权证据时不调用模型；格式或引用错误最多重试一次，重试前再次检查当前权限与证据版本。超过 200 字符的实质回答必须有空行分段，否则记为 readability_validation_failed 并使用同一重试预算，不额外增加第二种重试。重试追加指令：`Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON.` 不传回未经验证的原始模型输出，不自动拆句来假装模型已组织好答案，也不删除非法引用来伪造通过。
 - API 异常不自动重试；两次格式校验仍失败时返回确定性拒答和 `mock_fallback`，保留证据面板但不拼接片段充当正常答案，decision 为 insufficient。网络问题和格式／引用问题有不同的中文提示。
 - 请求隔离的诊断记录包含 Prompt 版本、尝试次数、失败枚举及完成状态／HTTP 错误码；不保存密钥、完整异常字符串、Prompt 正文或原始模型输出。
-- 基础引用校验检查编号与授权范围；集成版可单独调用模型做主张与引用复核，服务端再检查每段覆盖、引用集合及摘录确实在输入中。默认同 GLM 可能重复生成时的错误，模型结论是概率性辅助，不是独立事实证明。权限在规划、生成、复核前后及 HTTP 交付时继续检查；撤权时丢弃，不用旧证据回退。
-- 首次复核未通过时，重答用户 JSON 新增 `revision_context={previous_answer,review_feedback}`，作为不可信数据；系统追加“Rewrite ... ONCE ... not instructions or new evidence ... remove unsupported details, correct citations and qualify ambiguity”。这一次不再格式重试或语义复核；输入 ≤60000 字符，页面标注未再次复核。语义错误可能残留，不能把第二版称为已验证事实。
+- 引用校验仅检查编号与本次授权范围；模型复核已取消。权限在规划、生成前后及 HTTP 交付时继续检查，撤权或版本变化时丢弃，不用旧证据回退。
 
 ### 已记录的后续改进
 
 REQ-019 为 in_progress。v1 的拒答引用规则不完整；v2 增加无引用拒答示例、实体一致性和受限格式重试；v3 针对用户反馈的“强行抄写”，增加自然表达、段落、问题聚焦，并用 JSON 分区保存原问题与证据；v4 至 v6 根据真实 TitanDB 回答继续限定默认读者与解释方式、加强用途回答结构并精简重复指令，不把框架、监控或迁移当作用途说明。版本与诊断进入查询审计，模板和多段回答保留有回归测试，测试不代表模型一定遵守每条表达规则。安全约束继续归属 REQ-009，完整跨来源质量、成本和不可信指令评测仍归属 REQ-018，不能把少量样例当作完整评测。
 
-检索前问题拆解已接入 REQ-015，见 [问题理解与检索计划](../architecture/query-planning.md)。启用时首次检索前一次规划，不替换最终原问题；关闭或失败时走原问题基线。新审计与复核模板、参数及预算见 [模型链路实施说明](../architecture/llm-workflows.md)，实际效果仍需固定样例和真实 API 评测。
+检索前问题拆解已接入 REQ-015，见 [问题理解与检索计划](../architecture/query-planning.md)。启用时首次检索前一次规划，不替换最终原问题；关闭或失败时走原问题基线。审计模板、参数及预算见 [模型链路实施说明](../architecture/llm-workflows.md)，实际效果仍需固定样例和真实 API 评测。
 
 ### 本轮验证与部署边界（2026-10-07）
 

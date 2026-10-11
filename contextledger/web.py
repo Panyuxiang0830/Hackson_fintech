@@ -235,8 +235,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
                        login_identity=service.identities.login_identity(actor.id) if actor and not demo_mode else None,
                        workflows={"planner_enabled": service.planner.enabled,
                                   "planner_configured": service.planner.stage.ready,
-                                  "review_enabled": service.reviewer.enabled,
-                                  "review_configured": service.reviewer.stage.ready},
+                                  "citation_validation": "deterministic IDs and scope only"},
                        source_permissions="not_enabled", freshness="offline snapshot only")
 
     @app.get("/api/demo/accounts")

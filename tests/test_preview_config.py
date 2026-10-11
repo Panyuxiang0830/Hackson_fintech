@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.sync_preview_config import preview_config
+from scripts.sync_preview_config import preview_config, RECEIVER
 
 
 class PreviewConfigTests(unittest.TestCase):
@@ -34,14 +34,17 @@ class PreviewConfigTests(unittest.TestCase):
                 preview_config(values, url, "/tmp/isolated-demo", "http://127.0.0.1:6335")
 
     def test_workflow_fields_explicitly_whitelisted_and_multiline_rejected(self):
-        payload = preview_config({"LLM_API_KEY":"fixture-token", "LLM_REVIEW_API_KEY":"judge-key",
-            "LLM_REVIEW_MODEL":"independent", "LLM_PLANNER_ENABLED":"true", "UNRELATED_KEY":"excluded"},
+        payload = preview_config({"LLM_API_KEY":"fixture-token", "LLM_AUDIT_API_KEY":"judge-key",
+            "LLM_AUDIT_MODEL":"independent", "LLM_PLANNER_ENABLED":"true", "LLM_REVIEW_ENABLED":"true", "LLM_REVIEW_MODEL":"cancelled", "UNRELATED_KEY":"excluded"},
             "http://127.0.0.1:17860", "/tmp/isolated-demo", "http://127.0.0.1:6335")
-        self.assertEqual(payload["LLM_REVIEW_MODEL"], "independent")
-        self.assertEqual(payload["LLM_REVIEW_API_KEY"], "judge-key")
+        self.assertEqual(payload["LLM_AUDIT_MODEL"], "independent")
+        self.assertEqual(payload["LLM_AUDIT_API_KEY"], "judge-key")
         self.assertNotIn("UNRELATED_KEY", payload)
+        self.assertNotIn("LLM_REVIEW_ENABLED", payload)
+        self.assertNotIn("LLM_REVIEW_MODEL", payload)
+        self.assertNotIn("LLM_REVIEW", RECEIVER)
         with self.assertRaises(ValueError):
-            preview_config({"LLM_API_KEY":"fixture-token", "LLM_REVIEW_MODEL":"bad\nvalue"},
+            preview_config({"LLM_API_KEY":"fixture-token", "LLM_AUDIT_MODEL":"bad\nvalue"},
                 "http://127.0.0.1:17860", "/tmp/isolated-demo", "http://127.0.0.1:6335")
 
 

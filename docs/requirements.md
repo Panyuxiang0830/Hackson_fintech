@@ -23,9 +23,9 @@
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py`<br>`contextledger/unified_service.py` | `tests/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
 | REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py` |
-| REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh`<br>`scripts/evaluate_llm_review.py` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py`<br>`tests/test_llm_evaluation.py`<br>`tests/fixtures/llm_review_cases.json` |
+| REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py` |
 | REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/llm_workflows.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_llm_workflows.py` |
-| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `deferred` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
+| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `planned` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -74,11 +74,11 @@
 - 来源：user requested on 2026-10-11
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`implemented`
-- 说明：权限过滤后无证据使用统一中英文提示和 Prompt v7；本机及 gpushare 合成回归覆盖保持账号/绑定有效的全部读取撤权、零证据无模型调用、旧原文拒绝和审计。已启动 1fa92b23 的独立新版预览，真人与录制验收仍待完成，不把回归或页面启动当作录制验收。
+- 说明：权限过滤后无证据使用统一中英文提示和版本化 Prompt；本机及 gpushare 合成回归覆盖保持账号/绑定有效的全部读取撤权、零证据无模型调用、旧原文拒绝和审计。新版隔离预览的实际部署记录见实施说明，真人与录制验收仍待完成，不把回归或页面启动当作录制验收。
 - 验收标准：
 
   - 零证据返回 insufficient、空证据与空引用，不猜测业务事实，不说明资料在全库不存在，也不披露受限内容的存在、名称、标题、链接、ID、数量或被拒绝原因
-  - 系统指令明确空证据处理；默认由服务端直接返回统一安全提示，不为零证据额外调用生成或复核模型。若上游模型需要该状态，仅发送原问题与空授权证据，不发送无权限资料，并继续校验输出
+  - 系统指令明确空证据处理；默认由服务端直接返回统一安全提示，不为零证据额外调用模型。若上游模型需要该状态，仅发送原问题与空授权证据，不发送无权限资料，并继续校验输出
   - 零证据提示区分于未登录、账号停用、索引/同步异常；这些状态不能伪装成正常零结果
   - Demo 保持员工账号和会话有效，仅撤销全部业务读取权限：先正常回答、管理员撤权、相同问题返回零证据与安全提示、尝试旧原文被拒绝、合规人员核对审计；权限恢复只恢复演示前合法状态
   - 中英文未知问题和撤权后的零证据均使用不暗示受限内容存在的措辞；有权限时仍有正常回答的正向对照
@@ -245,29 +245,24 @@
   - 测试：`tests/test_answering.py`, `tests/test_no_leakage.py`, `tests/test_end_to_end.py`, `tests/test_integration.py`
   - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/evaluation/model-selection.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/demo-acceptance.md`
 
-### 功能扩展 · 单独调用模型的主张与引用复核
+### 功能扩展 · 模型引用复核（用户已取消）
 
 - 扩展键：`independent_citation_review`
-- 来源：user requested on 2026-10-11; same GLM confirmed on 2026-10-11; EC-008 team topic
+- 来源：user cancelled the complete review and feedback rewrite workflow on 2026-10-11
 - 权威级别：`team_decision`（独立于基础需求）
-- 状态：`in_progress`
-- 说明：复核默认复用当前 GLM，单独调用、逐段覆盖和摘录检查不等于独立事实保证。2026-10-11 用户调整：首次复核不通过时给出有界反馈，交回原生成模型重答一次；第二版不再做语义复核拦截，明确标记未再次复核，但继续确定性格式/引用编号、权限与版本校验。原草稿不交付，真实误判与成本评测待完成。
+- 状态：`deferred`
+- 说明：2026-10-11 用户明确取消整个模型复核与反馈重答功能。本条保留需求历史，deferred 表示退出本轮及后续待办，不代表等待自动重启。移除业务/审计复核调用、重答、配置、界面与专用评测，保留确定性格式、引用编号、权限与版本检查；未实施逐句事实保证。
 - 验收标准：
 
-  - 先执行现有格式、引用编号与授权范围校验，再将原问题、未交付草稿和本次授权证据交给单独调用的复核阶段；不全库补证据或读取受限资料来证明答案
-  - 默认复用当前 GLM，允许生成与复核采用同型号、同 API；各阶段的调用、实际型号、参数、Prompt 版本和结果分别记录，并明确标注同模型复核而非独立模型验证；仍支持另配复核型号
-  - 复核返回受限结构化结果，区分支持、不支持和无法判断，检查主张与所引证据的关联、引用错配、缺失依据及无依据补全；服务端校验主张定位、引用集合及引文确实来自提供的证据
-  - 首次复核不支持、无法判断或技术失败时，产生逐段有界理由或明确的服务端失败提示，以不可信数据传给原生成模型；使用相同授权证据重答一次，不扩检、不改变原问题，不无限循环
-  - 第二版不再调用语义复核模型，不因首次复核状态拦截；页面说明首次反馈、已重答及未再次语义复核，不能把第二版或首次失败标为 supported。第二版格式/引用编号非法、API 失败、权限或版本变化时仍不交付不安全结果
-  - 业务和审计模型答案均使用一次反馈重答；审计答案保留可见事件、E 引用和部分选择限制。审计记录区分首次生成、复核和重答的参数/耗时/Token，仅保存最终交付文本及安全诊断，不保存失败草稿、自由文本复核理由或原始异常
-  - 复核模型前后及最终交付前继续复核权限与内容版本，撤权或版本变化时丢弃结果；业务答案与模型审计答案使用各自正确的证据/事件引用集合
-  - 模型复核是概率性辅助而非事实正确性的证明，同型号可能重复同一错误；用人工标注正反例报告漏检/误判、额外延迟、Token 与费用，不能宣称彻底消除幻觉
+  - 业务和审计不再执行模型语义复核及反馈重答，删除专用配置、界面和评测入口，旧 LLM_REVIEW_* 配置不能重启该功能
+  - 继续确定性校验输出格式与本次授权引用编号，模型调用前后和 HTTP 交付时仍校验权限、版本；审计仍校验角色、事件引用和哈希链
+  - 页面、文档和审计不把取消后的回答宣称为逐句事实已验证；历史记录保留，不清除身份权限、内容索引或审计数据
 
 - 影响范围：
 
-  - 代码：`src/answering.py`, `contextledger/llm_workflows.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/templates/unified.html`, `.env.integration.example`, `scripts/sync_preview_config.py`, `scripts/evaluate_llm_review.py`
-  - 测试：`tests/test_answering.py`, `tests/test_integration.py`, `tests/test_no_leakage.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_llm_evaluation.py`, `tests/fixtures/llm_review_cases.json`, `tests/test_preview_config.py`
-  - 文档：`docs/product/llm-feature-plan.md`, `docs/product/workload.md`, `docs/product/demo-acceptance.md`, `docs/architecture/llm-workflows.md`, `docs/product/prompt-and-login-walkthrough.md`
+  - 代码：`src/answering.py`, `contextledger/llm_workflows.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/templates/unified.html`, `.env.integration.example`, `scripts/sync_preview_config.py`
+  - 测试：`tests/test_answering.py`, `tests/test_integration.py`, `tests/test_no_leakage.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_preview_config.py`
+  - 文档：`docs/product/llm-feature-plan.md`, `docs/product/workload.md`, `docs/product/demo-acceptance.md`, `docs/architecture/llm-workflows.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/product/update-2026-10-11.md`
 
 ## REQ-010 · 单一案例选择与展示声明
 
@@ -477,13 +472,13 @@
   - 测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测
   - 2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证
   - 五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过
-  - 2026-10-11 四项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、单独调用模型复核的错引与误判（允许复用 GLM）、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；失败注入与真实模型质量分别报告
+  - 2026-10-11 保留三项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；模型引用复核及反馈重答已取消，不再作为交付或评测待办。失败注入与真实模型质量分别报告
 
 - 影响范围：
 
-  - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`, `scripts/evaluate_llm_review.py`
-  - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_llm_evaluation.py`, `tests/fixtures/llm_review_cases.json`
-  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`
+  - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`
+  - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 
@@ -499,7 +494,7 @@
   - 后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化
   - 通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明
   - Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持
-  - 审计回答、检索规划、引用复核、一次反馈重答及零证据提示模板单独记录版本、输入边界、输出格式和预算；当前回答模板将升级 answer-v8，旧部署记录不能充当本次验证
+  - 审计回答、检索规划及零证据提示模板单独记录版本、输入边界、输出格式和预算；answer-v9 移除已取消的引用复核和反馈重答上下文，保留原问题与授权证据；旧部署记录不能充当本次验证
 
 - 影响范围：
 
@@ -509,10 +504,10 @@
 
 ## REQ-020 · 面向上游 Agent 的权限感知工具接口
 
-- 来源：user proposed a future LLM tool on 2026-10-06 and clarified it is not the current integration scope
+- 来源：user proposed future tool on 2026-10-06; 2026-10-11 meeting recap specifies future Codex plugin direction
 - 权威级别：`team_decision`
-- 状态：`deferred`
-- 说明：后续可将统一检索服务作为上游 Agent 可调用的工具。用户已明确本轮不做 Tool，继续在 Part A 前端验收集成；具体采用 MCP、HTTP 工具或本地调用以及身份验证方式待后续确认，不宣称工具入口已实现。
+- 状态：`planned`
+- 说明：用户提供的 2026-10-11 会议纪要将未来产品目标定为 Codex 工具/插件，前端仅保留验证与演示。此为后续 planned，不属于本次取消复核的实现范围；协议、打包和可信最终用户身份待设计，复用统一服务，不恢复浏览器登录，不宣称插件已实现。
 - 验收标准：
 
   - 明确工具接入协议、部署信任边界与上游最终用户身份验证方式，再实现适配层；浏览器登录不是工具接入的必要前置条件
@@ -527,4 +522,4 @@
 
   - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/web.py`
   - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`
+  - 文档：`docs/product/update-2026-10-11.md`, `docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`

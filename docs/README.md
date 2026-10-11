@@ -27,11 +27,12 @@
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
-- `docs/product/llm-feature-plan.md`：2026-10-11 四项模型功能的需求与边界；代码已在工作分支接入，真实模型和录制验收仍待完成；
-- `docs/architecture/llm-workflows.md`：规划／审计生成／单独调用复核与一次反馈重答的配置、预算、安全门闩、回归和评测入口；第二版不再语义复核并明确标注，权限与引用编号仍校验；复核默认复用 GLM，不宣称独立模型验证；真实效果待验收；
+- `docs/product/llm-feature-plan.md`：本轮保留审计解释、检索规划与零证据提示；模型引用复核/反馈重答已取消；真实质量与录制验收待完成；
+- `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
+- `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
 - `docs/product/tool-entry-scope.md`：延期的未来 Tool 设想与可信上游身份边界，不是当前前端验收前置条件；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
