@@ -18,7 +18,7 @@
 - `LLM_PLANNER_ENABLED` 的代码默认 false，示例配置为 true。页面复选框可开启或关闭；关闭用于原问题基线。配置缺失、超时或计划不合规都回退原问题，不放宽权限。
 - `LLM_REVIEW_ENABLED` 默认 true。用户确认复用当前 GLM：`LLM_REVIEW_MODEL` 省略/空值时沿用 `LLM_MODEL`，地址和 Key 同样默认沿用基础配置，无需开通另一型号。复核使用单独的一次调用、专用 Prompt 和受限输入，不共享生成阶段的对话。仍可显式另配型号。同型号不会仅因型号相同被拒绝，但失败/不确定/无配置仍不交付草稿。false 仅用于明确标记 disabled 的未复核基线，不等于已确认。
 - 页面显示 planning/review 的实际状态：supported、unsupported、uncertain、not_configured、api_unavailable、disabled、not_reviewed_mock、not_required。同模型时显示“同模型单独调用”；审计诊断保留生成/复核实际型号、`review_mode=separate_call`、`model_relation` 和 `independence=not_established`。supported 是模型辅助判断，不是独立事实证明；同型号可能重复相同错误，即使配置不同字符串也不能保证模型或错误独立。
-- `scripts/sync_preview_config.py` 已扩充白名单，可同步这些运行配置，继续不打印凭据；本次没有执行远程同步或部署。
+- `scripts/sync_preview_config.py` 已扩充白名单，可同步这些运行配置，继续不打印凭据。新版隔离预览复用服务器现有 0600 配置，并用进程环境开启规划/复核；没有再次传输 Key 或改写原配置文件。
 
 ## 输入、输出与预算
 
@@ -41,7 +41,7 @@
 
 `tests/test_llm_workflows.py` 和 `tests/test_llm_integration.py` 使用真实本地 Qdrant/SQLite、合成语料及受控 API 返回，验证调用顺序、各路 ACL、模型前后/HTTP 交付撤权、版本变化、完整性异常、脱敏、错误摘录/引用、覆盖缺失、预算、失败降级和零证据。**不证明真实模型遵守 Prompt、规划提高 Recall，或复核错误率可接受。**
 
-本次本机回归：`unittest discover -s tests` 203 项、`pytest tests_part_a` 8 项全部通过，包含同 GLM 默认配置、单独生成/复核调用、同模型仍拦截伪造摘录以及评测入口复用型号；需求同步检查、JavaScript 语法检查与 `git diff --check` 通过。测试中的模型响应由受控替身提供，没有调用真实付费模型，也没有更新 gpushare。
+本机回归：`unittest discover -s tests` 203 项、`pytest tests_part_a` 8 项全部通过，包含同 GLM 默认配置、单独生成/复核调用、同模型仍拦截伪造摘录以及评测入口复用型号；需求同步检查、JavaScript 语法检查与 `git diff --check` 通过。gpushare 上同版本 203 项主测试和需求同步检查通过。自动检查中的模型响应由受控替身提供，没有调用真实付费模型；真实效果留给人工验收。
 
 单独调用复核的 9 个固定合成正反例在 `tests/fixtures/llm_review_cases.json`，含时间、状态、错引、同名、缺引、来源注入与审计脱敏。评测脚本允许复用当前 GLM，单独报告同模型评判的数量；默认 dry-run，无 API 调用：
 
@@ -51,4 +51,19 @@
 .venv/bin/python scripts/evaluate_llm_review.py --run-models --config .env
 ```
 
-输出带分母的漏检/误拒数量、未成功的状态、调用/Token/耗时，不能把 9 个合成用例当生产准确率。真实模型选型、规划开关的固定检索评测、五场景完整验收、新鲜度、来源撤权同步、费用和录制 Demo 仍待完成。当前服务器页面仍是旧版；本机测试通过后也不会自动合并或部署。
+输出带分母的漏检/误拒数量、未成功的状态、调用/Token/耗时，不能把 9 个合成用例当生产准确率。规划开关的固定检索评测、五场景完整验收、新鲜度、来源撤权同步、费用和录制 Demo 仍待完成。新版隔离预览已启动，不代表真实模型质量通过，也没有推送或合并分支。
+
+## gpushare 新版隔离预览（2026-10-11）
+
+用户要求打开前端进行人工操作后，将 Git 提交 `1fa92b23` 的已跟踪代码打包至 `/hy-tmp/data_pyx/contextledger-integration/releases/llm-workflows-1fa92b23`；没有修改服务器原 Git checkout 或 main。新的预览进程 PID 为 4093059，仅监听服务器 `127.0.0.1:17861`；本机 SSH 转发 `127.0.0.1:17860 → 服务器 127.0.0.1:17861`，页面打开于 `http://127.0.0.1:17860/`。
+
+复用原 `content`、Qdrant、`security-demo` 和 `preview-demo.env`，未重建索引或初始化账号。原 7860、服务器旧 17860 和 Qdrant 6335 均继续运行。新进程的 `APP_PUBLIC_URL` 是本机访问 URL 17860；`LLM_PLANNER_ENABLED/LLM_REVIEW_ENABLED=true`，型号默认复用基础 GLM。`/api/session` 已验证 planner/review 为 enabled、configured；浏览器已确认新规划开关、同模型提示、七账号和“让模型解释审计”入口。没有自动修改用户权限或触发真实模型问答。
+
+若本机转发断开，先确认本机 17860 没有被占用，再恢复：
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+  -L 127.0.0.1:17860:127.0.0.1:17861 gpushare
+```
+
+服务器启动日志：`/hy-tmp/data_pyx/contextledger-integration/logs/llm-workflows-preview-1fa92b23.log`；203 项主测试日志同目录 `llm-workflows-regression-1fa92b23.log`。预览是本次代码快照，后续代码提交不会自动热更新。用户尚未完成完整验收，不能因页面可打开就标记模型功能 validated。

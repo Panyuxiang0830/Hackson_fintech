@@ -28,7 +28,7 @@
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
 - `docs/product/llm-feature-plan.md`：2026-10-11 四项模型功能的需求与边界；代码已在工作分支接入，真实模型和录制验收仍待完成；
-- `docs/architecture/llm-workflows.md`：新增规划／审计生成／单独调用复核的实际配置、预算、安全门闩、回归和评测入口；复核默认复用 GLM，不宣称独立模型验证；尚未部署；
+- `docs/architecture/llm-workflows.md`：新增规划／审计生成／单独调用复核的实际配置、预算、安全门闩、回归和评测入口；复核默认复用 GLM，不宣称独立模型验证；已启动 gpushare 新版隔离预览，真实效果待验收；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
