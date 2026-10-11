@@ -15,7 +15,8 @@ from contextledger.identity_store import Actor, IdentityStore
 from contextledger.store import connect
 from contextledger.search import entity_terms, contains_terms
 from contextledger.llm_workflows import (AuditAnswerer, CitationReviewer, QueryPlanner,
-                                        TOP_K, PLAN_VERSION, AUDIT_VERSION, review_refusal)
+                                        TOP_K, PLAN_VERSION, AUDIT_VERSION, review_refusal,
+                                        review_feedback, revision_notice)
 from src.answering import AnswerService, PROMPT_VERSION, empty_evidence_answer
 from src.audit_query import AuditQueryParser
 from src.audit import AuditIntegrityError
@@ -153,6 +154,8 @@ class UnifiedService:
             evidence.append(Evidence(document, 1.0, "source ACL snapshot AND local restrictions",
                                      "consistent_with_offline_snapshot", "Live source freshness is unknown."))
         review = {"status": "not_required", "attempts": 0}
+        feedback, notice = [], ""
+        regeneration = {"status": "not_required", "attempts": 0}
         try:
             guard = lambda: self.fence(actor, corpus, generation, hits)
             kwargs = {"before_call": lambda: self.fence(actor, corpus, generation, hits)} if isinstance(self.answer, AnswerService) else {}
@@ -172,7 +175,23 @@ class UnifiedService:
                     diagnostics.get("actual_model") or getattr(self.answer, "model", provider.split("/", 1)[-1]), guard,
                     generation_configured_model=getattr(self.answer, "model", provider.split("/", 1)[-1]))
                 if review["status"] not in {"supported", "disabled"}:
-                    answer, decision = review_refusal(query), "insufficient"
+                    feedback = review_feedback(review)
+                    if isinstance(self.answer, AnswerService):
+                        guard()
+                        answer, decision, provider = self.answer.answer(user, query, evidence,
+                            before_call=guard, revision={"previous_answer": answer[:16000], "review_feedback": feedback})
+                        regeneration = self.answer.last_diagnostics | {"status": "failed"}
+                        guard()
+                        if decision == "answered" and provider.startswith("openai_compatible/"):
+                            regeneration["status"] = "revised_not_reviewed"
+                            notice = revision_notice(query)
+                        elif provider.startswith("openai_compatible/"):
+                            answer = empty_evidence_answer(query)
+                            regeneration["status"] = "insufficient"
+                    else:
+                        answer, decision = review_refusal(query), "insufficient"
+                else:
+                    review.pop("_feedback", None)
             elif decision == "insufficient" and provider.startswith("openai_compatible/"):
                 # A model can label an invented claim "insufficient". Release a
                 # server-owned neutral refusal, not unchecked factual prose.
@@ -187,14 +206,17 @@ class UnifiedService:
             answer += "\n你是否想查询：" + " / ".join(suggestions) + "？请确认名称后重新提问；系统未自动替换。"
         event = self.record(actor, "answer", question=query, hits=hits, answer=answer, decision=decision,
                             provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day,
-                            llm_diagnostics=diagnostics, query_plan=plan, citation_review=review)
+                            llm_diagnostics=diagnostics, query_plan=plan, citation_review=review,
+                            regeneration=regeneration, answer_notice=notice)
         return {"answer": answer, "decision": decision, "provider": provider,
                 "evidence": [self.public_hit(hit) | {"citation_id": i, "excerpt": hit["text"][:4000]}
                              for i, hit in enumerate(hits, 1)],
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
                 "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation, "query_plan": plan, "citation_review": review,
-                "citation_validation": "ID/scope/quote validation plus optional probabilistic separate-call model review; not independent proof"}, hits
+                "review_feedback": feedback, "regeneration": regeneration, "answer_notice": notice,
+                "citation_validation": ("ID/scope validation only for revised answer; first review retained, no second semantic review"
+                    if notice else "ID/scope/quote validation plus optional probabilistic separate-call model review; not independent proof")}, hits
 
     def open(self, user_id, corpus, doc_id, day=None):
         actor = self.current(user_id)
@@ -284,6 +306,8 @@ class UnifiedService:
             answer += " 未匹配到事件不能证明从未发生访问。" if re.search(r"[\u4e00-\u9fff]", query) else " No matches do not prove access never occurred."
         provider, decision = "deterministic", "selection_only"
         diagnostics, review = {"attempts": 0, "prompt_version": AUDIT_VERSION}, {"status": "not_required", "attempts": 0}
+        feedback, notice = [], ""
+        regeneration = {"status": "not_required", "attempts": 0}
         event_ids = []
         if generate and results:
             # <=20 events and <=40k JSON chars. The model never receives entire logs.
@@ -308,9 +332,22 @@ class UnifiedService:
                         diagnostics.get("actual_model") or self.audit_answerer.stage.model, guard, audit=True,
                         generation_configured_model=self.audit_answerer.stage.model, selection=selection)
                 if draft["decision"] == "answered" and review["status"] in {"supported", "disabled"}:
+                    review.pop("_feedback", None)
                     answer, decision = draft["answer"], draft["decision"]
                     event_ids = draft["citation_ids"]
                     provider = "openai_compatible/" + (diagnostics.get("actual_model") or self.audit_answerer.stage.model)
+                elif draft["decision"] == "answered":
+                    feedback = review_feedback(review)
+                    revised, regeneration = self.audit_answerer.answer(query, model_events, selection, guard,
+                        revision={"previous_answer": draft["answer"], "review_feedback": feedback})
+                    guard()
+                    if revised is not None and revised["decision"] == "answered":
+                        answer, decision, event_ids = revised["answer"], revised["decision"], revised["citation_ids"]
+                        provider = "openai_compatible/" + (regeneration.get("actual_model") or self.audit_answerer.stage.model)
+                        regeneration["status"] = "revised_not_reviewed"
+                        notice = revision_notice(query)
+                    elif revised is not None:
+                        regeneration["status"] = "insufficient"
             if provider == "deterministic":
                 answer = ("未生成可靠的模型审计回答，以下为已脱敏的条件查询结果。\n\n" if re.search(r"[\u4e00-\u9fff]", query) else "No reliable model audit answer was produced. Showing the redacted filtered selection.\n\n") + answer
         if selection["truncated"]:
@@ -321,11 +358,13 @@ class UnifiedService:
         event = self.record(actor, "audit_answer" if generate else "audit_query", question=query,
             hits=list(dependencies.values()), answer=answer if generate else "", decision=decision,
             result_count=len(results), event_citation_ids=event_ids, provider=provider,
-            llm_diagnostics=diagnostics, citation_review=review)
+            llm_diagnostics=diagnostics, citation_review=review,
+            regeneration=regeneration, answer_notice=notice)
         guard()  # After append as well as at HTTP delivery.
         return {"events": results, "integrity": asdict(self.audit.verify()), "answer": answer,
                 "provider": provider, "decision": decision, "selection": selection,
                 "request_id": event["request_id"], "llm_diagnostics": diagnostics, "citation_review": review,
+                "review_feedback": feedback, "regeneration": regeneration, "answer_notice": notice,
                 "privacy": "query/answer/evidence redacted unless current evidence access is verified",
                 "_delivery_guards": guards}
 

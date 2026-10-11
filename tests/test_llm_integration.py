@@ -41,7 +41,8 @@ class LLMIntegrationTests(unittest.TestCase):
             eid = payload["visible_events"][0]["id"]
             result = {"status":"answered", "answer":f"本次记录显示有一次回答请求 [{eid}]。", "citation_ids":[eid], "uncertainty":"medium"}
         else:
-            result = {"status":"answered", "answer":"TitanDB 的决定已获批准 [1]。", "citation_ids":[1], "uncertainty":"low"}
+            text = "TitanDB 的决定已获批准 [1]。" if "revision_context" not in payload else "本次资料提供 TitanDB 的说明，但审批状态需要另行确认 [1]。"
+            result = {"status":"answered", "answer":text, "citation_ids":[1], "uncertainty":"low"}
         return completion(result, model)
 
     def ask(self, **extra):
@@ -119,33 +120,46 @@ class LLMIntegrationTests(unittest.TestCase):
         self.assertNotIn("TiDB", result.json["answer"])
         search.assert_not_called()
 
-    def test_unsupported_review_withholds_draft_in_response_and_audit(self):
+    def test_unsupported_review_rewrites_once_without_second_review(self):
         self.enable_workflows()
         real_transport = self.transport
         def unsupported(request, **kwargs):
             if json.loads(request.data)["model"] == "judge":
-                return completion({"claims":[{"claim_id":"C1","verdict":"unsupported","citations":[]}]}, "judge")
+                self.calls.append(("judge", json.loads(json.loads(request.data)["messages"][1]["content"])))
+                return completion({"claims":[{"claim_id":"C1","verdict":"unsupported","reason":"请删除未证实的审批结论。","citations":[]}]}, "judge")
             return real_transport(request, **kwargs)
         self.transport = unsupported
         response = self.ask()
-        self.assertEqual(response.json["decision"], "insufficient")
+        self.assertEqual(response.json["decision"], "answered")
         self.assertEqual(response.json["citation_review"]["status"], "unsupported")
         self.assertNotIn("决定已获批准", response.json["answer"])
         self.assertNotIn("决定已获批准", self.audit.query(request_id=response.json["request_id"])[0]["answer"])
         self.assertEqual(len(response.json["evidence"]), 2)
+        self.assertEqual([m for m,_ in self.calls], ["planner", "writer", "judge", "writer"])
+        retry = self.calls[-1][1]
+        self.assertEqual(retry["authorised_evidence"], self.calls[1][1]["authorised_evidence"])
+        self.assertEqual(retry["original_question"], "TitanDB 用途")
+        self.assertIn("请删除", retry["revision_context"]["review_feedback"][0]["reason"])
+        self.assertEqual(response.json["regeneration"]["status"], "revised_not_reviewed")
+        self.assertIn("未再次", response.json["answer_notice"])
+        event = self.audit.query(request_id=response.json["request_id"])[0]
+        self.assertEqual(event["regeneration"]["attempts"], 1)
+        self.assertNotIn("请删除", json.dumps(event, ensure_ascii=False))
+        self.assertNotIn("_feedback", event["citation_review"])
 
     def test_review_not_configured_is_not_success_and_disabled_is_explicit(self):
         self.enable_workflows()
         self.service.reviewer.stage.key = ""
         response = self.ask()
-        self.assertEqual(response.json["decision"], "insufficient")
+        self.assertEqual(response.json["decision"], "answered")
         self.assertEqual(response.json["citation_review"]["status"], "not_configured")
+        self.assertEqual(response.json["regeneration"]["status"], "revised_not_reviewed")
         self.service.reviewer.enabled = False
         response = self.ask()
         self.assertEqual(response.json["decision"], "answered")
         self.assertEqual(response.json["citation_review"]["status"], "disabled")
 
-    def test_review_network_failure_does_not_retry_or_release_draft(self):
+    def test_review_network_failure_rewrites_once_but_does_not_retry_reviewer(self):
         self.enable_workflows()
         original = self.transport
         attempted = []
@@ -158,8 +172,136 @@ class LLMIntegrationTests(unittest.TestCase):
         response = self.ask()
         self.assertEqual(response.json["citation_review"]["status"], "api_unavailable")
         self.assertEqual(attempted, ["judge"])
-        self.assertEqual(response.json["decision"], "insufficient")
+        self.assertEqual(response.json["decision"], "answered")
         self.assertNotIn("决定已获批准", response.json["answer"])
+        self.assertEqual(response.json["regeneration"]["attempts"], 1)
+
+    def test_revision_invalid_citations_api_failure_or_insufficient_are_not_released(self):
+        self.enable_workflows()
+        original = self.transport
+        for failure in ("citations", "api", "insufficient"):
+            self.calls.clear()
+            def respond(request, **kwargs):
+                body = json.loads(request.data)
+                payload = json.loads(body["messages"][1]["content"])
+                if body["model"] == "judge":
+                    self.calls.append(("judge", payload))
+                    return completion({"claims":[{"claim_id":"C1","verdict":"uncertain","reason":"审批依据不明确。","citations":[]}]}, "judge")
+                if "revision_context" in payload:
+                    self.calls.append(("writer", payload))
+                    if failure == "api":
+                        raise urllib.error.URLError("fixture-key")
+                    return completion({"status":"answered" if failure == "citations" else "insufficient",
+                        "answer":"BAD SECOND DRAFT [99]" if failure == "citations" else "PRIVATE UNSUPPORTED PROSE",
+                        "citation_ids":[99] if failure == "citations" else [], "uncertainty":"high"}, "writer")
+                return original(request, **kwargs)
+            self.transport = respond
+            with self.subTest(failure=failure):
+                result = self.ask(planning=False)
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json["decision"], "insufficient")
+                self.assertEqual([m for m,_ in self.calls], ["writer", "judge", "writer"])
+                self.assertNotIn("BAD SECOND", result.json["answer"])
+                self.assertNotIn("PRIVATE UNSUPPORTED", result.json["answer"])
+                self.assertNotIn("fixture-key", json.dumps(result.json))
+
+    def test_revision_revocation_version_and_http_delivery_fences(self):
+        for change in ("revoke", "version", "delivery"):
+            with self.subTest(change=change):
+                self.ids.restrict(self.alice.id, "alpha", "source", "*", False)
+                self.login(self.alice)
+                self.enable_workflows()
+                original = lambda request, **kwargs: LLMIntegrationTests.transport(self, request, **kwargs)
+                def respond(request, **kwargs):
+                    body = json.loads(request.data)
+                    payload = json.loads(body["messages"][1]["content"])
+                    if body["model"] == "judge":
+                        return completion({"claims":[{"claim_id":"C1","verdict":"uncertain","citations":[]}]}, "judge")
+                    result = original(request, **kwargs)
+                    if "revision_context" in payload:
+                        if change == "revoke":
+                            self.ids.restrict(self.alice.id, "alpha", "source", "*", True)
+                        if change == "version":
+                            with connect(self.db_path) as db:
+                                db.execute("UPDATE cl_index_state SET generation='changed'")
+                    return result
+                self.transport = respond
+                from flask import jsonify as real_jsonify
+                def deliver(*args, **kwargs):
+                    result = real_jsonify(*args, **kwargs)
+                    if args and isinstance(args[0], dict) and args[0].get("regeneration", {}).get("status") == "revised_not_reviewed":
+                        self.ids.restrict(self.alice.id, "alpha", "source", "*", True)
+                    return result
+                with patch("contextledger.web.jsonify", side_effect=deliver if change == "delivery" else real_jsonify):
+                    result = self.ask(planning=False)
+                self.assertIn(result.status_code, (409, 503))
+                self.assertNotIn("本次资料提供", result.get_data(as_text=True))
+                self.assertNotIn("review_feedback", result.json)
+                if change == "version":
+                    with connect(self.db_path) as db:
+                        db.execute("UPDATE cl_index_state SET generation='test-generation'")
+
+    def test_audit_review_feedback_regenerates_once_with_only_redacted_events(self):
+        self.enable_workflows()
+        normal = self.ask()
+        self.login(self.admin)
+        self.calls.clear()
+        original = self.transport
+        def respond(request, **kwargs):
+            body = json.loads(request.data)
+            payload = json.loads(body["messages"][1]["content"])
+            if body["model"] == "judge":
+                self.calls.append(("judge", payload))
+                return completion({"claims":[{"claim_id":"C1","verdict":"uncertain",
+                    "reason":"REVIEW ONLY: 不能由局部结果推出完整统计。", "citations":[]}]}, "judge")
+            return original(request, **kwargs)
+        with patch("urllib.request.urlopen", side_effect=respond):
+            result = self.post("/api/audit/ask", {"q":"谁查询了信息？", "request_id":normal.json["request_id"]})
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual([m for m,_ in self.calls], ["audit-writer", "judge", "audit-writer"])
+        self.assertEqual(self.calls[0][1]["visible_events"], self.calls[-1][1]["visible_events"])
+        self.assertNotIn("TitanDB", json.dumps(self.calls[-1][1]))
+        self.assertEqual(result.json["decision"], "answered")
+        self.assertEqual(result.json["citation_review"]["status"], "uncertain")
+        self.assertEqual(result.json["regeneration"]["status"], "revised_not_reviewed")
+        self.assertIn("未再次", result.json["answer_notice"])
+        event = self.audit.query(request_id=result.json["request_id"])[0]
+        self.assertNotIn("REVIEW ONLY", json.dumps(event, ensure_ascii=False))
+        self.assertTrue(self.audit.verify().valid)
+
+    def test_audit_revision_wrong_namespace_falls_back_and_role_revocation_blocks(self):
+        self.enable_workflows()
+        normal = self.ask()
+        self.login(self.admin)
+        original = self.transport
+        for failure in ("citations", "role", "integrity"):
+            self.ids.update(self.admin.id, role="admin")
+            self.login(self.admin)
+            def respond(request, **kwargs):
+                body = json.loads(request.data)
+                payload = json.loads(body["messages"][1]["content"])
+                if body["model"] == "judge":
+                    return completion({"claims":[{"claim_id":"C1","verdict":"uncertain","citations":[]}]}, "judge")
+                if "revision_context" in payload:
+                    if failure == "citations":
+                        return completion({"status":"answered", "answer":"BAD AUDIT SECOND [1]",
+                            "citation_ids":["1"], "uncertainty":"low"}, "audit-writer")
+                    if failure == "role":
+                        self.ids.update(self.admin.id, role="member")
+                    if failure == "integrity":
+                        with self.audit.db() as db:
+                            db.execute("UPDATE events SET payload='{}' WHERE sequence=1")
+                return original(request, **kwargs)
+            with self.subTest(failure=failure), patch("urllib.request.urlopen", side_effect=respond):
+                result = self.post("/api/audit/ask", {"q":"谁查询？", "request_id":normal.json["request_id"]})
+            if failure == "citations":
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json["provider"], "deterministic")
+                self.assertNotIn("BAD AUDIT SECOND", result.json["answer"])
+                self.assertEqual(result.json["regeneration"]["attempts"], 1)
+            else:
+                self.assertIn(result.status_code, (403, 409, 503))
+                self.assertNotIn("review_feedback", result.json)
 
     def test_new_ui_controls_and_api_input_types(self):
         html = self.client.get("/").get_data(as_text=True)

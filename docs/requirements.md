@@ -251,19 +251,21 @@
 - 来源：user requested on 2026-10-11; same GLM confirmed on 2026-10-11; EC-008 team topic
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`in_progress`
-- 说明：用户确认复核复用当前 GLM，通过单独一次调用和专用复核 Prompt 完成逐段覆盖、引用集合与精确摘录检查；默认沿用 LLM_MODEL/地址/Key，仍可另配型号。保留既有 key 避免重复需求；同模型复核不是独立模型验证。失败/不确定/无配置时不展示草稿，继续权限与版本校验；真实误判与成本评测待完成。
+- 说明：复核默认复用当前 GLM，单独调用、逐段覆盖和摘录检查不等于独立事实保证。2026-10-11 用户调整：首次复核不通过时给出有界反馈，交回原生成模型重答一次；第二版不再做语义复核拦截，明确标记未再次复核，但继续确定性格式/引用编号、权限与版本校验。原草稿不交付，真实误判与成本评测待完成。
 - 验收标准：
 
   - 先执行现有格式、引用编号与授权范围校验，再将原问题、未交付草稿和本次授权证据交给单独调用的复核阶段；不全库补证据或读取受限资料来证明答案
   - 默认复用当前 GLM，允许生成与复核采用同型号、同 API；各阶段的调用、实际型号、参数、Prompt 版本和结果分别记录，并明确标注同模型复核而非独立模型验证；仍支持另配复核型号
   - 复核返回受限结构化结果，区分支持、不支持和无法判断，检查主张与所引证据的关联、引用错配、缺失依据及无依据补全；服务端校验主张定位、引用集合及引文确实来自提供的证据
-  - 不支持、无法判断、超时或无法解析时，不交付原草稿作为已确认答案；首版安全拒答或仅展示已授权证据，不无限重试，也不把失败变成通过
+  - 首次复核不支持、无法判断或技术失败时，产生逐段有界理由或明确的服务端失败提示，以不可信数据传给原生成模型；使用相同授权证据重答一次，不扩检、不改变原问题，不无限循环
+  - 第二版不再调用语义复核模型，不因首次复核状态拦截；页面说明首次反馈、已重答及未再次语义复核，不能把第二版或首次失败标为 supported。第二版格式/引用编号非法、API 失败、权限或版本变化时仍不交付不安全结果
+  - 业务和审计模型答案均使用一次反馈重答；审计答案保留可见事件、E 引用和部分选择限制。审计记录区分首次生成、复核和重答的参数/耗时/Token，仅保存最终交付文本及安全诊断，不保存失败草稿、自由文本复核理由或原始异常
   - 复核模型前后及最终交付前继续复核权限与内容版本，撤权或版本变化时丢弃结果；业务答案与模型审计答案使用各自正确的证据/事件引用集合
   - 模型复核是概率性辅助而非事实正确性的证明，同型号可能重复同一错误；用人工标注正反例报告漏检/误判、额外延迟、Token 与费用，不能宣称彻底消除幻觉
 
 - 影响范围：
 
-  - 代码：`src/answering.py`, `contextledger/llm_workflows.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/static/unified.js`, `.env.integration.example`, `scripts/sync_preview_config.py`, `scripts/evaluate_llm_review.py`
+  - 代码：`src/answering.py`, `contextledger/llm_workflows.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/templates/unified.html`, `.env.integration.example`, `scripts/sync_preview_config.py`, `scripts/evaluate_llm_review.py`
   - 测试：`tests/test_answering.py`, `tests/test_integration.py`, `tests/test_no_leakage.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_llm_evaluation.py`, `tests/fixtures/llm_review_cases.json`, `tests/test_preview_config.py`
   - 文档：`docs/product/llm-feature-plan.md`, `docs/product/workload.md`, `docs/product/demo-acceptance.md`, `docs/architecture/llm-workflows.md`, `docs/product/prompt-and-login-walkthrough.md`
 
@@ -497,7 +499,7 @@
   - 后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化
   - 通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明
   - Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持
-  - 审计回答、检索规划、引用复核及零证据提示模板单独记录版本、输入边界、输出格式和预算；当前代码使用 answer-v7，旧 answer-v6 部署记录不能充当本次验证
+  - 审计回答、检索规划、引用复核、一次反馈重答及零证据提示模板单独记录版本、输入边界、输出格式和预算；当前回答模板将升级 answer-v8，旧部署记录不能充当本次验证
 
 - 影响范围：
 

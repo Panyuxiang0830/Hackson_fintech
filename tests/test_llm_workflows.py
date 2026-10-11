@@ -170,6 +170,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(diag["status"], "unsupported")
         call.assert_not_called()
 
+    def test_reviewer_feedback_reasons_are_bounded_and_consumed_out_of_diagnostics(self):
+        from contextledger.llm_workflows import review_feedback
+        for reason, status in (("审批状态没有确切依据。", "uncertain"), ("x" * 601, "invalid_review")):
+            payload = {"claims":[{"claim_id":"C1", "verdict":"uncertain", "reason":reason, "citations":[]}]}
+            with patch("urllib.request.urlopen", return_value=completion(payload)):
+                diag = CitationReviewer(stage(), True).review("q", "Approved [1]",
+                    [{"id":"1", "content":"Pending"}], "writer", Mock())
+            self.assertEqual(diag["status"], status)
+            feedback = review_feedback(diag)
+            self.assertNotIn("_feedback", diag)
+            self.assertEqual(len(feedback), 1)
+            self.assertLessEqual(len(feedback[0]["reason"]), 600)
+
     def test_audit_answer_validates_event_namespace_and_selection(self):
         valid = {"status":"answered","answer":"A query occurred [E8].","citation_ids":["E8"],"uncertainty":"low"}
         for payload, expected in ((valid, "completed"), (dict(valid, citation_ids=["E9"]), "invalid_audit_answer"),

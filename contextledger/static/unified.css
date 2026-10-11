@@ -17,6 +17,6 @@ button:disabled { opacity:.5; cursor:not-allowed; } .primary { background:var(--
 .muted { font-size:13px; color:var(--muted); } .wide { grid-column:1 / -1; }
 pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:480px; overflow:auto; }
 .hit { cursor:pointer; } .hit:hover { border-color:#b7cceb; } .pill { display:inline-block; background:#e8f0fa; color:var(--accent); border-radius:16px; padding:2px 8px; font-size:12px; margin-right:6px; }
-#answer,#reader,#auditanswer { white-space:pre-wrap; overflow-wrap:anywhere; } [hidden] { display:none !important; }
+#answer,#reader,#auditanswer,#reviewfeedback { white-space:pre-wrap; overflow-wrap:anywhere; } [hidden] { display:none !important; }
 .check input { width:auto; margin-right:8px; }
 @media(max-width:800px) { main { grid-template-columns:minmax(0,1fr); padding:12px; } .grid { grid-template-columns:1fr; } header { padding:16px; } }
