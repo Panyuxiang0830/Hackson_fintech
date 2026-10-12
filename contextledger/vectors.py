@@ -137,15 +137,39 @@ def preload(out_dir: Path) -> None:
     _model()
 
 
+def _canonical_counter(out_dir, corpus):
+    path = out_dir / "canonical.sqlite"
+    if not path.is_file():
+        return None
+    db = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)
+    try:
+        try:
+            if db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND state IN ('queued','running','failed') LIMIT 1", (corpus,)).fetchone():
+                raise RuntimeError("document update pending; legacy vectors cannot serve")
+        except sqlite3.OperationalError as error:
+            if "no such table" not in str(error):
+                raise
+        try:
+            row = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (corpus,)).fetchone()
+            return row[0] if row else None
+        except sqlite3.OperationalError as error:
+            if "no such table" not in str(error):
+                raise
+            return None
+    finally:
+        db.close()
+
+
 def get_store(out_dir: Path, corpus: str) -> CorpusIndex:
     out_dir = out_dir.resolve()
+    counter = _canonical_counter(out_dir, corpus)
     key = (str(out_dir), corpus)
     with _LOCK:
         status_path = corpus_dir(out_dir, corpus) / "status.json"
         if not status_path.exists():
             raise FileNotFoundError(f"missing vector status for {corpus}; rebuild vectors")
         stat = status_path.stat()
-        status_signature = (stat.st_mtime_ns, stat.st_size, stat.st_ino)
+        status_signature = (stat.st_mtime_ns, stat.st_size, stat.st_ino, counter)
         cached = _STORES.get(key)
         if cached is not None and cached.status_signature == status_signature:
             return cached
@@ -154,6 +178,13 @@ def get_store(out_dir: Path, corpus: str) -> CorpusIndex:
         if not status_path.exists():
             raise FileNotFoundError(f"missing {status_path}")
         status = json.loads(status_path.read_text(encoding="utf-8"))
+        if counter is not None:
+            db = sqlite3.connect((out_dir / "canonical.sqlite").as_uri() + "?mode=ro", uri=True)
+            try:
+                if status.get("chunks_sha256") != chunk_digest(db, corpus):
+                    raise RuntimeError("canonical chunks changed; rebuild legacy Part A vectors")
+            finally:
+                db.close()
         if status.get("model") != MODEL_NAME or int(status.get("dim", 0)) != DIM:
             raise RuntimeError(f"{corpus} vector index does not match {MODEL_NAME}")
         _ensure_bindings()

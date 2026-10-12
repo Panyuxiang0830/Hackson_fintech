@@ -160,6 +160,15 @@ class FilteredIndex:
         return dict(state)
 
     def consistent(self, db, corpus):
+        try:
+            pending = db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND state IN ('queued','running','failed') LIMIT 1",
+                                 (corpus,)).fetchone()
+        except sqlite3.OperationalError as error:
+            if "no such table" not in str(error):
+                raise
+            pending = None
+        if pending:
+            raise IndexUnavailable("Document update pending; wait for index publication.")
         state = self.state(db)
         if self.expected_model and (state["model"] != self.expected_model or state["dim"] != 384):
             raise IndexUnavailable("Embedding model/configuration differs from published index.")
@@ -426,12 +435,42 @@ def _published_guard_matches(db, corpus):
     return True
 
 
-def _sync_published_guard(db):
+def _sync_published_guard(db, corpus=None):
     _ensure_guard_schema(db)
-    for (corpus,) in db.execute("SELECT DISTINCT corpus FROM documents"):
-        db.execute("INSERT OR IGNORE INTO cl_mutation(corpus, n) VALUES (?, 0)", (corpus,))
-    for corpus, count in db.execute("SELECT corpus, n FROM cl_mutation"):
-        db.execute("INSERT OR REPLACE INTO cl_mutation_published(corpus, n) VALUES (?, ?)", (corpus, count))
+    corpora = [corpus] if corpus is not None else [row[0] for row in db.execute("SELECT DISTINCT corpus FROM documents")]
+    for name in corpora:
+        db.execute("INSERT OR IGNORE INTO cl_mutation(corpus, n) VALUES (?, 0)", (name,))
+    rows = db.execute("SELECT corpus,n FROM cl_mutation" + (" WHERE corpus=?" if corpus is not None else ""),
+                      (corpus,) if corpus is not None else ())
+    for name, count in rows:
+        db.execute("INSERT OR REPLACE INTO cl_mutation_published(corpus, n) VALUES (?, ?)", (name, count))
+
+
+def snapshot_document(db, corpus, doc_id, timestamp=None):
+    """Replace one document's derived metadata inside the caller's transaction."""
+    timestamp = timestamp or now()
+    for table in ("cl_metadata", "cl_acl", "cl_chunks"):
+        db.execute(f"DELETE FROM {table} WHERE corpus=? AND doc_id=?", (corpus, doc_id))
+    doc = db.execute("SELECT * FROM documents WHERE corpus=? AND doc_id=?", (corpus, doc_id)).fetchone()
+    _snapshot_metadata(db, doc, timestamp)
+    db.executemany("INSERT INTO cl_chunks VALUES (?,?,?,?)", (
+        (row["chunk_id"], corpus, doc_id, hashlib.sha256(row["text"].encode()).hexdigest())
+        for row in db.execute("SELECT * FROM chunks WHERE corpus=? AND doc_id=?", (corpus, doc_id))))
+
+
+def _snapshot_metadata(db, doc, timestamp):
+    extra = json.loads(doc["extra_json"])
+    classification = extra.get("classification", "internal")
+    level = LEVELS.get(classification, 4) if isinstance(classification, str) else 4
+    roles, departments = extra.get("allowed_roles", []), extra.get("allowed_departments", [])
+    if not isinstance(roles, list) or not isinstance(departments, list):
+        raise ValueError("invalid explicit access constraints")
+    db.execute("INSERT INTO cl_metadata VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (doc["corpus"], doc["doc_id"], doc["source"], doc["version"], doc["content_hash"],
+         doc["acl_json"], doc["extra_json"], doc["day"], doc["ts"], doc["dept"],
+         _name(extra.get("project")), level, json.dumps(roles), json.dumps(departments), timestamp, doc["title"]))
+    db.executemany("INSERT OR IGNORE INTO cl_acl VALUES (?,?,?)",
+                  [(doc["corpus"], doc["doc_id"], principal) for principal in json.loads(doc["acl_json"])])
 
 
 def prepare_snapshot(db, collection: str, generation: str, model: str, dim: int):
@@ -463,18 +502,7 @@ def prepare_snapshot(db, collection: str, generation: str, model: str, dim: int)
         db.execute("DELETE FROM cl_acl")
         db.execute("DELETE FROM cl_chunks")
         for doc in db.execute("SELECT corpus,doc_id,source,version,content_hash,acl_json,extra_json,day,ts,dept,title FROM documents"):
-            extra = json.loads(doc["extra_json"])
-            classification = extra.get("classification", "internal")
-            level = LEVELS.get(classification, 4) if isinstance(classification, str) else 4
-            roles, departments = extra.get("allowed_roles", []), extra.get("allowed_departments", [])
-            if not isinstance(roles, list) or not isinstance(departments, list):
-                raise ValueError("invalid explicit access constraints")
-            db.execute("INSERT INTO cl_metadata VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (doc["corpus"], doc["doc_id"], doc["source"], doc["version"], doc["content_hash"],
-                 doc["acl_json"], doc["extra_json"], doc["day"], doc["ts"], doc["dept"],
-                 _name(extra.get("project")), level, json.dumps(roles), json.dumps(departments), timestamp, doc["title"]))
-            db.executemany("INSERT OR IGNORE INTO cl_acl VALUES (?,?,?)",
-                          [(doc["corpus"], doc["doc_id"], principal) for principal in json.loads(doc["acl_json"])])
+            _snapshot_metadata(db, doc, timestamp)
         db.executemany("INSERT INTO cl_chunks VALUES (?,?,?,?)",
             ((chunk["chunk_id"], chunk["corpus"], chunk["doc_id"], hashlib.sha256(chunk["text"].encode()).hexdigest())
              for chunk in db.execute("SELECT * FROM chunks")))
@@ -494,6 +522,13 @@ def payload_for(chunk, meta):
 
 
 def migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
+    from contextledger.index_lock import index_lock
+
+    with index_lock(db_path):
+        return _migrate(db_path, client, batch_size=batch_size, reuse_embeddings=reuse_embeddings)
+
+
+def _migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
     """Build a new collection, validate count, then publish; failed builds stay blocked."""
     import numpy as np
 
