@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-08",
+  "updated_at": "2026-10-12",
   "requirements": [
     {
       "id": "REQ-001",
@@ -353,11 +353,12 @@
         "分别评估信息筛选的关键事实召回、授权范围内检索质量和回答证据支持程度",
         "安全测试覆盖越权访问、系统内撤权、缓存或历史绕过及不可信来源指令",
         "记录数据规模、查询延迟、索引吞吐、撤权和更新时效、模型 Token 或费用及存储增长",
-        "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测"
+        "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测",
+        "新鲜度评测按固定事件流和查询时点的证据版本真值计算在线 Recall；未同步、拒答、失败与缺失结果保留在分母，在线曲线与最终静态测量分开报告"
       ],
-      "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh"],
-      "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py"],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md"]
+      "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh", "contextledger/freshness_eval.py", "contextledger/freshness_workload.py", "contextledger/freshness_replay.py", "scripts/freshness_eval.sh"],
+      "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py", "tests/test_freshness_eval.py"],
+      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/evaluation/freshness.md"]
     },
     {
       "id": "REQ-019",
