@@ -23,6 +23,7 @@
 
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
 - `docs/requirements.md`：由台账自动生成的只读视图；
+- `BENCHMARK_QUICKSTART.md`：英文简短测评入口，包含 Part A 检索与新鲜度回放命令及报告位置；
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；

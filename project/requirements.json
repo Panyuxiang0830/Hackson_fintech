@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-11",
+  "updated_at": "2026-10-12",
   "requirements": [
     {
       "id": "REQ-001",
@@ -427,7 +427,7 @@
       "source": "engineering challenges confirmed by user on 2026-10-06",
       "authority": "team_decision",
       "status": "in_progress",
-      "description": "以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。已接入 Part A 固定参考证据召回、覆盖率、耗时与合成安全回归；离线 BGE/Qwen 排序实验不自动接入前端。真实回答质量、未见测试集、模型费用和完整规模评测仍未完成。",
+      "description": "以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。已接入 Part A 固定参考证据召回、覆盖率、耗时与合成安全回归；离线 BGE/Qwen 排序实验不自动接入前端。真实回答质量、未见测试集、模型费用和完整规模评测仍未完成。 2026-10-12 PR #7 同步已合入 main 的 #8/#9 新鲜度评测与英文 quickstart，保留模型工作流和在线版本评测的全部验收及影响文件；同步与回归不代表生产或语义验收完成。",
       "acceptance_criteria": [
         "测试集保存问题、身份权限真值、期望证据和期望拒答行为",
         "分别评估信息筛选的关键事实召回、授权范围内检索质量和回答证据支持程度",
@@ -436,11 +436,40 @@
         "测试结果附运行配置与可复现步骤；小样本集成测试不冒充完整规模化评测",
         "2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证",
         "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过",
-        "2026-10-11 保留三项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；模型引用复核及反馈重答已取消，不再作为交付或评测待办。失败注入与真实模型质量分别报告"
+        "2026-10-11 保留三项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；模型引用复核及反馈重答已取消，不再作为交付或评测待办。失败注入与真实模型质量分别报告",
+        "新鲜度评测按固定事件流和查询时点的证据版本真值计算在线 Recall；未同步、拒答、失败与缺失结果保留在分母，在线曲线与最终静态测量分开报告"
       ],
-      "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh"],
-      "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py", "tests/test_llm_workflows.py", "tests/test_llm_integration.py"],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/update-2026-10-11.md"]
+      "code": [
+        "contextledger/evaluation.py",
+        "contextledger/eval_scenarios.py",
+        "contextledger/benchmark_quality.py",
+        "scripts/refine_part_a_retrieval.py",
+        "scripts/tune_part_a_retrieval.py",
+        "scripts/part_a.sh",
+        "contextledger/freshness_eval.py",
+        "contextledger/freshness_workload.py",
+        "contextledger/freshness_replay.py",
+        "scripts/freshness_eval.sh"
+      ],
+      "tests": [
+        "tests/test_part_a_evaluation.py",
+        "tests/test_part_a_refinement.py",
+        "tests/test_part_a_tuning.py",
+        "tests/test_llm_workflows.py",
+        "tests/test_llm_integration.py",
+        "tests/test_freshness_eval.py"
+      ],
+      "docs": [
+        "docs/product/engineering-challenges.md",
+        "docs/product/roadmap.md",
+        "BENCHMARK_QUICKSTART.md",
+        "QUICKSTART.md",
+        "docs/product/workload.md",
+        "docs/product/llm-feature-plan.md",
+        "docs/product/update-2026-10-11.md",
+        "docs/README.md",
+        "docs/architecture/llm-workflows.md"
+      ]
     },
     {
       "id": "REQ-019",

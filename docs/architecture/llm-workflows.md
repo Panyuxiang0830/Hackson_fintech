@@ -86,3 +86,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCount
 新启动日志：`/hy-tmp/data_pyx/contextledger-integration/logs/llm-workflows-preview-87a07d6e.log`；208 项测试日志：同目录 `llm-workflows-regression-87a07d6e.log`。规划/复核配置就绪；真实质量和用户完整验收仍待完成，不自动推送/合并。
 
 真实 GLM 小样本：在独立 HTTP 测试会话选择已有 Jax，提问“TitanDB 是做什么的？”，未更改权限。请求 `cb6875e4-6fd5-4156-a873-be774d833a76` 返回 answered、5 条授权证据；首次复核 invalid_review，重答 1 次、regeneration=revised_not_reviewed，页面警告字段存在。首次生成/复核/重答分别 1 次且审计链有效；未在事件中保存自由反馈。这只验证真实调用与失败后的重答控制流，不证明语义正确性、总体复核质量或完整验收。
+
+## 2026-10-12 同步 main
+
+PR #7 同步 main `7aa175cf`，保留 #8 版本感知新鲜度评测和 #9 英文 quickstart。冲突仅为 CHANGELOG、需求台账与生成视图；REQ-018 的两组验收、实现及测试引用合并后重新生成视图。取消模型复核的决定与当前权限／引用检查继续有效。此同步只更新工作分支，不合并 PR、部署或执行生产索引重建；回归结果在 PR 中记录。
