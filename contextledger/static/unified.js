@@ -3,6 +3,8 @@ const el = id => document.getElementById(id);
 let me = null, csrf = "", epoch = null, generation = 0, people = [], principals = [], auditData = null, queryBusy=false, auditBusy=false, settingsLoaded=false;
 function clearEvidence() {
   generation++;
+  el("radar").hidden=true; el("radar").open=false;
+  for (const id of ["radarcoverage", "radarconflicts", "radartimeline"]) el(id).replaceChildren();
   for (const id of ["answer", "reader", "hits"]) { el(id).replaceChildren(); if (id !== "hits") el(id).hidden = true; }
   el("auditresults").textContent = ""; auditData = null; el("auditexport").disabled = true;
   el("workflowstatus").textContent="";
@@ -60,6 +62,31 @@ function renderHits(hits) {
     card.append(title,meta,text); card.addEventListener("click",()=>openDoc(hit.corpus,hit.doc_id)); el("hits").append(card);
   }
 }
+function renderRadar(radar, evidence) {
+  if (!radar) return;
+  el("radar").hidden=false;
+  const coverage=radar.coverage;
+  const reasonLabels={document_limit:"资料数量上限",related_scan_limit:"关联扫描范围或时间限制",expansion_round_limit:"关联展开轮数",relation_limit:"关系数量上限",time_budget:"查询时间预算"};
+  const reasons=(coverage.truncation_reasons || []).map(r=>reasonLabels[r] || "检索范围限制");
+  if(coverage.evidence_excerpts_truncated || coverage.model_input_truncated) reasons.push("模型只读取正文节选");
+  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${reasons.length ? `；范围说明：${reasons.join("、")}` : ""}；未证明业务链完整。时间未知的记录单独列出。`;
+  for (const conflict of radar.disagreements) {
+    const p=document.createElement("p");
+    p.textContent=`待核对：${conflict.entity_id} 的 ${conflict.attribute} 出现不同报告值（${conflict.claims.map(c=>`${c.value} [${c.citation_id}]`).join(" / ")}），需要核对时间和适用范围。`;
+    el("radarconflicts").append(p);
+  }
+  for (const event of radar.event_candidates) {
+    const li=document.createElement("li"); const item=evidence.find(e=>e.citation_id===event.citation_id);
+    const status=radar.source_statuses.find(s=>s.citation_id===event.citation_id);
+    const labels={native_state:"来源系统状态",comment:"评论／评审",description:"来源描述",artifact:"来源材料"};
+    const label=labels[event.type] || "来源记录";
+    const button=document.createElement("button"); button.className="radarlink";
+    button.textContent=`${event.event_time || "事件时间未知"} · ${label}${status && status.native_status ? `：${status.native_status}` : ""} · ${event.historical ? "历史修订 · " : ""}${item ? item.title : event.doc_id} [${event.citation_id}]`;
+    if(item) button.onclick=()=>openDoc(item.corpus,item.doc_id);
+    const quote=document.createElement("p"); quote.textContent=(event.historical ? `该修订观测于：${event.observed_at || "未知"}\n` : "") + event.quote;
+    li.append(button,quote); el("radartimeline").append(li);
+  }
+}
 async function query(ask) {
   if(queryBusy) return;
   if(!el("question").value.trim()) { el("status").textContent="请先输入问题。灰色示例文字不是已输入的问题。"; el("question").focus(); return; }
@@ -73,6 +100,7 @@ async function query(ask) {
     if (current!==generation) return;
     if (ask) { el("answer").hidden=false; el("answer").textContent=result.answer; }
     renderHits(result.evidence || result.hits || []);
+    if(ask) renderRadar(result.radar, result.evidence || []);
     const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="clarification_required" ? "请确认问题含义" : result.decision==="insufficient" ? "未生成可靠答案，请查看提示" : "回答已生成" : result.query_plan && result.query_plan.status==="clarification_required" ? "请确认问题含义后重新提问" : "检索完成";
     el("status").textContent=`${state} · ${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条${!ask && result.query_suggestions && result.query_suggestions.length ? ` · 请确认是否指：${result.query_suggestions.join(" / ")}` : ""}`;
     el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1}${ask ? " · 仅校验引用编号与授权范围，不做模型语义复核" : ""}`;
@@ -117,6 +145,7 @@ function restrict(denied) { const p=principals.find(p=>p.principal_id===el("bind
 el("search").onclick=()=>query(false); el("ask").onclick=()=>query(true);
 el("corpus").onchange=clearEvidence; el("mode").onchange=clearEvidence;
 el("planning").onchange=clearEvidence;
+el("question").addEventListener("input",()=>{clearEvidence(); el("status").textContent="问题已修改，请重新查询。";});
 if (el("logout")) el("logout").onclick=async()=>{ await api("/api/logout",{}); clearEvidence(); el("corpus").replaceChildren(); await sessionStatus(); };
 if (el("demoselect")) el("demoselect").onclick=async()=>{
   try {

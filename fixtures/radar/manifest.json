@@ -1,0 +1,47 @@
+{
+  "dataset": "OrgForge (synthetic)",
+  "revision": "f2a1ab2ac94043f20ad4d15fc2bbc60c09332656",
+  "corpus_sha256": "b98386f617bf2a402f95d8d6023843ce74b56cf407ca653734639576db50d00e",
+  "snapshot_sha256": "7af9e5e43dad24d9c8fc920b0f19f28a6ee26908373cc9082e60a09fc3703a30",
+  "acl": "explicit synthetic engineering/support split; no live source ACL claim",
+  "cases": {
+    "01-dashboard-review": {
+      "anchor_ids": [
+        "ENG-195",
+        "PR-135"
+      ],
+      "business_records": 10,
+      "file": "01-dashboard-review.jsonl"
+    },
+    "02-kafka-incident": {
+      "anchor_ids": [
+        "ENG-123",
+        "PR-109",
+        "CONF-ENG-078"
+      ],
+      "business_records": 20,
+      "file": "02-kafka-incident.jsonl"
+    },
+    "03-customer-incident": {
+      "anchor_ids": [
+        "ZD-101",
+        "ENG-210",
+        "PR-139",
+        "CONF-ENG-311"
+      ],
+      "business_records": 40,
+      "file": "03-customer-incident.jsonl"
+    },
+    "04-recurrence-revision": {
+      "anchor_ids": [
+        "ENG-112",
+        "ENG-263",
+        "PR-159",
+        "CONF-ENG-054",
+        "CONF-ENG-438"
+      ],
+      "business_records": 40,
+      "file": "04-recurrence-revision.jsonl"
+    }
+  }
+}
