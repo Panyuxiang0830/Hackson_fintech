@@ -9,6 +9,7 @@
 
 ## Unreleased
 
+- 2026-10-12 在独立 `feat/REQ-017-team-ui-integration` 分支将用户 DashKit 英文前端接入团队版 `73c3130`：保留侧栏、教学 SVG、响应式和动效；新增规划可用状态／开关／检索分支摘要，以及角色受控的模型审计解释与确定性回退标识。更新页面断言和需求追踪；未更改 Python 业务服务、真实登录或模型语种，尚未合并或部署真实数据。
 - 2026-10-12 修复 PR #7 与 main（#8/#9）在需求台账、生成视图和变更日志中的合并冲突：保留取消模型复核后的工作流验收与新鲜度评测验收，重新生成需求文档；业务代码自动合并，未合并 PR 到 main 或重新部署。
 
 - Add a short English freshness quick start to the benchmark guide, including replay, report paths and offline rescoring.

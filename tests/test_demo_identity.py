@@ -66,7 +66,9 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(status["identity_mode"], "isolated_demo")
         self.assertFalse(status["identity_verified"])
         self.assertEqual(self.get("/auth/login").status_code, 404)
-        self.assertIn("非真实登录", self.get("/").get_data(as_text=True))
+        page = self.get("/").get_data(as_text=True)
+        self.assertIn('data-demo-mode="true"', page)
+        self.assertIn('id="demo-account-select"', page)
         self.select(self.admin)
         self.assertEqual(len(self.get("/api/admin/users").json), 7)
         self.assertEqual(self.get("/api/corpora").json, [])
@@ -145,7 +147,7 @@ class DemoIdentityTests(unittest.TestCase):
             session["sid"] = sid
         self.assertEqual(self.get("/api/demo/accounts", ordinary).status_code, 404)
         self.assertEqual(self.get("/api/admin/users", ordinary).status_code, 401)
-        self.assertNotIn('id="demoidentity"', self.get("/", ordinary).get_data(as_text=True))
+        self.assertNotIn('id="demo-account-select"', self.get("/", ordinary).get_data(as_text=True))
 
     def test_demo_refuses_production_security_state_public_url_and_oidc(self):
         with self.assertRaises(ValueError):
