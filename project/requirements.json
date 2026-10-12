@@ -358,7 +358,7 @@
       ],
       "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/refine_part_a_retrieval.py", "scripts/tune_part_a_retrieval.py", "scripts/part_a.sh", "contextledger/freshness_eval.py", "contextledger/freshness_workload.py", "contextledger/freshness_replay.py", "scripts/freshness_eval.sh"],
       "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_refinement.py", "tests/test_part_a_tuning.py", "tests/test_freshness_eval.py"],
-      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md", "docs/evaluation/freshness.md"]
+      "docs": ["docs/product/engineering-challenges.md", "docs/product/roadmap.md", "BENCHMARK_QUICKSTART.md", "QUICKSTART.md"]
     },
     {
       "id": "REQ-019",
