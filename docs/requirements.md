@@ -16,7 +16,7 @@
 | REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `in_progress` | `src/audit.py`<br>`src/audit_query.py`<br>`src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/static/unified.js` | `tests/test_audit_query.py`<br>`tests/test_integration.py`<br>`tests/test_answering.py` |
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py`<br>`tests/test_integration.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
-| REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/connectors.py`<br>`contextledger/models.py`<br>`contextledger/store.py`<br>`contextledger/pipeline.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/llm_workflows.py`<br>`src/answering.py`<br>`contextledger/radar_protocol.py`<br>`contextledger/radar_tool.py`<br>`contextledger/radar_data.py`<br>`contextledger/radar_store.py`<br>`scripts/radar_demo.py`<br>`contextledger/search.py` | `tests/test_integration.py`<br>`tests/test_llm_integration.py`<br>`tests/test_permission_freshness.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_answering.py`<br>`tests/test_radar.py`<br>`tests/test_radar_data.py`<br>`tests/test_radar_integration.py` |
+| REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/connectors.py`<br>`contextledger/models.py`<br>`contextledger/store.py`<br>`contextledger/pipeline.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/llm_workflows.py`<br>`src/answering.py`<br>`contextledger/radar_protocol.py`<br>`contextledger/radar_tool.py`<br>`contextledger/radar_data.py`<br>`contextledger/radar_store.py`<br>`scripts/radar_demo.py`<br>`contextledger/search.py`<br>`contextledger/radar_resolution.py` | `tests/test_integration.py`<br>`tests/test_llm_integration.py`<br>`tests/test_permission_freshness.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_answering.py`<br>`tests/test_radar.py`<br>`tests/test_radar_data.py`<br>`tests/test_radar_integration.py`<br>`tests/test_radar_resolution.py` |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
@@ -286,7 +286,7 @@
 - 来源：team discussion; user confirmed automatic internal tool design on 2026-10-12
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：在现有统一问答入口默认由 LLM 判断是否调用内部 decision_radar 工具，围绕问题与授权检索结果定位实体、补查证据并组织业务演变；不提供用户手动切换，不要求入库预建业务标签/事件库。按具体事实评价证据，有充分支持给结论，部分支持说明边界，不足或冲突说明原因。2026-10-12 最终方案与 ADR-0004 方向已确认，需求仍 planned；未实现工具、自动调用或来源版本回放。 2026-10-12 用户授权开始开发：保留 PR #7 的检索前 QueryPlanner，Radar 在检索后的回答阶段自动调用；分支基于 PR #7 head，按先合并工作流再合并 Radar 的顺序交付。代码与真实质量验收分别记录。 本地 v1 已接入内部结构化工具 action、当前权限下的编号/名称补查、统一引用与折叠时间线，保留 PR #7 检索前规划；四案例原生业务 fixture、三阶段受控发布/观测修订已实现。真实模型触发、语义质量与生产增量/原生完整历史的验收分别记录，未部署或合并。
+- 说明：在现有统一问答入口默认由 LLM 判断是否调用内部 decision_radar 工具，围绕问题与授权检索结果定位实体、补查证据并组织业务演变；不提供用户手动切换，不要求入库预建业务标签/事件库。按具体事实评价证据，有充分支持给结论，部分支持说明边界，不足或冲突说明原因。2026-10-12 最终方案与 ADR-0004 方向已确认，随后实现本地候选版本；生产与语义验收另记。 2026-10-12 用户授权开始开发：保留 PR #7 的检索前 QueryPlanner，Radar 在检索后的回答阶段自动调用；分支基于 PR #7 head，按先合并工作流再合并 Radar 的顺序交付。代码与真实质量验收分别记录。 本地 v1 已接入内部结构化工具 action、当前权限下的编号/名称补查、统一引用与折叠时间线，保留 PR #7 检索前规划；四案例原生业务 fixture、三阶段受控发布/观测修订已实现。真实模型触发、语义质量与生产增量/原生完整历史的验收分别记录，未部署或合并。 2026-10-12 用户要求将资料上限从40提高并以项目名称/业务词语而非预给编号验证：新增查询时有界名称/多语言检索，先召回授权候选、再从候选识别编号展开；独立管理资料与模型正文预算并报告各类截断。
 - 验收标准：
 
   - 用户只需在现有问答入口提问，默认自动；LLM 可直接回答或请求 decision_radar，前端无普通/自动/Radar 切换、工具按钮或专用入口
@@ -304,11 +304,14 @@
   - 实际来源历史、删除/撤回与回滚复用 REQ-004；SQLite/FTS/Qdrant/可选引用索引与历史存储同代次安全发布，失败不可读，新信息可见耗时实测，不冒称生产增量同步
   - 自动触发正反例、错/漏调用率、实体/关系召回、事件覆盖、证据支持、更新时间与 Token/延迟分别评测；四个开发案例不证明泛化，初始预算与 60 秒小样本工程目标经实测调整
   - 内部 LLM 工具不等于 REQ-020 外部 Agent/MCP/插件适配，本轮不扩展对外协议或恢复浏览器登录
+  - 默认资料上限提高至120，资料/事件/关系/正文/时间预算分别报告；模型正文预算不随资料数量无限增加，关键状态和提问相关段落优先保留
+  - 员工可使用项目名、组件名或无编号业务描述起查；跨语言查询时生成有界检索短语，内部编号只能来自实际授权候选，不硬编码四案例别名或将语义近似候选判为同一实体；未知专名不自动纠错
+  - 四案例补充全部不含内部编号的真实模型问题；区分名称匹配、证据召回、工具触发、故事节点覆盖与全量语料泛化，增加未知/同名/权限变更负例
 
 - 影响范围：
 
-  - 代码：`contextledger/connectors.py`, `contextledger/models.py`, `contextledger/store.py`, `contextledger/pipeline.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/llm_workflows.py`, `src/answering.py`, `contextledger/radar_protocol.py`, `contextledger/radar_tool.py`, `contextledger/radar_data.py`, `contextledger/radar_store.py`, `scripts/radar_demo.py`, `contextledger/search.py`
-  - 测试：`tests/test_integration.py`, `tests/test_llm_integration.py`, `tests/test_permission_freshness.py`, `tests/test_llm_workflows.py`, `tests/test_answering.py`, `tests/test_radar.py`, `tests/test_radar_data.py`, `tests/test_radar_integration.py`
+  - 代码：`contextledger/connectors.py`, `contextledger/models.py`, `contextledger/store.py`, `contextledger/pipeline.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/llm_workflows.py`, `src/answering.py`, `contextledger/radar_protocol.py`, `contextledger/radar_tool.py`, `contextledger/radar_data.py`, `contextledger/radar_store.py`, `scripts/radar_demo.py`, `contextledger/search.py`, `contextledger/radar_resolution.py`
+  - 测试：`tests/test_integration.py`, `tests/test_llm_integration.py`, `tests/test_permission_freshness.py`, `tests/test_llm_workflows.py`, `tests/test_answering.py`, `tests/test_radar.py`, `tests/test_radar_data.py`, `tests/test_radar_integration.py`, `tests/test_radar_resolution.py`
   - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/decisions/ADR-0004-decision-radar.md`, `docs/architecture/decision-radar-validation.md`, `fixtures/radar/README.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作

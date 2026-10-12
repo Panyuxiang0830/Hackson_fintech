@@ -6,11 +6,11 @@
 
 基于 PR #7 `codex/llm-workflows` 的 `43b44eb003b09d8661f84a15221afa3f389b114f` 开发于 `feat/decision-radar-v1`。现有 QueryPlanner 仍在检索前工作；授权检索之后由 AnswerService 选择直接回答或内部 decision_radar action。请求字段、/api/search、/api/doc、权限管理和审计接口保持兼容。没有 Radar 模式选择、公开 /api/radar 或第二模型语义复核。
 
-按用户计划先合并 PR #7，再将 Radar 分支同步最新 main 并更新 PR base。若 PR #7 用 squash/rebase 合并，待工作目录已有改动保存后，使用 `git rebase --onto origin/main 43b44eb003b09d8661f84a15221afa3f389b114f feat/decision-radar-v1` 只搬移 Radar 提交，避免把旧工作流提交重新列入 PR。当前已验证父分支 head 是 Radar 的祖先；PR #7 若继续修改，要重新同步与测试，不能承诺未来任意修改都无冲突。未推送、部署或合并。
+按用户计划先合并 PR #7，再将 Radar 分支同步最新 main 并更新 PR base。若 PR #7 用 squash/rebase 合并，待工作目录已有改动保存后，使用 `git rebase --onto origin/main 43b44eb003b09d8661f84a15221afa3f389b114f feat/decision-radar-v1` 只搬移 Radar 提交，避免把旧工作流提交重新列入 PR。当前已验证父分支 head 是 Radar 的祖先；PR #7 若继续修改，要重新同步与测试，不能承诺未来任意修改都无冲突。以工作分支 Draft PR 交付审阅，未部署或合并。
 
 ## 已实现范围
 
-- 严格结构化工具参数，只允许可见编号及固定 focus；服务端提供 Actor/Scope/generation。最多一次工具调用、两轮展开、40 条资料、100 条事件、20 条关系。
+- 严格结构化工具参数，只允许可见编号及固定 focus；服务端提供 Actor/Scope/generation。最多一次工具调用、两轮展开、默认120 条资料、200 条事件、80 条去重关系；数量／轮数／扫描／时间／正文预算分别说明。
 - 精确完整编号（包含 Unicode 连字符与 CONF-ENG 编号），多编号问题可以从分别包含对象的授权文档开始。名称仍受原问题约束；无编号时沿原问题授权混合检索。不将语义邻近或编号共现认定为因果。
 - 工具扩展证据追加到同一引用注册表。当前权限、根资源权限、快照 hash/version 和模型后／HTTP 交付检查继续生效。扫描设时间预算，截断明确标记。
 - Jira/PR 原生状态支持工单或代码状态，普通描述／评论属于来源报告。首轮当前检索排除观测旧版；工具读取旧版时显式标明 historical，不能作为当前状态依据。生产回滚、服务恢复需额外依据；没有全平台真相排名或可靠概率。
@@ -40,4 +40,21 @@ SQLite/Qdrant 使用真实本地引擎，向量为常量 fixture 向量；不把
 
 浏览器检查使用本地隔离 fixture 会话、真实工具与模拟回答 transport：验证自动面板、展开时间线、未知时间、修改问题清空。截图位于 `runtime/decision-radar-design/radar-ui-preview.jpg`，明确不是线上部署或真实模型截图。
 
-最终验证已通过 217 项主 unittest 与 8 项 Part A pytest。project_sync、JS 语法和 diff 检查通过。上述样例不能取代用户业务验收、生产数据验证或未见案例评测。
+首版验证通过 217 项主 unittest 与 8 项 Part A pytest；名称起查扩充后最终通过228项主测试与8项Part A测试。project_sync、JS 语法和 diff 检查通过。上述样例不能取代用户业务验收、生产数据验证或未见案例评测。
+
+
+## 名称起查与120条预算实测（2026-10-12）
+
+改进后真实 GLM 记录位于 `runtime/radar-name-resolved-20261012/report.json`。四个原问题均不含工单/PR编号，首轮仍保留 QueryPlanner，随后按项目/组件名或技术描述检索。四组均 answered 且自动调用 Radar，读取14／23／37／47条资料；简单工单标题问题直接回答、不调用Radar。47条已超过原40条数量上限；工具单独报告展开轮数和正文节选，不能据此认为历史完整。
+
+另在 `description-and-unknown.json` 验证“手机端展示实时延迟和丢包的健康仪表盘，代码评审提出了什么问题，后来怎么改好的？”——完全中文且不含编号，模型名称检索召回后展开14条，查到主线程／定时器评审及批准。未知 UnseenTelemetryService 返回 insufficient／0证据，无Radar。模型翻译词法检索成立，不是常量向量的语义召回证明。
+
+开发前两轮实际出现过仪表盘被前置规划要求澄清、客户案例漏调用Radar及 invalid_name_plan。补充名称发现与 Prompt 后最新一轮全部触发；这不是稳定触发率或未见问题泛化。保留失败记录，不能只统计成功一轮。名称短语只能增加检索线索，资料内识别的编号不能自动证明业务实体唯一性；同一功能下不同事故不能静默合并。
+
+客户案例在最新生成答案中仍将来源声称的关联表述成“同一条因果链”，强于已证实关系；其他段落也可能将部署消息写成确定部署。这一语义问题未用已取消的第二模型复核处理。四条的检索／工具展开成功不等于全部生成结论准确，REQ-011/019继续in_progress。
+
+安全回归新增：无编号中文起查到实际来源编号、隐藏候选不入模、未知专名不自动纠错、同名业务保持不同候选、名称规划中撤权中止、单可见候选处理前置澄清、67条资料超旧上限／50条配置截断，以及120引用条目模型输入有界且保留编号。主测试228项，Part A8项（最终命令记录另存runtime日志）。未部署或合并。
+
+## PR 交付
+
+Radar 分支以仍开放的 PR #7 分支 `codex/llm-workflows` 为 PR base，只审阅新增 Radar 提交。按约定先合并 #7，随后同步并切换 Radar PR base 为 main；若父 PR squash/rebase，按上面的 rebase 范围只迁移 Radar 提交并重跑检查。Draft 表示业务语义／生产验收仍未完成，不能据自动回归合并或宣称部署。

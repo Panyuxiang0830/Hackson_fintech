@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 from src.answering import DEFAULT_MODEL, DEFAULT_TOKENHUB_BASE_URL
 from contextledger.search import entity_terms
 
-PLAN_VERSION = "query-plan-v1-2026-10-11"
+PLAN_VERSION = "query-plan-v2-2026-10-12"
 AUDIT_VERSION = "audit-answer-v1-2026-10-11"
 MAX_BRANCHES = 5
 TOP_K = 5
@@ -33,6 +33,12 @@ date constraints. Subquestions do not assert premises as facts. Do not correct
 names or infer a different intent silently. For ambiguity or meaning-changing
 corrections set needs_clarification=true. No SQL, filters, identity, roles, tools,
 chain of thought, or new permissions. Do not invent names from an unseen corpus.
+Names already supplied by the user are search terms, not proposed corrections:
+leave entity_candidates and possible_interpretations empty for an ordinary
+project/feature history question. Search can discover the referenced records;
+do not request clarification merely because you have not yet seen the corpus
+or because the user did not supply an issue ID. Reserve clarification for a
+genuine choice that changes the requested meaning, not generic possibilities.
 """
 
 AUDIT_PROMPT = """You answer an authorised audit inquiry using ONLY visible_events.

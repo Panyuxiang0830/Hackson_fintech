@@ -192,7 +192,7 @@ class FilteredIndex:
                 db.execute("INSERT INTO cl_mutation_published(corpus, n) VALUES (?, ?) ON CONFLICT(corpus) DO UPDATE SET n=excluded.n", (corpus, current))
             db.commit()
 
-    def search(self, scope: Scope, query: str, mode="hybrid", limit=8):
+    def search(self, scope: Scope, query: str, mode="hybrid", limit=8, *, required_terms=None):
         if mode not in {"keyword", "vector", "hybrid"}:
             raise ValueError("unknown retrieval mode")
         where, args = self.sql_filter(scope)
@@ -202,7 +202,9 @@ class FilteredIndex:
             db.execute("BEGIN")
             state = self.consistent(db, scope.corpus)
             keyword = []
-            anchors = entity_terms(query)
+            # Only the server-side name search supplies validated literal names.
+            # Descriptive translated terms are ranking hints, not all mandatory names.
+            anchors = entity_terms(query) if required_terms is None else required_terms
             match = _fts_query(query)
             if mode != "vector" and match:
                 keyword = [r[0] for r in db.execute(f"""SELECT d.doc_id FROM docs_fts

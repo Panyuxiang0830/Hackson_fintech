@@ -232,6 +232,10 @@ class AnswerService:
         if tool_handler is not None:
             for item, entry in zip(evidence, context):
                 entry["historical_revision"] = item.document.status == "historical"
+            if tool_state["called"]:
+                # Keep all citation IDs while reserving room for more documents.
+                context = [{k: v for k, v in entry.items() if k in
+                    {"citation_id", "source", "title", "content", "historical_revision"}} for entry in context]
         system = SYSTEM_PROMPT
         if tool_handler is not None:
             from contextledger.radar_protocol import TOOL_PROMPT, VERSION
@@ -255,6 +259,16 @@ class AnswerService:
         if tool_handler is not None and tool_state["called"]:
             payload["decision_radar_result"] = tool_state["result"]
             system += " Tool invocation is exhausted. Return ordinary answer JSON only."
+            truncated = False
+            while len(json.dumps(payload, ensure_ascii=False)) > 56000:
+                longest = max(context, key=lambda entry: len(entry["content"]))
+                if len(longest["content"]) <= 80:
+                    break  # The existing hard input gate still fails closed.
+                longest["content"] = longest["content"][:max(80, len(longest["content"]) - 200)]
+                truncated = True
+            if truncated:
+                tool_state["result"].setdefault("coverage", {})["model_input_truncated"] = True
+                self.last_diagnostics["radar_context_truncated"] = True
         raw_content = self._completion(system, payload)
         parsed = _completion_json(raw_content)
         if isinstance(parsed, dict) and parsed.get("action") == "call_tool":

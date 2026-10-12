@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import time
 from contextledger.radar_protocol import (VERSION, MAX_DOCS, MAX_EVENTS, MAX_RELATIONS,
-                                         MAX_ROUNDS, identifiers, validate_arguments)
+                                         MAX_ROUNDS, RadarBudget, identifiers, validate_arguments)
 from contextledger.filtered_index import IndexUnavailable
 
 
@@ -39,37 +39,43 @@ def partition_claims(text):
 
 
 class DecisionRadarTool:
-    def __init__(self, index):
+    def __init__(self, index, *, budget=None):
         self.index = index
+        self.budget = budget or RadarBudget.configured()
 
     def execute(self, *, query, scope, generation, seeds, arguments, guard):
         guard()
+        maximum = self.budget.documents
+        reasons = set()
         allowed = set(identifiers(query))
         for hit in seeds:
             allowed.update(identifiers(hit["full_text"] + "\n" + hit["title"]))
         args = validate_arguments(arguments, allowed)
         # Question IDs take precedence over unrelated IDs in seeds.
         anchors = args["anchor_ids"] or identifiers(query) or sorted(allowed)[:8]
-        selected = list(seeds[:MAX_DOCS])
+        selected = list(seeds[:maximum])
         seen = {h["doc_id"] for h in selected}
         seen_text = {h["full_text"].strip() for h in selected}
         frontier, expanded = set(anchors), set()
-        truncated, rounds = len(seeds) > MAX_DOCS, 0
+        truncated, rounds = len(seeds) > maximum, 0
         started = time.monotonic()
         for _ in range(MAX_ROUNDS):
             guard()
-            if time.monotonic() - started > 8:
+            if time.monotonic() - started > self.budget.seconds:
                 truncated = True
+                reasons.add("time_budget")
                 break
             pending = sorted(frontier - expanded)[:16]
             if not pending:
                 break
             expanded.update(pending)
-            more, found_generation, limited = self.index.related(scope, pending, limit=MAX_DOCS + 1)
+            more, found_generation, limited = self.index.related(scope, pending, limit=maximum + 1)
             if found_generation != generation:
                 raise IndexUnavailable("Index generation changed during Radar expansion")
             rounds += 1
             truncated |= limited
+            if limited:
+                reasons.add("related_scan_limit")
             for hit in more:
                 # For an explicit attribute question, choose an actual source slice
                 # around that attribute instead of an unrelated first page chunk.
@@ -80,8 +86,9 @@ class DecisionRadarTool:
                         hit = {**hit, "text": hit["full_text"][start:end], "chunk_id": None,
                                "radar_source_span": {"start": start, "end": end, "content_hash": hit["content_hash"]}}
                 if hit["doc_id"] not in seen and hit["full_text"].strip() not in seen_text:
-                    if len(selected) == MAX_DOCS:
+                    if len(selected) == maximum:
                         truncated = True
+                        reasons.add("document_limit")
                         break
                     seen.add(hit["doc_id"])
                     seen_text.add(hit["full_text"].strip())
@@ -90,17 +97,20 @@ class DecisionRadarTool:
         if not anchors:
             # Names without native IDs reuse bounded authorised search; semantic
             # neighbors remain candidates, never asserted lineage.
-            more, found_generation = self.index.search(scope, query, mode="hybrid", limit=MAX_DOCS)
+            more, found_generation = self.index.search(scope, query, mode="hybrid", limit=maximum)
             if found_generation != generation:
                 raise IndexUnavailable("Index generation changed during Radar name search")
             for hit in more:
-                if hit["doc_id"] not in seen and len(selected) < MAX_DOCS:
+                if hit["doc_id"] not in seen and len(selected) < maximum:
                     selected.append(hit)
                     seen.add(hit["doc_id"])
             truncated = True
+        if frontier - expanded:
+            reasons.add("expansion_round_limit")
         truncated |= bool(frontier - expanded)
         guard()
         events, statuses, relations, claims = [], [], [], []
+        relation_keys = set()
         for citation, hit in enumerate(selected, 1):
             guidance = source_guidance(hit)
             statuses.append({"citation_id": citation, **guidance})
@@ -116,11 +126,16 @@ class DecisionRadarTool:
             for anchor in anchors:
                 if anchor in ids:
                     for target in ids:
-                        if target != anchor and len(relations) >= MAX_RELATIONS:
+                        key = (anchor, target)
+                        if target == anchor or key in relation_keys:
+                            continue
+                        if len(relations) >= self.budget.relations:
                             truncated = True
-                        if target != anchor and len(relations) < MAX_RELATIONS:
-                            relations.append({"from": anchor, "to": target, "type": "explicit_mention",
-                                              "citation_id": citation, "causation_established": False})
+                            reasons.add("relation_limit")
+                            continue
+                        relation_keys.add(key)
+                        relations.append({"from": anchor, "to": target, "type": "explicit_mention",
+                                          "citation_id": citation, "causation_established": False})
             for claim in partition_claims(hit["text"]):
                 # A recurrence mention is not the subject of every attribute. Use
                 # the source record's incident title or an ID in the actual claim.
@@ -143,8 +158,10 @@ class DecisionRadarTool:
                     "claims": relevant[:8], "claims_truncated": len(relevant) > 8})
         ordered = sorted(events, key=lambda e: (e["event_time"] is None, str(e["event_time"] or ""), e["citation_id"]))
         return selected, {"version": VERSION, "entity_candidates": anchors,
-            "source_statuses": statuses, "event_candidates": ordered[:MAX_EVENTS],
+            "source_statuses": statuses, "event_candidates": ordered[:self.budget.events],
             "relations": relations, "disagreements": disagreements,
             "coverage": {"documents": len(selected), "rounds": rounds, "truncated": bool(truncated),
+                         "limits": {"documents": maximum, "events": self.budget.events, "relations": self.budget.relations, "rounds": MAX_ROUNDS, "seconds": self.budget.seconds},
+                         "truncation_reasons": sorted(reasons),
                          "complete_business_chain": False, "scope": "current authorised offline snapshot",
                          "missing": ["Bounded visible links do not cover the complete native source history."]}}

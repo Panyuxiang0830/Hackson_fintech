@@ -94,3 +94,16 @@ class RadarAnswerTests(unittest.TestCase):
             result=self.answerer.answer(self.user,'ENG-123',self.evidence,tool_handler=lambda a:{})
         self.assertEqual(result[2],'mock_fallback')
         self.assertNotIn('private-key',str(self.answerer.last_diagnostics))
+
+    def test_large_registry_keeps_ids_but_bounds_model_payload(self):
+        def handler(arguments):
+            self.evidence[:] = [Evidence(Document(str(i),'jira','Topic ' + str(i),'x' * 4000,
+                'eng','t','t','t','internal'),1.,'acl','snapshot','unknown') for i in range(120)]
+            return {'coverage':{'documents':120}}
+        with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.good)]) as transport:
+            result = self.answerer.answer(self.user,'ENG-123',self.evidence,tool_handler=handler)
+        self.assertEqual(result[1],'answered')
+        final=json.loads(json.loads(transport.call_args_list[1].args[0].data)['messages'][1]['content'])
+        self.assertLess(len(json.dumps(final,ensure_ascii=False)),60000)
+        self.assertEqual(len(final['authorised_evidence']),120)
+        self.assertTrue(final['decision_radar_result']['coverage']['model_input_truncated'])

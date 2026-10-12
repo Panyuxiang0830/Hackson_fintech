@@ -53,7 +53,7 @@ def publish(db_path, client, documents):
     return generation
 
 
-def replay(output, fixture_dir, *, live_llm=False):
+def replay(output, fixture_dir, *, live_llm=False, question_set="names"):
     output = Path(output)
     if output.exists():
         raise ValueError("Replay output must be a new directory; existing data is never replaced")
@@ -104,12 +104,19 @@ def replay(output, fixture_dir, *, live_llm=False):
             from src.answering import AnswerService
             if AnswerService().provider != 'openai_compatible':
                 raise ValueError('Real model validation requires existing LLM configuration')
-            questions=[
+            id_questions=[
                 ('01-dashboard-review','ENG-195 与 PR-135 的评审和批准过程如何发展？哪些信息能够确认，哪些仍有缺口？'),
                 ('02-kafka-incident','ENG-123 与 PR-109 的处理过程是什么？现有证据能否确认生产回滚和服务恢复？'),
                 ('03-customer-incident','ZD-101、ENG-210、PR-139 的客户反馈与处理过程如何关联？请保留未确认的部分。'),
                 ('04-recurrence-revision','ENG-112、ENG-263、PR-159 的方案如何演变？分区数与相关文档是否存在不一致？'),
                 ('direct-control','ENG-195 的标题是什么？只回答标题。')]
+            name_questions=[
+                ('01-dashboard-review','iOS 的 SwiftUI 遥测健康仪表盘从开发到评审批准经历了什么？主要修改意见后来怎么处理？'),
+                ('02-kafka-incident','telemetry-stream 的 Kafka leader 选举延迟是怎么排查和处理的？能确认生产回滚和服务恢复了吗？'),
+                ('03-customer-incident','Go 遥测采集服务的 Kafka offset 提交竞态，和客户报告的数据异常有什么关联？从反馈到修复和客服收尾的过程是什么？'),
+                ('04-recurrence-revision','马拉松配速服务的基础设施故障为什么又出现了？telemetry_events 分区调整方案和复盘文档一致吗？'),
+                ('direct-control','SwiftUI 遥测健康仪表盘的开发工单标题是什么？只回答标题。')]
+            questions = name_questions if question_set == "names" else id_questions
             for case, question in questions:
                 started=time.monotonic()
                 result,_=service.ask(actor.id,'orgforge',question,mode='keyword',planning=True)
@@ -117,7 +124,8 @@ def replay(output, fixture_dir, *, live_llm=False):
                 live_results.append({'case':case,'question':question,'result':result})
                 print('Real model:',case,result['provider'],result['decision'],
                       'radar',bool(result.get('radar')),'seconds',result['elapsed_seconds'],flush=True)
-        report={'dataset':manifest,'transport':'tool-only; no LLM; constant fixture embeddings',
+        report={'dataset':manifest,'transport':'real model with keyword retrieval; constant fixture vectors' if live_results else 'tool-only; no LLM; constant fixture embeddings',
+                'question_set': question_set,
                 'phases':reports,'live_model_samples':live_results,'quality_claim':'Real model samples require human semantic assessment; no unseen-case quality validation.' if live_results else 'No real-model or unseen-case quality validation.'}
         (output/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
         return report
@@ -130,11 +138,12 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--fixtures',type=Path,default=Path(__file__).resolve().parents[1]/'fixtures/radar')
     parser.add_argument('--live-llm',action='store_true',help='Use configured real LLM for four questions plus a direct control; API usage applies')
+    parser.add_argument('--questions',choices=['names','ids'],default='names',help='Default employee-style questions contain no native IDs')
     args=parser.parse_args()
     if args.live_llm:
         from dotenv import load_dotenv
         load_dotenv()
-    result=replay(args.output,args.fixtures,live_llm=args.live_llm)
+    result=replay(args.output,args.fixtures,live_llm=args.live_llm,question_set=args.questions)
     for item in result['phases']:
         print(item['phase'],item['case'],item['radar']['coverage'])
     print('Report:',args.output/'report.json')

@@ -10,6 +10,8 @@ import re
 import json
 
 from contextledger.radar_tool import DecisionRadarTool
+from contextledger.radar_protocol import identifiers
+from contextledger.radar_resolution import NameSearchPlanner
 from contextledger.audit_store import AuditStore
 from contextledger.filtered_index import FilteredIndex, IndexUnavailable, POLICY_VERSION
 from contextledger.identity_store import Actor, IdentityStore
@@ -32,11 +34,12 @@ def timestamp():
 
 class UnifiedService:
     def __init__(self, index: FilteredIndex, identities: IdentityStore, audit: AuditStore, answer=None,
-                 *, planner=None, audit_answerer=None):
+                 *, planner=None, audit_answerer=None, name_planner=None):
         self.index, self.identities, self.audit = index, identities, audit
         self.answer = answer or AnswerService()
         self.planner = planner or QueryPlanner()
         self.audit_answerer = audit_answerer or AuditAnswerer()
+        self.name_planner = name_planner or NameSearchPlanner()
         self.identity_mode = "trusted_service"
 
     def current(self, user_id) -> Actor:
@@ -80,7 +83,7 @@ class UnifiedService:
         return {key: value for key, value in hit.items() if key not in {"full_text", "text"}} | (
             {"text": hit["full_text"]} if full else {})
 
-    def retrieve(self, actor, corpus, query, mode, day, planning=None, limit=TOP_K):
+    def retrieve(self, actor, corpus, query, mode, day, planning=None, limit=TOP_K, *, resolve_names=False):
         """One bounded plan, <=5 authorised branches, one final document Top-K."""
         if planning is not None and type(planning) is not bool:
             raise ValueError("planning must be a boolean")
@@ -101,7 +104,10 @@ class UnifiedService:
         guard()
         plan, diagnostics = self.planner.plan(query, guard, planning)
         guard()
-        if plan and plan["needs_clarification"]:
+        discovery_clarification = bool(resolve_names and plan and plan["needs_clarification"]
+            and not identifiers(query)
+            and all(name.lower() in query.lower() for name in plan["entity_candidates"]))
+        if plan and plan["needs_clarification"] and not discovery_clarification:
             return [], generation, scope, diagnostics | {"plan": plan, "branch_count": 0}
         branches = self.planner.branches(query, mode, plan)
         scores, selected, order = {}, {}, {}
@@ -119,11 +125,42 @@ class UnifiedService:
                 order.setdefault(key, len(order))
                 selected.setdefault(key, hit)
                 scores[key] = scores.get(key, 0) + 1 / (60 + rank)
+        name_diagnostics = {"status": "skipped", "attempts": 0}
+        # Extend the ask path after PR7's unchanged plan/branches. Unknown explicit
+        # Latin names without any lexical seed retain the existing safe refusal.
+        if resolve_names and planning is not False and not identifiers(query) and (scores or not original_entities):
+            name_plan, name_diagnostics = self.name_planner.plan(query, guard)
+            if name_plan:
+                name_diagnostics = name_diagnostics | {"plan": name_plan, "identity": "unconfirmed retrieval candidates"}
+                for phrase in name_plan["search_phrases"]:
+                    guard()
+                    candidates, candidate_generation = self.index.search(scope, phrase,
+                        mode=mode, limit=12, required_terms=name_plan["required_names"])
+                    if candidate_generation != generation:
+                        raise IndexUnavailable("Index changed during name discovery")
+                    self.fence(actor, corpus, generation, candidates)
+                    for rank, hit in enumerate(candidates, 1):
+                        key = (hit["corpus"], hit["doc_id"])
+                        order.setdefault(key, len(order))
+                        selected.setdefault(key, hit)
+                        scores[key] = scores.get(key, 0) + 1 / (60 + rank)
         ranked = sorted(scores, key=lambda k: (-scores[k], order[k]))[:limit]
         hits = [selected[key] for key in ranked]
+        if discovery_clarification:
+            # Search the supplied names before demanding an ID from the user.
+            # Only resolve within a single explicitly identified incident family
+            # in the authorised seed titles; other interpretations stay pending.
+            families = {identifier for hit in hits for identifier in identifiers(hit["title"])
+                        if identifier.startswith("ENG-")}
+            if len(families) == 1:
+                diagnostics = diagnostics | {"status": "resolved_candidate", "name_resolution": {
+                    "entity_candidates": sorted(families), "basis": "authorised seed titles",
+                    "global_identity_confirmed": False, "original_planner_status": "clarification_required"}}
+                plan = {**plan, "needs_clarification": False}
         self.fence(actor, corpus, generation, hits)
         return hits, generation, scope, diagnostics | {"plan": plan, "branch_count": len(branches),
-                                                       "top_k": limit, "fusion": "document RRF"}
+                                                       "top_k": limit, "fusion": "document RRF",
+                                                       "name_search": name_diagnostics}
 
     def search(self, user_id, corpus, query, mode="hybrid", day=None, *, planning=None):
         actor = self.current(user_id)
@@ -139,7 +176,7 @@ class UnifiedService:
 
     def ask(self, user_id, corpus, query, mode="hybrid", day=None, *, planning=None):
         actor = self.current(user_id)
-        hits, generation, scope, plan = self.retrieve(actor, corpus, query, mode, day, planning)
+        hits, generation, scope, plan = self.retrieve(actor, corpus, query, mode, day, planning, resolve_names=True)
         suggestions = self.index.suggestions(scope, query) if not hits and plan["status"] != "clarification_required" else []
         self.fence(actor, corpus, generation, hits)  # Before any external model call.
         levels = ("public", "internal", "confidential", "restricted")
@@ -168,10 +205,10 @@ class UnifiedService:
             # Quotes are already in the unified evidence registry. Avoid duplicating
             # them in the model tool payload; the public timeline retains its spans.
             model_report = {**report,
-                "event_candidates": [{k: v for k, v in event.items() if k not in {"quote", "quote_span"}}
+                "event_candidates": [{k: v for k, v in event.items() if k in {"citation_id", "type", "event_time", "historical"}}
                                      for event in report["event_candidates"]],
-                "source_statuses": [{k: v for k, v in item.items() if k not in {"scope", "does_not_establish", "observed_at", "event_time"}}
-                                    for item in report["source_statuses"]]}
+                "source_statuses": [{k: v for k, v in item.items() if k in {"citation_id", "native_status", "historical", "supported_fact"}}
+                                    for item in report["source_statuses"] if item["record_type"] == "native_state"]}
             return model_report
         try:
             guard = lambda: self.fence(actor, corpus, generation, hits)

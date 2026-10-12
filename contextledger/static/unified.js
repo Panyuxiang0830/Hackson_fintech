@@ -66,7 +66,10 @@ function renderRadar(radar, evidence) {
   if (!radar) return;
   el("radar").hidden=false;
   const coverage=radar.coverage;
-  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${coverage.truncated || coverage.evidence_excerpts_truncated ? "，仅展示部分可用材料" : ""}；未证明业务链完整。时间未知的记录单独列出。`;
+  const reasonLabels={document_limit:"资料数量上限",related_scan_limit:"关联扫描范围或时间限制",expansion_round_limit:"关联展开轮数",relation_limit:"关系数量上限",time_budget:"查询时间预算"};
+  const reasons=(coverage.truncation_reasons || []).map(r=>reasonLabels[r] || "检索范围限制");
+  if(coverage.evidence_excerpts_truncated || coverage.model_input_truncated) reasons.push("模型只读取正文节选");
+  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${reasons.length ? `；范围说明：${reasons.join("、")}` : ""}；未证明业务链完整。时间未知的记录单独列出。`;
   for (const conflict of radar.disagreements) {
     const p=document.createElement("p");
     p.textContent=`待核对：${conflict.entity_id} 的 ${conflict.attribute} 出现不同报告值（${conflict.claims.map(c=>`${c.value} [${c.citation_id}]`).join(" / ")}），需要核对时间和适用范围。`;
