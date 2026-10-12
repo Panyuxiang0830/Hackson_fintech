@@ -23,7 +23,7 @@
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py`<br>`contextledger/unified_service.py` | `tests/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
 | REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py` |
-| REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py` |
+| REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh`<br>`contextledger/freshness_eval.py`<br>`contextledger/freshness_workload.py`<br>`contextledger/freshness_replay.py`<br>`scripts/freshness_eval.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py`<br>`tests/test_freshness_eval.py` |
 | REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/llm_workflows.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_llm_workflows.py` |
 | REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `planned` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
 
@@ -477,7 +477,7 @@
 - 来源：engineering challenges confirmed by user on 2026-10-06
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。已接入 Part A 固定参考证据召回、覆盖率、耗时与合成安全回归；离线 BGE/Qwen 排序实验不自动接入前端。真实回答质量、未见测试集、模型费用和完整规模评测仍未完成。
+- 说明：以可复现的测试集和规模基准验证信息筛选、授权检索、回答依据、同步与撤权时效、模型费用和存储增长，不仅依赖界面演示。已接入 Part A 固定参考证据召回、覆盖率、耗时与合成安全回归；离线 BGE/Qwen 排序实验不自动接入前端。真实回答质量、未见测试集、模型费用和完整规模评测仍未完成。 2026-10-12 PR #7 同步已合入 main 的 #8/#9 新鲜度评测与英文 quickstart，保留模型工作流和在线版本评测的全部验收及影响文件；同步与回归不代表生产或语义验收完成。 Radar 分支同步该父分支修复，保留 REQ-011 与名称起查评测范围；未改变业务实现或完成状态。
 - 验收标准：
 
   - 测试集保存问题、身份权限真值、期望证据和期望拒答行为
@@ -488,12 +488,13 @@
   - 2026-10-10 团队确认一周交付优先覆盖 Handbook 五个场景：跨来源引用问答、新鲜度、无权限不泄漏、撤权和合规审计；每项保存可复现步骤、预期与实际结果，区分离线回归、受控来源端到端测试和真实平台验证
   - 五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过
   - 2026-10-11 保留三项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；模型引用复核及反馈重答已取消，不再作为交付或评测待办。失败注入与真实模型质量分别报告
+  - 新鲜度评测按固定事件流和查询时点的证据版本真值计算在线 Recall；未同步、拒答、失败与缺失结果保留在分母，在线曲线与最终静态测量分开报告
 
 - 影响范围：
 
-  - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`
-  - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`
-  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`, `docs/architecture/decision-radar-v1.md`
+  - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`, `contextledger/freshness_eval.py`, `contextledger/freshness_workload.py`, `contextledger/freshness_replay.py`, `scripts/freshness_eval.sh`
+  - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_freshness_eval.py`
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`, `docs/README.md`, `docs/architecture/llm-workflows.md`, `docs/architecture/decision-radar-v1.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 

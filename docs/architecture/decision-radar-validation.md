@@ -6,7 +6,7 @@
 
 基于 PR #7 `codex/llm-workflows` 的 `43b44eb003b09d8661f84a15221afa3f389b114f` 开发于 `feat/decision-radar-v1`。现有 QueryPlanner 仍在检索前工作；授权检索之后由 AnswerService 选择直接回答或内部 decision_radar action。请求字段、/api/search、/api/doc、权限管理和审计接口保持兼容。没有 Radar 模式选择、公开 /api/radar 或第二模型语义复核。
 
-按用户计划先合并 PR #7，再将 Radar 分支同步最新 main 并更新 PR base。若 PR #7 用 squash/rebase 合并，待工作目录已有改动保存后，使用 `git rebase --onto origin/main 43b44eb003b09d8661f84a15221afa3f389b114f feat/decision-radar-v1` 只搬移 Radar 提交，避免把旧工作流提交重新列入 PR。当前已验证父分支 head 是 Radar 的祖先；PR #7 若继续修改，要重新同步与测试，不能承诺未来任意修改都无冲突。以工作分支 Draft PR 交付审阅，未部署或合并。
+按用户计划先合并 PR #7，再将 Radar 分支同步最新 main 并更新 PR base。若 PR #7 用 squash/rebase 合并，待工作目录已有改动保存后，使用 `git rebase --onto origin/main 5ea89e11424af3a46b8d85cb2db4c049463bcd2e feat/decision-radar-v1` 只搬移 Radar 提交，避免把旧工作流提交重新列入 PR。2026-10-12 已同步父分支 `5ea89e11424af3a46b8d85cb2db4c049463bcd2e`，保留 main 的 #8/#9 新鲜度评测及全部 Radar 变更；上面的迁移边界已更新为该父提交。当前已验证父分支 head 是 Radar 的祖先；PR #7 若继续修改，要重新同步与测试，不能承诺未来任意修改都无冲突。以工作分支 Draft PR 交付审阅，未部署或合并。
 
 ## 已实现范围
 
@@ -58,3 +58,6 @@ SQLite/Qdrant 使用真实本地引擎，向量为常量 fixture 向量；不把
 ## PR 交付
 
 Radar 分支以仍开放的 PR #7 分支 `codex/llm-workflows` 为 PR base，只审阅新增 Radar 提交。按约定先合并 #7，随后同步并切换 Radar PR base 为 main；若父 PR squash/rebase，按上面的 rebase 范围只迁移 Radar 提交并重跑检查。Draft 表示业务语义／生产验收仍未完成，不能据自动回归合并或宣称部署。
+
+
+2026-10-12 同步 PR #7 冲突修复后，245 项主 unittest、8 项 Part A pytest、需求同步检查、前端 JS 语法与 diff 检查通过；新增数量来自父分支的新鲜度评测测试。同步未改变 Radar 业务代码，不以回归通过代替业务语义验收或部署。
