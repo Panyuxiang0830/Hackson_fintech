@@ -1,10 +1,12 @@
 "use strict";
 const el = id => document.getElementById(id);
-let me = null, csrf = "", epoch = null, generation = 0, people = [], principals = [], auditData = null, queryBusy=false;
+let me = null, csrf = "", epoch = null, generation = 0, people = [], principals = [], auditData = null, queryBusy=false, auditBusy=false, settingsLoaded=false;
 function clearEvidence() {
   generation++;
   for (const id of ["answer", "reader", "hits"]) { el(id).replaceChildren(); if (id !== "hits") el(id).hidden = true; }
   el("auditresults").textContent = ""; auditData = null; el("auditexport").disabled = true;
+  el("workflowstatus").textContent="";
+  el("auditanswer").textContent=""; el("auditanswer").hidden=true;
 }
 async function api(path, body) {
   const response = await fetch(path, {cache:"no-store", credentials:"same-origin", headers:body ? {"Content-Type":"application/json", "X-CSRF-Token":csrf} : {}, method:body ? "POST" : "GET", body:body ? JSON.stringify(body) : undefined});
@@ -26,7 +28,9 @@ async function sessionStatus() {
   if (el("demoidentity") && me) el("demoidentity").value=me.id;
   el("admin").hidden=!me || me.role!=="admin";
   el("auditpanel").hidden=!me || !["admin","compliance"].includes(me.role);
-  for (const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me || queryBusy;
+  for (const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=!me || queryBusy;
+  if(!settingsLoaded && status.workflows) { el("planning").checked=status.workflows.planner_enabled; settingsLoaded=true; }
+  for(const id of ["auditgo","auditask"]) el(id).disabled=auditBusy || !me || !["admin","compliance"].includes(me.role);
   if (me && (previousId !== me.id || !el("corpus").options.length)) await loadCorpora();
   return status;
 }
@@ -60,19 +64,20 @@ async function query(ask) {
   if(queryBusy) return;
   if(!el("question").value.trim()) { el("status").textContent="请先输入问题。灰色示例文字不是已输入的问题。"; el("question").focus(); return; }
   queryBusy=true;
-  for(const id of ["search","ask","corpus","mode","question"]) el(id).disabled=true;
-  clearEvidence(); const current=generation; el("status").textContent=ask ? "正在检索授权证据并生成回答…" : "正在检索…";
+  for(const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=true;
+  clearEvidence(); const current=generation; el("status").textContent=ask ? "正在理解问题、检索授权证据并生成回答…" : "正在理解问题并检索…";
   try {
     if (!el("corpus").value) throw new Error("请先绑定来源身份。");
-    const params={corpus:el("corpus").value,q:el("question").value,mode:el("mode").value};
+    const params={corpus:el("corpus").value,q:el("question").value,mode:el("mode").value,planning:el("planning").checked};
     const result=ask ? await api("/api/ask",params) : await api(`/api/search?${new URLSearchParams(params)}`);
     if (current!==generation) return;
     if (ask) { el("answer").hidden=false; el("answer").textContent=result.answer; }
     renderHits(result.evidence || result.hits || []);
-    const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="insufficient" ? "授权证据不足，暂不能回答" : "回答已生成" : "检索完成";
+    const state=ask ? result.provider==="mock_fallback" ? "未生成可靠回答（安全降级）" : result.decision==="clarification_required" ? "请确认问题含义" : result.decision==="insufficient" ? "未生成可靠答案，请查看提示" : "回答已生成" : result.query_plan && result.query_plan.status==="clarification_required" ? "请确认问题含义后重新提问" : "检索完成";
     el("status").textContent=`${state} · ${result.provider || result.mode} · 请求 ${result.request_id} · 证据 ${(result.evidence || result.hits || []).length} 条${!ask && result.query_suggestions && result.query_suggestions.length ? ` · 请确认是否指：${result.query_suggestions.join(" / ")}` : ""}`;
+    el("workflowstatus").textContent=`规划：${result.query_plan ? result.query_plan.status : "未调用"} · 检索分支 ${result.query_plan ? result.query_plan.branch_count : 1}${ask ? " · 仅校验引用编号与授权范围，不做模型语义复核" : ""}`;
   } catch(error) { if (current===generation || !el("status").textContent) el("status").textContent=error.message; }
-  finally { queryBusy=false; for(const id of ["search","ask","corpus","mode","question"]) el(id).disabled=!me; }
+  finally { queryBusy=false; for(const id of ["search","ask","corpus","mode","question","planning"]) el(id).disabled=!me; }
 }
 async function openDoc(corpus,doc_id) {
   const current=generation;
@@ -111,6 +116,7 @@ function binding(enabled) { const p=principals.find(p=>p.principal_id===el("bind
 function restrict(denied) { const p=principals.find(p=>p.principal_id===el("binding").value); if(p) return mutate({action:"restriction",corpus:p.corpus,kind:el("rulekind").value,value:el("rulevalue").value,denied}); }
 el("search").onclick=()=>query(false); el("ask").onclick=()=>query(true);
 el("corpus").onchange=clearEvidence; el("mode").onchange=clearEvidence;
+el("planning").onchange=clearEvidence;
 if (el("logout")) el("logout").onclick=async()=>{ await api("/api/logout",{}); clearEvidence(); el("corpus").replaceChildren(); await sessionStatus(); };
 if (el("demoselect")) el("demoselect").onclick=async()=>{
   try {
@@ -125,7 +131,23 @@ el("bind").onclick=()=>binding(true); el("unbind").onclick=()=>binding(false);
 el("deny").onclick=()=>restrict(true); el("restore").onclick=()=>restrict(false);
 el("saveaccount").onclick=()=>mutate({action:"account",role:el("role").value,clearance:Number(el("clearance").value)});
 el("disable").onclick=()=>mutate({action:"account",enabled:false}); el("enable").onclick=()=>mutate({action:"account",enabled:true});
-el("auditgo").onclick=async()=>{ try { auditData=await api(`/api/audit?${new URLSearchParams({q:el("auditquestion").value})}`); el("auditresults").textContent=JSON.stringify(auditData,null,2); el("auditexport").disabled=false; } catch(error) { el("auditresults").textContent=error.message; } };
+async function auditQuery(generateAnswer) {
+  if(auditBusy) return;
+  if(generateAnswer && !el("auditquestion").value.trim()) { el("auditresults").textContent="请先输入审计问题。"; return; }
+  const current=generation; auditBusy=true; auditData=null;
+  el("auditgo").disabled=true; el("auditask").disabled=true; el("auditexport").disabled=true;
+  el("auditanswer").hidden=true; el("auditresults").textContent="正在查询、脱敏并检查完整性…";
+  try {
+    const params={q:el("auditquestion").value};
+    const result=generateAnswer ? await api("/api/audit/ask",params) : await api(`/api/audit?${new URLSearchParams(params)}`);
+    if(current!==generation) return;
+    auditData=result; el("auditanswer").hidden=false;
+    el("auditanswer").textContent=result.answer;
+    el("auditresults").textContent=JSON.stringify(result,null,2); el("auditexport").disabled=false;
+  } catch(error) { if(current===generation) el("auditresults").textContent=error.message; }
+  finally { auditBusy=false; for(const id of ["auditgo","auditask"]) el(id).disabled=!me || !["admin","compliance"].includes(me.role); }
+}
+el("auditgo").onclick=()=>auditQuery(false); el("auditask").onclick=()=>auditQuery(true);
 el("auditexport").onclick=()=>{ if(!auditData)return; const url=URL.createObjectURL(new Blob([JSON.stringify(auditData,null,2)],{type:"application/json"})); const a=document.createElement("a"); a.href=url;a.download="contextledger-audit-redacted.json";a.click();URL.revokeObjectURL(url); };
 sessionStatus().then(async()=>{await loadDemoAccounts(); await loadAdmin();}).catch(error=>{el("identity").textContent=error.message;});
 setInterval(()=>sessionStatus().catch(()=>{clearEvidence();el("status").textContent="连接不可用，已清除当前展示。";}),5000);

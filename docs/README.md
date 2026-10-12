@@ -27,15 +27,19 @@
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
 - `docs/product/mvp-v0.md`：当前 MVP 的详细范围和团队内部验收说明；
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
+- `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
+- `docs/product/llm-feature-plan.md`：本轮保留审计解释、检索规划与零证据提示；模型引用复核/反馈重答已取消；真实质量与录制验收待完成；
+- `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
+- `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
 - `docs/product/tool-entry-scope.md`：延期的未来 Tool 设想与可信上游身份边界，不是当前前端验收前置条件；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
 - `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
 - `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
-- `docs/architecture/query-planning.md`：待实现的问题理解、关键词／语义改写和纠错确认，保持检索权限边界；
+- `docs/architecture/query-planning.md`：有开关的受限问题规划、FTS／Qdrant 分流和纠错确认；实际收益待评测；
 - `docs/decisions/`：重要且难以逆转的架构决定；
 - `CHANGELOG.md`：跨版本的行为变化；
 - `CONTRIBUTING.md`：分支、提交和评审流程；
@@ -51,6 +55,8 @@ python3 scripts/project_sync.py --check
 ```
 
 第一条命令重新生成 `docs/requirements.md`；第二条命令用于本地或 CI，发现生成文档过期、重复需求 ID、非法状态、非法权威级别或不存在的影响文件时会失败。
+
+同一目标的团队新增功能放在已有 REQ 的 `extensions` 中，使用唯一 `key` 和独立的 `authority`、`status`、验收与影响范围，生成视图也会分别展示。官方基础能力不自动要求特定 LLM 实现方式；团队 planned 扩展不能继承成官方要求或已实现。包含未完成扩展的 REQ 整体不能标为 implemented/validated。
 
 ## 权威级别
 

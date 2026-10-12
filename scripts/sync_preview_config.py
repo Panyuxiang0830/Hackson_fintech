@@ -13,6 +13,10 @@ from urllib.parse import urlparse
 
 from dotenv import dotenv_values
 
+WORKFLOW_FIELDS = ("LLM_PLANNER_ENABLED", *(
+    f"LLM_{stage}_{field}" for stage in ("PLANNER", "AUDIT")
+    for field in ("MODEL", "BASE_URL", "API_KEY", "REASONING_EFFORT")))
+
 
 def preview_config(values, public_url, security_dir, qdrant_url, hf_home=None):
     if urlparse(public_url).hostname not in {"127.0.0.1", "::1", "localhost"}:
@@ -31,6 +35,12 @@ def preview_config(values, public_url, security_dir, qdrant_url, hf_home=None):
         "LLM_REASONING_EFFORT": values.get("LLM_REASONING_EFFORT") or "low",
         "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
     }
+    for name in WORKFLOW_FIELDS:
+        value = values.get(name)
+        if value is not None:
+            if not isinstance(value, str) or any(c in value for c in "\r\n\x00"):
+                raise ValueError("Workflow configuration must be single-line")
+            config[name] = value
     if hf_home is not None:
         if not Path(hf_home).is_absolute() or any(c in hf_home for c in "\r\n\x00"):
             raise ValueError("Embedding cache must be an absolute server path")
@@ -49,11 +59,15 @@ incoming = json.load(sys.stdin)
 allowed = {"APP_PUBLIC_URL", "BROWSER_LOGIN_ENABLED", "DEMO_MODE", "SECURITY_DIR", "QDRANT_URL",
            "LLM_API_KEY", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_REASONING_EFFORT",
            "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"}
-if set(incoming) not in (allowed, allowed | {"HF_HOME"}) or any(not isinstance(v, str) or chr(0) in v for v in incoming.values()):
+optional = {"HF_HOME", "LLM_PLANNER_ENABLED"} | {
+    f"LLM_{stage}_{field}" for stage in ("PLANNER", "AUDIT")
+    for field in ("MODEL", "BASE_URL", "API_KEY", "REASONING_EFFORT")}
+if not allowed.issubset(incoming) or not set(incoming).issubset(allowed | optional) or any(not isinstance(v, str) or any(c in v for c in "\r\n\x00") for v in incoming.values()):
     raise SystemExit("Invalid configuration payload")
 if "HF_HOME" in incoming and (not Path(incoming["HF_HOME"]).is_absolute() or not Path(incoming["HF_HOME"]).is_dir()):
     raise SystemExit("Embedding cache directory does not exist")
 old = dotenv_values(target) if target.is_file() else {}
+incoming = {**{k: v for k,v in old.items() if k in optional and isinstance(v,str)}, **incoming}
 secret = old.get("APP_SECRET_KEY") or secrets.token_urlsafe(48)
 if len(secret) < 32:
     raise SystemExit("Existing preview secret is too short; explicit operator repair required")

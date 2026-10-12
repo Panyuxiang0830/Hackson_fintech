@@ -146,9 +146,14 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
         if getattr(g, "actor", None) and response.status_code < 400:
             try:
                 service.fence(g.actor, *getattr(g, "delivery", ()))
+                if hasattr(g, "audit_delivery"):
+                    service.fence_audit(g.actor, g.audit_delivery)
             except (PermissionError, PermissionChanged, IndexUnavailable):
                 response = jsonify(error="permissions_or_snapshot_changed", retry=True)
                 response.status_code = 409
+            except AuditIntegrityError:
+                response = jsonify(error="audit_integrity_failed; protected response blocked")
+                response.status_code = 503
         response.headers["Cache-Control"] = "no-store, private"
         response.headers["Pragma"] = "no-cache"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -195,6 +200,8 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
 
     def inputs(body=None):
         args = body if body is not None else request.args
+        if body is not None and not isinstance(body, dict):
+            raise ValueError("request must be a JSON object")
         corpus = args.get("corpus", "orgforge")
         query = args.get("q", "")
         mode = args.get("mode", "hybrid")
@@ -226,6 +233,9 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
                        tool_access_configured=False, authenticated=bool(actor),
                        user=asdict(actor) if actor else None, csrf=session.get("csrf") if actor or demo_mode else None,
                        login_identity=service.identities.login_identity(actor.id) if actor and not demo_mode else None,
+                       workflows={"planner_enabled": service.planner.enabled,
+                                  "planner_configured": service.planner.stage.ready,
+                                  "citation_validation": "deterministic IDs and scope only"},
                        source_permissions="not_enabled", freshness="offline snapshot only")
 
     @app.get("/api/demo/accounts")
@@ -317,14 +327,19 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
     @app.get("/api/search")
     def search():
         corpus, query, mode, day = inputs()
-        result, hits = service.search(g.actor.id, corpus, query, mode, day)
+        planning = request.args.get("planning")
+        if planning not in {None, "true", "false"}:
+            raise ValueError("planning must be true or false")
+        result, hits = service.search(g.actor.id, corpus, query, mode, day,
+                                     planning=None if planning is None else planning == "true")
         g.delivery = (corpus, result["index_generation"], hits)
         return jsonify(result)
 
     @app.post("/api/ask")
     def ask():
-        corpus, query, mode, day = inputs(request.get_json() or {})
-        result, hits = service.ask(g.actor.id, corpus, query, mode, day)
+        body = request.get_json() or {}
+        corpus, query, mode, day = inputs(body)
+        result, hits = service.ask(g.actor.id, corpus, query, mode, day, planning=body.get("planning"))
         g.delivery = (corpus, result["index_generation"], hits)
         return jsonify(result)
 
@@ -341,8 +356,21 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
     @app.get("/api/audit")
     @role("admin", "compliance")
     def audit():
-        return jsonify(service.audit_query(g.actor.id, query=request.args.get("q", ""),
-            **{key: request.args.get(key) for key in ("user_id", "request_id", "document_id", "start", "end")}))
+        result = service.audit_query(g.actor.id, query=request.args.get("q", ""),
+            **{key: request.args.get(key) for key in ("user_id", "request_id", "document_id", "start", "end")})
+        g.audit_delivery = result.pop("_delivery_guards")
+        return jsonify(result)
+
+    @app.post("/api/audit/ask")
+    @role("admin", "compliance")
+    def audit_answer():
+        body = request.get_json() or {}
+        if not isinstance(body, dict) or set(body) - {"q", "user_id", "request_id", "document_id", "start", "end"}:
+            raise ValueError("unsupported audit field")
+        result = service.audit_query(g.actor.id, query=body.get("q", ""), generate=True,
+            **{k: body.get(k) for k in ("user_id", "request_id", "document_id", "start", "end") if body.get(k)})
+        g.audit_delivery = result.pop("_delivery_guards")
+        return jsonify(result)
 
     @app.get("/api/admin/users")
     @role("admin")

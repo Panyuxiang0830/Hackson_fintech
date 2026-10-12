@@ -33,10 +33,7 @@ def validate(data: dict) -> list[str]:
     if len(ids) != len(set(ids)):
         errors.append("存在重复的需求 ID")
 
-    for item in requirements:
-        requirement_id = item.get("id", "<missing>")
-        if not isinstance(requirement_id, str) or not requirement_id.startswith("REQ-"):
-            errors.append(f"非法需求 ID：{requirement_id}")
+    def validate_fields(item: dict, requirement_id: str):
         if item.get("status") not in ALLOWED_STATUSES:
             errors.append(f"{requirement_id} 使用了非法状态：{item.get('status')}")
         if item.get("authority") not in ALLOWED_AUTHORITIES:
@@ -48,6 +45,35 @@ def validate(data: dict) -> list[str]:
             for relative_path in item.get(field, []):
                 if not (ROOT / relative_path).exists():
                     errors.append(f"{requirement_id} 引用的 {field} 文件不存在：{relative_path}")
+
+    for item in requirements:
+        requirement_id = item.get("id", "<missing>")
+        if not isinstance(requirement_id, str) or not requirement_id.startswith("REQ-"):
+            errors.append(f"非法需求 ID：{requirement_id}")
+        validate_fields(item, requirement_id)
+        extensions = item.get("extensions", [])
+        if not isinstance(extensions, list):
+            errors.append(f"{requirement_id} 的 extensions 必须为列表")
+            continue
+        keys = set()
+        for extension in extensions:
+            if not isinstance(extension, dict):
+                errors.append(f"{requirement_id} 的功能扩展必须为对象")
+                continue
+            key = extension.get("key")
+            if not isinstance(key, str) or not key.strip():
+                errors.append(f"{requirement_id} 的功能扩展缺少合法 key")
+            elif key in keys:
+                errors.append(f"{requirement_id} 存在重复的功能扩展 key：{key}")
+            else:
+                keys.add(key)
+            label = f"{requirement_id}/{key}"
+            for field in ("title", "source", "description"):
+                if not isinstance(extension.get(field), str) or not extension[field].strip():
+                    errors.append(f"{label} 缺少 {field}")
+            validate_fields(extension, label)
+            if item.get("status") in {"implemented", "validated"} and extension.get("status") in {"planned", "in_progress"}:
+                errors.append(f"{requirement_id} 包含尚未完成的扩展 {key}，整体状态不能为 {item['status']}")
 
     return errors
 
@@ -97,6 +123,23 @@ def render(data: dict) -> str:
                 f"  - 文档：{', '.join(f'`{path}`' for path in item.get('docs', [])) or '—'}",
             ]
         )
+        for extension in item.get("extensions", []):
+            lines.extend([
+                "", f"### 功能扩展 · {extension['title']}", "",
+                f"- 扩展键：`{extension['key']}`",
+                f"- 来源：{extension['source']}",
+                f"- 权威级别：`{extension['authority']}`（独立于基础需求）",
+                f"- 状态：`{extension['status']}`",
+                f"- 说明：{extension['description']}",
+                "- 验收标准：", "",
+            ])
+            lines.extend(f"  - {criterion}" for criterion in extension["acceptance_criteria"])
+            lines.extend([
+                "", "- 影响范围：", "",
+                f"  - 代码：{', '.join(f'`{path}`' for path in extension.get('code', [])) or '—'}",
+                f"  - 测试：{', '.join(f'`{path}`' for path in extension.get('tests', [])) or '—'}",
+                f"  - 文档：{', '.join(f'`{path}`' for path in extension.get('docs', [])) or '—'}",
+            ])
 
     return "\n".join(lines) + "\n"
 
@@ -108,6 +151,10 @@ def main() -> int:
 
     data = load_registry()
     errors = validate(data)
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
     expected = render(data)
 
     if args.check:
