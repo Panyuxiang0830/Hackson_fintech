@@ -392,7 +392,7 @@
 
   - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`, `contextledger/freshness_eval.py`, `contextledger/freshness_workload.py`, `contextledger/freshness_replay.py`, `scripts/freshness_eval.sh`
   - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_freshness_eval.py`
-  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/README.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 

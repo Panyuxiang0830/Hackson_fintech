@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Add a short English freshness quick start to the benchmark guide, including replay, report paths and offline rescoring.
+
 - 按用户要求移除新鲜度测评说明文档及其入口／需求引用，保留评测实现与测试。
 
 - 增加 REQ-018 新鲜度测评框架：固定来源事件、版本与内容哈希 gold、在线／恢复／静态分组、chasing 与普通查询、完整分母计分、外部 JSONL 重算和独立 HTML／CSV 报告；24 个受控案例在隔离统一检索路径回放，MiniLM 与 fixture Embedding 明确区分。不新增生产同步机制，不把受控回放或本地 Qdrant 测量宣称为真实连接器／规模／回答质量评测。
