@@ -20,3 +20,9 @@ pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:480px; overflow:a
 #answer,#reader,#auditanswer { white-space:pre-wrap; overflow-wrap:anywhere; } [hidden] { display:none !important; }
 .check input { width:auto; margin-right:8px; }
 @media(max-width:800px) { main { grid-template-columns:minmax(0,1fr); padding:12px; } .grid { grid-template-columns:1fr; } header { padding:16px; } }
+
+#radar summary { cursor: pointer; font-weight: 600; }
+#radartimeline { padding-left: 1.5rem; }
+#radartimeline li { border-left: 2px solid #cbd5e1; padding: .4rem .8rem; margin: .6rem 0; }
+#radartimeline p { white-space: pre-wrap; }
+.radarlink { text-align: left; white-space: normal; }

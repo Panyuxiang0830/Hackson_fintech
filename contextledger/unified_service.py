@@ -9,6 +9,7 @@ import uuid
 import re
 import json
 
+from contextledger.radar_tool import DecisionRadarTool
 from contextledger.audit_store import AuditStore
 from contextledger.filtered_index import FilteredIndex, IndexUnavailable, POLICY_VERSION
 from contextledger.identity_store import Actor, IdentityStore
@@ -143,16 +144,38 @@ class UnifiedService:
         self.fence(actor, corpus, generation, hits)  # Before any external model call.
         levels = ("public", "internal", "confidential", "restricted")
         user = User(actor.id, actor.name, actor.department or "source ACL snapshot", actor.role, levels[actor.clearance])
+        radar = None
         evidence = []
-        for hit in hits:
-            source_time = str(hit["metadata"].get("updated_at") or hit["ts"] or "unknown (offline export)")
-            document = Document(hit["doc_id"], hit["source"], hit["title"], hit["text"][:4000],
-                                "unknown", source_time, source_time, hit["indexed_at"], "internal")
-            evidence.append(Evidence(document, 1.0, "source ACL snapshot AND local restrictions",
-                                     "consistent_with_offline_snapshot", "Live source freshness is unknown."))
+        def build_evidence(total_budget=12000):
+            evidence.clear()
+            budget = total_budget // max(1, len(hits))
+            for hit in hits:
+                source_time = str(hit["metadata"].get("updated_at") or hit["ts"] or "unknown (offline export)")
+                document = Document(hit["doc_id"], hit["source"], hit["title"], hit["text"][:min(4000, budget)],
+                                    "unknown", source_time, source_time, hit["indexed_at"], "internal",
+                                    status="historical" if hit["metadata"].get("historical_revision") else "active")
+                evidence.append(Evidence(document, 1.0, "source ACL snapshot AND local restrictions",
+                                         "consistent_with_offline_snapshot", "Live source freshness is unknown."))
+        build_evidence()
+        def run_radar(arguments):
+            nonlocal radar
+            selected, report = DecisionRadarTool(self.index).execute(query=query, scope=scope,
+                generation=generation, seeds=hits, arguments=arguments, guard=guard)
+            hits[:] = selected
+            build_evidence(24000)
+            report["coverage"]["evidence_excerpts_truncated"] = any(len(h["text"]) > len(e.document.content) for h, e in zip(hits, evidence))
+            radar = report
+            # Quotes are already in the unified evidence registry. Avoid duplicating
+            # them in the model tool payload; the public timeline retains its spans.
+            model_report = {**report,
+                "event_candidates": [{k: v for k, v in event.items() if k not in {"quote", "quote_span"}}
+                                     for event in report["event_candidates"]],
+                "source_statuses": [{k: v for k, v in item.items() if k not in {"scope", "does_not_establish", "observed_at", "event_time"}}
+                                    for item in report["source_statuses"]]}
+            return model_report
         try:
             guard = lambda: self.fence(actor, corpus, generation, hits)
-            kwargs = {"before_call": lambda: self.fence(actor, corpus, generation, hits)} if isinstance(self.answer, AnswerService) else {}
+            kwargs = {"before_call": guard, "tool_handler": run_radar} if isinstance(self.answer, AnswerService) else {}
             if plan["status"] == "clarification_required":
                 answer = "请确认问题中的名称、时间和具体意图后重新提问；系统不会自动更换实体或问题含义。" if re.search(r"[\u4e00-\u9fff]", query) else "Please confirm the names, time constraints and intended meaning. No entity or intent was automatically replaced."
                 decision, provider = "clarification_required", "deterministic"
@@ -167,6 +190,8 @@ class UnifiedService:
                 # A model can label an invented claim "insufficient". Release a
                 # server-owned neutral refusal, not unchecked factual prose.
                 answer = empty_evidence_answer(query)
+                if radar:
+                    answer += ("\n\n本次已读取的授权记录尚未支持可靠结论；可展开时间线核对来源说法、未知时间和待确认分歧。" if re.search(r"[\u4e00-\u9fff]", query) else "\n\nThe authorised selection does not support a reliable conclusion; inspect the timeline for source reports, unknown times and unresolved differences.")
             self.fence(actor, corpus, generation, hits)  # Also after a possibly slow LLM call.
         except (PermissionError, PermissionChanged, IndexUnavailable):
             self.record(actor, "answer_discarded", question=query, decision="permission_or_version_changed")
@@ -175,13 +200,15 @@ class UnifiedService:
             answer += "\n你是否想查询：" + " / ".join(suggestions) + "？请确认名称后重新提问；系统未自动替换。"
         event = self.record(actor, "answer", question=query, hits=hits, answer=answer, decision=decision,
                             provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day,
-                            llm_diagnostics=diagnostics, query_plan=plan)
+                            llm_diagnostics=diagnostics, query_plan=plan,
+                            radar_summary=radar["coverage"] if radar else None)
         return {"answer": answer, "decision": decision, "provider": provider,
                 "evidence": [self.public_hit(hit) | {"citation_id": i, "excerpt": hit["text"][:4000]}
                              for i, hit in enumerate(hits, 1)],
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
                 "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation, "query_plan": plan,
+                "radar": radar,
                 "citation_validation": "citation IDs and authorised scope only; no model semantic review"}, hits
 
     def open(self, user_id, corpus, doc_id, day=None):

@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-11
+最后更新：2026-10-12
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@
 | REQ-008 | 自然语言审计查询 | `handbook_mandatory` | `in_progress` | `src/audit.py`<br>`src/audit_query.py`<br>`src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/static/unified.js` | `tests/test_audit_query.py`<br>`tests/test_integration.py`<br>`tests/test_answering.py` |
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py`<br>`tests/test_integration.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
-| REQ-011 | 时序和权威冲突检测 | `team_decision` | `deferred` | — | — |
+| REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/connectors.py`<br>`contextledger/models.py`<br>`contextledger/store.py`<br>`contextledger/pipeline.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/llm_workflows.py`<br>`src/answering.py`<br>`contextledger/radar_protocol.py`<br>`contextledger/radar_tool.py`<br>`contextledger/radar_data.py`<br>`contextledger/radar_store.py`<br>`scripts/radar_demo.py`<br>`contextledger/search.py` | `tests/test_integration.py`<br>`tests/test_llm_integration.py`<br>`tests/test_permission_freshness.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_answering.py`<br>`tests/test_radar.py`<br>`tests/test_radar_data.py`<br>`tests/test_radar_integration.py` |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
@@ -124,7 +124,7 @@
 
   - 代码：`src/models.py`, `src/freshness.py`, `src/retrieval.py`, `src/service.py`, `app.py`, `data/documents.json`, `contextledger/filtered_index.py`, `contextledger/rechunk.py`, `contextledger/vectors.py`
   - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
-  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`, `docs/product/workload.md`
+  - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`
 
 ## REQ-005 · 权限变更即时生效
 
@@ -281,23 +281,35 @@
   - 测试：—
   - 文档：`README.md`, `docs/source/handbook-fintech-track.md`
 
-## REQ-011 · 时序和权威冲突检测
+## REQ-011 · 业务演变呈现与时序冲突提示（Decision Radar）
 
-- 来源：team discussion
+- 来源：team discussion; user confirmed automatic internal tool design on 2026-10-12
 - 权威级别：`team_decision`
-- 状态：`deferred`
-- 说明：当 Slack、Jira、文档和发布记录的状态冲突时，结合来源权威、业务时间和因果关系生成警告。
+- 状态：`in_progress`
+- 说明：在现有统一问答入口默认由 LLM 判断是否调用内部 decision_radar 工具，围绕问题与授权检索结果定位实体、补查证据并组织业务演变；不提供用户手动切换，不要求入库预建业务标签/事件库。按具体事实评价证据，有充分支持给结论，部分支持说明边界，不足或冲突说明原因。2026-10-12 最终方案与 ADR-0004 方向已确认，需求仍 planned；未实现工具、自动调用或来源版本回放。 2026-10-12 用户授权开始开发：保留 PR #7 的检索前 QueryPlanner，Radar 在检索后的回答阶段自动调用；分支基于 PR #7 head，按先合并工作流再合并 Radar 的顺序交付。代码与真实质量验收分别记录。 本地 v1 已接入内部结构化工具 action、当前权限下的编号/名称补查、统一引用与折叠时间线，保留 PR #7 检索前规划；四案例原生业务 fixture、三阶段受控发布/观测修订已实现。真实模型触发、语义质量与生产增量/原生完整历史的验收分别记录，未部署或合并。
 - 验收标准：
 
-  - 区分事件时间、采集时间和生效时间
-  - 同一业务实体的矛盾状态触发冲突说明
-  - 不把逻辑时钟单独当作业务事实正确性的证明
+  - 用户只需在现有问答入口提问，默认自动；LLM 可直接回答或请求 decision_radar，前端无普通/自动/Radar 切换、工具按钮或专用入口
+  - 复用 /api/ask 与 UnifiedService，旧请求无新增必填字段，旧 answer/evidence/request_id 等字段兼容；需要时可附 radar 结构化过程，普通搜索与原文契约保留
+  - 系统提示词与严格工具契约定义可调用能力；原生工具格式或结构化 action 由服务端执行同一验证，模型不能传身份/权限、任意 SQL、网络地址或数据库路径
+  - 单请求最多一次内部 Radar 调用、内部最多两轮补查；实体来自原问题或实际授权证据，保持原问题约束；未知/多义实体不编造或静默合并，预算超限报告范围
+  - 原文照常存储，实际来源修订保留；可选轻量明确 ID 引用索引，主体/事件/关系按问题查询时组装，不要求预建全库业务标签与事件表
+  - 所有补查复用当前 Scope，工具前后、模型前后与最终交付检查权限 epoch、索引 generation、来源/分块版本；隐藏标题、节点、边和数量不泄漏，子资源/历史读取遵守当前根资源权限
+  - 新证据加入统一 citation registry，事件/关系有真实出处、revision/hash 与原文定位；作者报告、要求、承诺、批准和运行通知分别表示，不补造回滚、diff 或行动项完成
+  - 区分事件、采集与业务生效时间，缺失保持未知，date/day/timestamp 冲突不静默改写；不同部门状态和明确属性分歧给出出处，不以逻辑时钟、最新时间或平台名称裁决真相
+  - 可靠性按具体事实与原始记录类型评价；Jira 工单状态、PR 合并/revert、生产部署/回滚和运行恢复分别说明；人工 Slack 与可验证 bot 回执分开，重复转发不计独立证据，无未经校准可靠概率
+  - 有足够支持给明确结论并引用，部分支持说明边界，证据不足或冲突说明原因；工具返回证据给同次问答模型组织答案，不强制所有问题展开时间线
+  - 工具或模型缺失/失败保留已支持的确定性来源/状态与安全降级，不伪造工具成功；权限/版本变化中止交付，不恢复已取消的第二模型语义复核和反馈重答
+  - 四组 OrgForge 作为开发与分阶段回放材料，未来评论/最终状态/evaluator 真值不提前入模；补充来源 ACL 明确为合成映射或默认拒绝，不冒充真实平台权限同步
+  - 实际来源历史、删除/撤回与回滚复用 REQ-004；SQLite/FTS/Qdrant/可选引用索引与历史存储同代次安全发布，失败不可读，新信息可见耗时实测，不冒称生产增量同步
+  - 自动触发正反例、错/漏调用率、实体/关系召回、事件覆盖、证据支持、更新时间与 Token/延迟分别评测；四个开发案例不证明泛化，初始预算与 60 秒小样本工程目标经实测调整
+  - 内部 LLM 工具不等于 REQ-020 外部 Agent/MCP/插件适配，本轮不扩展对外协议或恢复浏览器登录
 
 - 影响范围：
 
-  - 代码：—
-  - 测试：—
-  - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`, `docs/product/workload.md`
+  - 代码：`contextledger/connectors.py`, `contextledger/models.py`, `contextledger/store.py`, `contextledger/pipeline.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/llm_workflows.py`, `src/answering.py`, `contextledger/radar_protocol.py`, `contextledger/radar_tool.py`, `contextledger/radar_data.py`, `contextledger/radar_store.py`, `scripts/radar_demo.py`, `contextledger/search.py`
+  - 测试：`tests/test_integration.py`, `tests/test_llm_integration.py`, `tests/test_permission_freshness.py`, `tests/test_llm_workflows.py`, `tests/test_answering.py`, `tests/test_radar.py`, `tests/test_radar_data.py`, `tests/test_radar_integration.py`
+  - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/decisions/ADR-0004-decision-radar.md`, `docs/architecture/decision-radar-validation.md`, `fixtures/radar/README.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作
 
@@ -455,7 +467,7 @@
 
   - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `contextledger/rechunk.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `scripts/sync_preview_config.py`, `requirements-integration.txt`, `.github/workflows/ci.yml`
   - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 
@@ -478,7 +490,7 @@
 
   - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`
   - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`
-  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`
+  - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`, `docs/architecture/decision-radar-v1.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 
@@ -500,7 +512,7 @@
 
   - 代码：`src/answering.py`, `contextledger/llm_workflows.py`, `contextledger/unified_service.py`
   - 测试：`tests/test_answering.py`, `tests/test_llm_workflows.py`
-  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`
+  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/architecture/decision-radar-v1.md`
 
 ## REQ-020 · 面向上游 Agent 的权限感知工具接口
 
