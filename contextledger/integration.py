@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -36,6 +38,18 @@ def main(argv=None):
     user.add_argument("--name", required=True)
     user.add_argument("--role", choices=["member", "admin", "compliance"], default="member")
     user.add_argument("--bind", action="append", default=[], metavar="CORPUS=PRINCIPAL_ID")
+    upsert = commands.add_parser("upsert", help="submit a document and wait for automatic index publication")
+    upsert.add_argument("--file", type=Path, required=True)
+    upsert.add_argument("--admin-id", required=True)
+    upsert.add_argument("--timeout", type=float, default=120)
+    status = commands.add_parser("update-status", help="inspect a durable document update")
+    status.add_argument("--job", required=True)
+    status.add_argument("--admin-id", required=True)
+    retry = commands.add_parser("retry-update", help="retry a failed update and wait for publication")
+    retry.add_argument("--job", required=True)
+    retry.add_argument("--admin-id", required=True)
+    worker = commands.add_parser("updates-worker", help="recover and process persistent update jobs")
+    worker.add_argument("--once", action="store_true")
     args = parser.parse_args(argv)
     validate_security_path(args.out, args.security_dir)
     db_path = args.out / "canonical.sqlite"
@@ -48,6 +62,37 @@ def main(argv=None):
                               api_key=os.getenv("QDRANT_API_KEY") or None, timeout=120)
         print(json.dumps(migrate(db_path, client, batch_size=args.batch_size,
                                 reuse_embeddings=args.reuse_part_a_embeddings), indent=2))
+    elif args.command in {"upsert", "update-status", "retry-update", "updates-worker"}:
+        from contextledger.audit_store import AuditStore
+        from contextledger.document_updates import DocumentUpdates
+        from contextledger.filtered_index import FilteredIndex
+        if args.command == "upsert" and (not math.isfinite(args.timeout) or args.timeout <= 0 or args.timeout > 3600):
+            parser.error("timeout must be between 0 and 3600 seconds")
+        identities = IdentityStore(args.security_dir / "identities.sqlite")
+        client = QdrantClient(url=os.getenv("QDRANT_URL", "http://127.0.0.1:6335"),
+                              api_key=os.getenv("QDRANT_API_KEY") or None, timeout=120)
+        updates = DocumentUpdates(FilteredIndex(db_path, client, identities), identities,
+            AuditStore(args.security_dir / "audit.sqlite"), autostart=args.command in {"upsert", "retry-update"})
+        try:
+            if args.command == "updates-worker":
+                if args.once:
+                    updates.process_one()
+                else:
+                    updates.start()
+                    while True:
+                        time.sleep(1)
+                return 0
+            if args.command == "update-status":
+                result = updates.status(args.admin_id, args.job)
+            else:
+                job = (updates.submit(args.admin_id, json.loads(args.file.read_text(encoding="utf-8")))
+                       if args.command == "upsert" else updates.retry(args.admin_id, args.job))
+                updates.start()
+                result = updates.wait(args.admin_id, job["id"], getattr(args, "timeout", 120))
+            print(json.dumps(result, ensure_ascii=False))
+            return 0 if result["state"] == "ready" else 1
+        finally:
+            updates.close()
     elif args.command == "demo-init":
         from contextledger.demo_identity import initialize_demo
         try:

@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+- 接通 REQ-004 的正式新增／修改闭环：管理员 API 与 CLI 提交持久化任务，后台事务替换事实库和 FTS、只更新受影响文档的 MiniLM 向量，核对后发布新代次供问答使用；保留历史，支持重启恢复和三次自动重试，版本前置条件及查询／交付门闩阻止旧任务和旧答案覆盖。真实模型验收按用户要求跳过。
+
 - 2026-10-12 修复 PR #7 与 main（#8/#9）在需求台账、生成视图和变更日志中的合并冲突：保留取消模型复核后的工作流验收与新鲜度评测验收，重新生成需求文档；业务代码自动合并，未合并 PR 到 main 或重新部署。
 
 - Add a short English freshness quick start to the benchmark guide, including replay, report paths and offline rescoring.
