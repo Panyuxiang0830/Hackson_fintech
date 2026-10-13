@@ -594,8 +594,8 @@
           "title": "Tailscale 私有常驻试用入口",
           "source": "user requested deployment for browser use on other Tailscale machines on 2026-10-13",
           "authority": "team_decision",
-          "status": "in_progress",
-          "description": "通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。",
+          "status": "validated",
+          "description": "通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。 2026-10-13 固定代码部署通过新浏览器、真实模型、角色导航、零证据拒答及另一台 Tailscale 机器 TLS 检查；适用合成演示与允许登录范围。",
           "acceptance_criteria": [
             "入口只通过私有 Tailscale Serve 到达回环后端，校验明确允许的 Tailscale 登录、固定 Host 和浏览器 Origin；不开启公网 Funnel",
             "TLS、Secure Cookie、固定演示账号与原应用 CSRF/ACL/版本检查保留；来源身份不能由代理头授予",

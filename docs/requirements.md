@@ -538,8 +538,8 @@
 - 扩展键：`private-tailnet-preview`
 - 来源：user requested deployment for browser use on other Tailscale machines on 2026-10-13
 - 权威级别：`team_decision`（独立于基础需求）
-- 状态：`in_progress`
-- 说明：通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。
+- 状态：`validated`
+- 说明：通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。 2026-10-13 固定代码部署通过新浏览器、真实模型、角色导航、零证据拒答及另一台 Tailscale 机器 TLS 检查；适用合成演示与允许登录范围。
 - 验收标准：
 
   - 入口只通过私有 Tailscale Serve 到达回环后端，校验明确允许的 Tailscale 登录、固定 Host 和浏览器 Origin；不开启公网 Funnel

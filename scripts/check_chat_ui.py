@@ -45,6 +45,7 @@ async def main():
             return result
 
         await select('alice')
+        await page.fill('#query-input', '')
         await page.click('#btn-ask')
         assert 'enter a question' in await page.locator('#error-message').inner_text()
         checks.append({'empty_question': 'blocked'})

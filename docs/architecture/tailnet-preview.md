@@ -44,4 +44,6 @@ systemctl --user stop contextledger-tailnet-preview.service
 - URL：<https://lab-cw3.tail4ecfc0.ts.net:8444/>，允许的 Tailscale 登录为 `idjyiq@gmail.com`。
 - UI：`feat/REQ-017-team-ui-integration` 的 `81d4164`，同步 main 并保留当前 Radar 展示；浏览器可用例题为“HarborLedger 是做什么的？”和“TracePay 当前每日转账上限是多少？”。
 - 内容、安全状态和 Qdrant 位于独立 `runtime/deploy/tailnet` 目录；代码通过固定提交的 Git worktree 发布。浏览器选择身份不会重置权限，服务重启也不重新初始化账号。
-- 验证报告保存在本机 `runtime/deploy/tailnet`，部署完成后的页面、真实回答、角色导航、越权拒答与跨机器检查另行记录。聊天仍为单轮；评测结果不因 UI 更新而改写。
+- 验证报告保存在本机 `runtime/deploy/tailnet`，13 项浏览器检查通过：首次自动进入、空问题、真实 DeepSeek 回答、原文、问题编辑、移动布局、身份切换、越权零模型调用、已有身份重载、未知实体、旧请求隔离、管理与审计导航；无 JavaScript 错误。另一台 `VM-0-7-ubuntu` 已验证真实 TLS 页面、检索、原文和越权拒答。Radar 以已有真实模型响应回放展示并通过当前原文接口，不将回放计为新模型测评。聊天仍为单轮；评测结果不因 UI 更新而改写。
+
+UI 已通过 [PR #15](https://github.com/Panyuxiang0830/Hackson_fintech/pull/15) 合入 main（`c2a930e`）；聊天与私有网关仍在独立 PR #14。部署版本、报告和后台状态可分别核对，UI 合并不等于 PR #14 已合并。
