@@ -46,7 +46,7 @@
       },
       "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py", "contextledger/unified_service.py", "contextledger/web.py"],
       "tests": ["tests/test_end_to_end.py", "tests/test_integration.py"],
-      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/evaluation/chat.md"]
     },
     {
       "id": "REQ-002",
@@ -588,7 +588,7 @@
       ],
       "code": ["contextledger/unified_service.py", "contextledger/web.py", "contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/filtered_index.py", "contextledger/audit_store.py", "contextledger/source_permissions.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/integration.py", "contextledger/demo_app.py", "contextledger/pipeline.py", "contextledger/rechunk.py", "scripts/integration.sh", "scripts/prepare_integration_preview.py", "scripts/verify_unified_snapshot.py", "scripts/sync_preview_config.py", "requirements-integration.txt", ".github/workflows/ci.yml"],
       "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_prepare_preview.py", "tests/test_oidc.py", "tests/test_integration_dependencies.py", "tests_part_a/test_supplemental.py", "tests_part_a/conftest.py"],
-      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/part-a-integration-review.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md", "docs/product/workload.md", "docs/architecture/decision-radar-v1.md"]
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/product/engineering-challenges.md", "docs/architecture/unified-integration.md", "docs/product/part-a-integration-review.md", "docs/product/demo-acceptance.md", "docs/product/tool-entry-scope.md", "QUICKSTART.md", "README.md", "docs/product/roadmap.md", "docs/product/workload.md", "docs/architecture/decision-radar-v1.md", "docs/evaluation/chat.md"]
     },
     {
       "id": "REQ-018",
@@ -607,6 +607,44 @@
         "五场景端到端评测调用当前集成服务及其真实权限、索引、回答和审计链路，不能仅以旧 MVP 或 Part A 离线评测通过替代；系统内撤权和原平台权限同步分别报告，Mock 降级不能计为真实模型回答质量通过",
         "2026-10-11 保留三项功能的端到端正反例：模型审计问答的角色/脱敏/事件引用、检索前拆解的开关对比、全部业务读取权限撤销后的零证据提示；模型引用复核及反馈重答已取消，不再作为交付或评测待办。失败注入与真实模型质量分别报告",
         "新鲜度评测按固定事件流和查询时点的证据版本真值计算在线 Recall；未同步、拒答、失败与缺失结果保留在分母，在线曲线与最终静态测量分开报告"
+      ],
+      "extensions": [
+        {
+          "key": "real-chat-evaluation",
+          "title": "真实模型聊天与前端回归评测",
+          "source": "user requested chat evaluation and latest frontend update on 2026-10-13",
+          "authority": "team_decision",
+          "status": "validated",
+          "description": "固定合成授权资料与问题，调用实际 /api/ask、Qdrant、回答和审计链；分别记录事实/状态/引用检查、拒答、更新与浏览器行为。真实模型实测不等同完整语义或生产验收。",
+          "acceptance_criteria": [
+            "保存固定问题、期望事实与证据版本；失败和拒答保留在分母",
+            "使用本地配置的真实模型及原生 Qdrant，分别报告回答、跨来源审批状态、无证据/越权、更新后答案和延迟",
+            "浏览器检查回答/原文/权限切换与手机布局；明确当前为单轮问答，省略实体的追问不自动继承旧上下文",
+            "保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料"
+          ],
+          "code": [
+            "scripts/evaluate_chat.py",
+            "scripts/check_chat_ui.py",
+            "fixtures/chat/evaluation.json",
+            "src/answering.py",
+            "contextledger/static/unified.js",
+            "contextledger/templates/unified.html",
+            "contextledger/radar_protocol.py",
+            "contextledger/llm_workflows.py"
+          ],
+          "tests": [
+            "tests/test_chat_evaluation.py",
+            "tests/test_answering.py",
+            "tests/test_radar_synthesis.py",
+            "tests/test_radar_integration.py"
+          ],
+          "docs": [
+            "docs/evaluation/chat.md",
+            "docs/README.md",
+            "BENCHMARK_QUICKSTART.md",
+            "docs/product/prompt-and-login-walkthrough.md"
+          ]
+        }
       ],
       "code": [
         "contextledger/evaluation.py",

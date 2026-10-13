@@ -50,6 +50,26 @@ class RadarSynthesisTests(unittest.TestCase):
         self.assertEqual(self.calls[0][0]['model'],'glm-5.3-flash')
         self.assertEqual(self.tool_calls,[])
 
+    def test_route_options_use_authorised_native_ids_not_citation_numbers(self):
+        from dataclasses import replace
+        self.evidence = [replace(self.evidence[0], document=replace(self.evidence[0].document,
+            title='QuartzPay ENG-123', content='ENG-123 links PR-109, not citation [1].'))]
+        self.execute([self.good], question='QuartzPay status?')
+        payload = json.loads(self.calls[0][0]['messages'][1]['content'])
+        self.assertEqual(payload['decision_radar_options']['allowed_anchor_ids'], ['ENG-123', 'PR-109'])
+        self.assertNotIn('1', payload['decision_radar_options']['allowed_anchor_ids'])
+
+    def test_name_only_tool_call_uses_empty_anchor_list(self):
+        from dataclasses import replace
+        self.evidence = [replace(self.evidence[0], document=replace(self.evidence[0].document,
+            title='QuartzPay proposal', content='QuartzPay pending approval.'))]
+        action = self.action | {'arguments': {'anchor_ids': [], 'focus': ['current_status']}}
+        result, _ = self.execute([action, self.good], question='QuartzPay approval?')
+        route = json.loads(self.calls[0][0]['messages'][1]['content'])
+        self.assertEqual(route['decision_radar_options']['allowed_anchor_ids'], [])
+        self.assertEqual(self.tool_calls, [action['arguments']])
+        self.assertEqual(result[1], 'answered')
+
     def test_format_retry_stays_on_high_without_repeating_tool(self):
         bad=self.good|{'citation_ids':[999]}
         result,d=self.execute([self.action,bad,self.good])

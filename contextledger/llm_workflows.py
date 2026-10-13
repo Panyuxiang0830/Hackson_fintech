@@ -15,7 +15,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
-from src.answering import DEFAULT_MODEL, DEFAULT_TOKENHUB_BASE_URL
+from src.answering import DEFAULT_MODEL, DEFAULT_TOKENHUB_BASE_URL, reasoning_parameters
 from contextledger.search import entity_terms
 
 PLAN_VERSION = "query-plan-v2-2026-10-12"
@@ -104,8 +104,7 @@ class ModelStage:
         request_body = {"model": self.model, "temperature": 0, "max_tokens": self.max_tokens,
                         "response_format": {"type": "json_object"},
                         "messages": [{"role": "system", "content": system}, {"role": "user", "content": data}]}
-        if self.reasoning:
-            request_body["reasoning_effort"] = self.reasoning
+        request_body.update(reasoning_parameters(self.base_url, self.reasoning))
         guard()
         started = time.monotonic()
         diag["attempts"] = 1

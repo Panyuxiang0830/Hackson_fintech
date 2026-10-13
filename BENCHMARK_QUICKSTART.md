@@ -1,5 +1,43 @@
 # Benchmark Quick Start
 
+## Real-model answers and browser
+
+Configure `.env` with an OpenAI-compatible model and key (never commit it),
+install the integration dependencies and cache MiniLM, then start an isolated
+native Qdrant server:
+
+```bash
+docker run --rm -d --name contextledger-chat-eval \
+  -p 127.0.0.1:16338:6333 qdrant/qdrant:v1.19.1
+.venv/bin/python scripts/evaluate_chat.py \
+  --qdrant-url http://127.0.0.1:16338 --out runtime/chat/run --serve
+```
+
+Each run requires a new output directory. The 17 synthetic documents and 42
+observations exercise real `/api/ask`, citations, pending approval, conflicting
+reports, source instructions, ACL denial, revocation and published updates.
+Read `summary.json`, `protocol.json` and every answer in `results.jsonl`.
+Use `--model MODEL_ID` for a paired model comparison.
+
+While `--serve` is running, open `http://127.0.0.1:17861` or run the browser checks
+(install Playwright and Chromium in your chosen Python environment first):
+
+```bash
+python3 scripts/check_chat_ui.py --out runtime/chat/ui
+```
+
+The score checks fixed facts, amounts, statuses, cited documents and current
+hashes. It does not measure full semantic grounding, unseen-question quality,
+multi-turn memory, connector freshness or production authentication. This
+command calls the configured paid API; zero-evidence controls do not call it.
+Details and recorded results: [chat evaluation](docs/evaluation/chat.md).
+
+After the preview stops, remove only this evaluation server:
+
+```bash
+docker stop contextledger-chat-eval
+```
+
 ## Retrieval
 
 After [Part A setup](QUICKSTART.md), run from the repository root:

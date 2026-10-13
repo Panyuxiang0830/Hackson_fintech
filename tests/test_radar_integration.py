@@ -48,6 +48,8 @@ class RadarIntegrationTests(unittest.TestCase):
         self.assertEqual(len(self.calls),3)
         self.assertIn('original_query',self.calls[0]);self.assertIn('authorised_evidence',self.calls[1]);self.assertIn('decision_radar_result',self.calls[2])
         self.assertNotIn('PRIVATE',json.dumps(self.calls))
+        self.assertNotIn('ENG-999', self.calls[1]['decision_radar_options']['allowed_anchor_ids'])
+        self.assertEqual(self.calls[1]['decision_radar_options']['allowed_anchor_ids'], ['ENG-123'])
         self.assertNotIn('doc-2',json.dumps(response.json))
         self.assertTrue(response.json['radar'])
         self.assertEqual([e['citation_id'] for e in response.json['evidence']],list(range(1,len(response.json['evidence'])+1)))
