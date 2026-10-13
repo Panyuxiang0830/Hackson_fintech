@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-12
+最后更新：2026-10-13
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -313,6 +313,26 @@
   - 代码：`contextledger/connectors.py`, `contextledger/models.py`, `contextledger/store.py`, `contextledger/pipeline.py`, `contextledger/filtered_index.py`, `contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/llm_workflows.py`, `src/answering.py`, `contextledger/radar_protocol.py`, `contextledger/radar_tool.py`, `contextledger/radar_data.py`, `contextledger/radar_store.py`, `scripts/radar_demo.py`, `contextledger/search.py`, `contextledger/radar_resolution.py`
   - 测试：`tests/test_integration.py`, `tests/test_llm_integration.py`, `tests/test_permission_freshness.py`, `tests/test_llm_workflows.py`, `tests/test_answering.py`, `tests/test_radar.py`, `tests/test_radar_data.py`, `tests/test_radar_integration.py`, `tests/test_radar_resolution.py`
   - 文档：`docs/product/roadmap.md`, `docs/product/mvp-v0.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/decisions/ADR-0004-decision-radar.md`, `docs/architecture/decision-radar-validation.md`, `fixtures/radar/README.md`
+
+### 功能扩展 · Radar综合阶段独立模型与推理预算
+
+- 扩展键：`radar_reasoning_synthesis`
+- 来源：user requested task-three model comparison and conditional synthesis-stage routing on 2026-10-13
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`implemented`
+- 说明：普通问答与内部工具选择保持原Flash配置；只有服务端执行Radar后才使用独立综合模型/推理档位，收紧来源报告与因果、状态和时间边界。模型测试不恢复已取消的第二模型复核。
+- 验收标准：
+
+  - 阶段切换由服务端工具执行结果触发，不能由用户正文、模型自由参数或普通直接回答触发；无配置时综合阶段沿用基础model但使用high推理档位
+  - 支持RADAR_LLM_MODEL、REASONING_EFFORT、MAX_TOKENS、TIMEOUT_SECONDS独立预算；普通路径配置不变；每次调用记录阶段、实际模型与用量
+  - 引用/格式校验、权限和索引交付门闩保持有效；格式重试留在综合阶段，不重复执行工具；网络失败明确降级而非换模型编造
+  - 固定任务三相同授权证据，分别测试原提示/收紧提示、Flash low/high及可用旗舰模型；保留格式失败、超时、耗时和小样本限制
+
+- 影响范围：
+
+  - 代码：`src/answering.py`, `contextledger/radar_protocol.py`, `scripts/sync_preview_config.py`, `.env.example`, `.env.integration.example`
+  - 测试：`tests/test_radar_synthesis.py`, `tests/test_preview_config.py`
+  - 文档：`docs/architecture/radar-reasoning-comparison.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作
 

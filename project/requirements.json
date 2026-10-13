@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-12",
+  "updated_at": "2026-10-13",
   "requirements": [
     {
       "id": "REQ-001",
@@ -328,8 +328,39 @@
         "docs/decisions/ADR-0004-decision-radar.md",
         "docs/architecture/decision-radar-validation.md",
         "fixtures/radar/README.md"
+      ],
+      "extensions": [
+        {
+          "key": "radar_reasoning_synthesis",
+          "title": "Radar综合阶段独立模型与推理预算",
+          "source": "user requested task-three model comparison and conditional synthesis-stage routing on 2026-10-13",
+          "authority": "team_decision",
+          "status": "implemented",
+          "description": "普通问答与内部工具选择保持原Flash配置；只有服务端执行Radar后才使用独立综合模型/推理档位，收紧来源报告与因果、状态和时间边界。模型测试不恢复已取消的第二模型复核。",
+          "acceptance_criteria": [
+            "阶段切换由服务端工具执行结果触发，不能由用户正文、模型自由参数或普通直接回答触发；无配置时综合阶段沿用基础model但使用high推理档位",
+            "支持RADAR_LLM_MODEL、REASONING_EFFORT、MAX_TOKENS、TIMEOUT_SECONDS独立预算；普通路径配置不变；每次调用记录阶段、实际模型与用量",
+            "引用/格式校验、权限和索引交付门闩保持有效；格式重试留在综合阶段，不重复执行工具；网络失败明确降级而非换模型编造",
+            "固定任务三相同授权证据，分别测试原提示/收紧提示、Flash low/high及可用旗舰模型；保留格式失败、超时、耗时和小样本限制"
+          ],
+          "code": [
+            "src/answering.py",
+            "contextledger/radar_protocol.py",
+            "scripts/sync_preview_config.py",
+            ".env.example",
+            ".env.integration.example"
+          ],
+          "tests": [
+            "tests/test_radar_synthesis.py",
+            "tests/test_preview_config.py"
+          ],
+          "docs": [
+            "docs/architecture/radar-reasoning-comparison.md"
+          ]
+        }
       ]
     },
+
     {
       "id": "REQ-012",
       "title": "项目内容统一入库与 Git 协作",

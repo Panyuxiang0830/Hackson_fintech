@@ -129,6 +129,14 @@ class AnswerService:
         self.base_url = os.getenv("LLM_BASE_URL", DEFAULT_TOKENHUB_BASE_URL).rstrip("/")
         self.model = os.getenv("LLM_MODEL", DEFAULT_MODEL)
         self.reasoning_effort = os.getenv("LLM_REASONING_EFFORT", "low").strip()
+        self.radar_model = os.getenv("RADAR_LLM_MODEL", "").strip() or self.model
+        self.radar_reasoning = os.getenv("RADAR_LLM_REASONING_EFFORT", "high").strip()
+        self.radar_tokens = int(os.getenv("RADAR_LLM_MAX_TOKENS", "6000"))
+        self.radar_timeout = int(os.getenv("RADAR_LLM_TIMEOUT_SECONDS", "60"))
+        if not 1600 <= self.radar_tokens <= 8000 or not 10 <= self.radar_timeout <= 120:
+            raise ValueError("Radar model budgets require 1600-8000 tokens and 10-120 seconds")
+        if self.radar_reasoning not in {"low", "medium", "high", "xhigh", "max"}:
+            raise ValueError("Invalid Radar reasoning effort")
 
     @property
     def last_diagnostics(self):
@@ -163,7 +171,7 @@ class AnswerService:
                     else:
                         answer, decision = self._openai_compatible(user, question, evidence,
                             tool_handler=tool_handler, tool_state=tool_state, before_call=before_call)
-                    return answer, decision, f"openai_compatible/{self.model}"
+                    return answer, decision, f"openai_compatible/{self.last_diagnostics.get('actual_model') or self.model}"
                 except (urllib.error.URLError, TimeoutError) as error:
                     details = self.last_diagnostics
                     details["failures"].append("api_unavailable")
@@ -238,14 +246,14 @@ class AnswerService:
                     {"citation_id", "source", "title", "content", "historical_revision"}} for entry in context]
         system = SYSTEM_PROMPT
         if tool_handler is not None:
-            from contextledger.radar_protocol import TOOL_PROMPT, VERSION
+            from contextledger.radar_protocol import TOOL_PROMPT, SYNTHESIS_PROMPT, VERSION
             if not tool_state["called"]:
                 system = SYSTEM_PROMPT.split("Return JSON only with exactly these fields:")[0]
                 system += ' Choose exactly one JSON response: a tool action as described below, or {"status":"answered|insufficient","answer":"answer with [n] citations","citation_ids":[1],"uncertainty":"low|medium|high"}. An insufficient response must have no citations.'
             system += TOOL_PROMPT
             details = self.last_diagnostics
             details["radar_prompt_version"] = VERSION
-            details["radar_prompt_hash"] = hashlib.sha256(TOOL_PROMPT.encode()).hexdigest()
+            details["radar_prompt_hash"] = hashlib.sha256((TOOL_PROMPT + (SYNTHESIS_PROMPT if tool_state["called"] else "")).encode()).hexdigest()
             _DIAGNOSTICS.set(details)
         if self.last_diagnostics.get("attempts", 0) > 1:
             if tool_handler is not None and not tool_state["called"]:
@@ -258,7 +266,7 @@ class AnswerService:
         }
         if tool_handler is not None and tool_state["called"]:
             payload["decision_radar_result"] = tool_state["result"]
-            system += " Tool invocation is exhausted. Return ordinary answer JSON only."
+            system += " Tool invocation is exhausted. Return ordinary answer JSON only." + SYNTHESIS_PROMPT
             truncated = False
             while len(json.dumps(payload, ensure_ascii=False)) > 56000:
                 longest = max(context, key=lambda entry: len(entry["content"]))
@@ -295,20 +303,39 @@ class AnswerService:
         user_prompt = json.dumps(payload, ensure_ascii=False)
         if len(user_prompt) > 60000:
             raise ValueError("model input budget exceeded")
+        # This field is created only after the server-validated internal tool ran.
+        synthesis = "decision_radar_result" in payload
+        model = self.radar_model if synthesis else self.model
+        effort = self.radar_reasoning if synthesis else self.reasoning_effort
+        tokens = self.radar_tokens if synthesis else ANSWER_MAX_TOKENS
+        timeout = self.radar_timeout if synthesis else 30
         request_body: dict[str, object] = {
-            "model": self.model,
+            "model": model,
             "temperature": 0,
-            "max_tokens": ANSWER_MAX_TOKENS,
+            "max_tokens": tokens,
             "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_prompt},
             ],
         }
-        if self.reasoning_effort:
-            request_body["reasoning_effort"] = self.reasoning_effort
+        if effort:
+            request_body["reasoning_effort"] = effort
+        if model == "kimi-k3":
+            # K3 has a different completion-budget parameter and fixed sampling.
+            request_body["max_completion_tokens"] = request_body.pop("max_tokens")
+            request_body.pop("temperature")
+        if synthesis and model.startswith("deepseek"):
+            request_body["thinking"] = {"type": "enabled"}
 
         details = self.last_diagnostics
+        details.setdefault("model_stages", []).append({
+            "stage": "radar_synthesis" if synthesis else "route_or_direct",
+            "model": model, "reasoning_effort": effort,
+            "max_tokens": tokens, "timeout_seconds": timeout,
+            "temperature": request_body.get("temperature", "provider_default")})
+        details.update(reasoning_effort=effort, max_tokens=tokens,
+                       timeout_seconds=timeout, temperature=request_body.get("temperature", "provider_default"))
         details["model_calls"] = details.get("model_calls", 0) + 1
         _DIAGNOSTICS.set(details)
         request = urllib.request.Request(
@@ -328,20 +355,21 @@ class AnswerService:
         else:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
 
-        with urllib.request.urlopen(request, timeout=30, context=ssl_context) as response:
+        with urllib.request.urlopen(request, timeout=timeout, context=ssl_context) as response:
             raw = response.read(131073)
         if len(raw) > 131072:
             raise ValueError("model response budget exceeded")
         body = json.loads(raw)
         details = self.last_diagnostics
-        reported_model = body.get("model", self.model)
-        details["actual_model"] = reported_model if isinstance(reported_model, str) and len(reported_model) <= 200 else self.model
+        reported_model = body.get("model", model)
+        details["actual_model"] = reported_model if isinstance(reported_model, str) and len(reported_model) <= 200 else model
+        details["model_stages"][-1]["actual_model"] = details["actual_model"]
         usage = body.get("usage") or {}
         safe_usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens"} and type(v) is int and v >= 0}
         details.setdefault("usage_by_attempt", []).append(safe_usage)
         details["usage"] = {k: sum(item.get(k, 0) for item in details["usage_by_attempt"])
                             for k in {k for item in details["usage_by_attempt"] for k in item}}
-        details["model"] = self.model
+        details["model"] = model
         details["finish_reason"] = body["choices"][0].get("finish_reason") if body["choices"][0].get("finish_reason") in {"stop", "length", "content_filter"} else "unknown"
         _DIAGNOSTICS.set(details)
         if details["finish_reason"] in {"length", "content_filter"}:
