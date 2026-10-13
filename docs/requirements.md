@@ -531,6 +531,26 @@
   - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`
   - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/evaluation/chat.md`
 
+### 功能扩展 · Tailscale 私有常驻试用入口
+
+- 扩展键：`private-tailnet-preview`
+- 来源：user requested deployment for browser use on other Tailscale machines on 2026-10-13
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。
+- 验收标准：
+
+  - 入口只通过私有 Tailscale Serve 到达回环后端，校验明确允许的 Tailscale 登录、固定 Host 和浏览器 Origin；不开启公网 Funnel
+  - TLS、Secure Cookie、固定演示账号与原应用 CSRF/ACL/版本检查保留；来源身份不能由代理头授予
+  - 后台服务和 Qdrant 可重启，内容与安全状态分离并持久化；部署使用固定代码提交，不重跑或改写测评结果
+  - 实测 HTTPS 页面、身份选择、真实模型回答、越权拒答和跨机器访问，保存部署步骤与当前 URL
+
+- 影响范围：
+
+  - 代码：`contextledger/tailnet_preview.py`, `scripts/serve_tailnet_preview.py`, `requirements-tailnet-preview.txt`
+  - 测试：`tests/test_tailnet_preview.py`
+  - 文档：`docs/architecture/tailnet-preview.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`
+
 ## REQ-018 · 端到端质量、安全与性能评测
 
 - 来源：engineering challenges confirmed by user on 2026-10-06

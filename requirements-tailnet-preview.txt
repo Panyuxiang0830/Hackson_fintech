@@ -1,0 +1,2 @@
+-r requirements-integration.txt
+waitress>=3.0.2,<4
