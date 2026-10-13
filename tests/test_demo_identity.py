@@ -66,10 +66,27 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(status["identity_mode"], "isolated_demo")
         self.assertFalse(status["identity_verified"])
         self.assertEqual(self.get("/auth/login").status_code, 404)
-        self.assertIn("非真实登录", self.get("/").get_data(as_text=True))
+        page = self.get("/").get_data(as_text=True)
+        self.assertIn('data-demo-mode="true"', page)
+        self.assertIn('id="demo-account-select"', page)
         self.select(self.admin)
         self.assertEqual(len(self.get("/api/admin/users").json), 7)
         self.assertEqual(self.get("/api/corpora").json, [])
+
+    def test_auto_entry_is_explicit_demo_only_and_get_does_not_select_identity(self):
+        self.assertIn('data-demo-auto-entry="false"', self.get("/").get_data(as_text=True))
+        enabled = create_app(self.db_path, self.directory, service=self.service,
+                             config={**self.config, "DEMO_AUTO_ENTRY": True}).test_client()
+        self.assertIn('data-demo-auto-entry="true"', self.get("/", enabled).get_data(as_text=True))
+        self.assertIsNone(self.get("/api/session", enabled).json["user"])
+        response = enabled.post("/api/demo/select", base_url=self.url, json={"user_id": self.alice})
+        self.assertEqual(response.status_code, 403)
+        self.select(self.alice, enabled)
+        self.assertEqual(self.get("/api/session", enabled).json["user"]["id"], self.alice)
+        ordinary = create_app(self.db_path, self.directory, service=self.service,
+                             config={**self.config, "DEMO_MODE": False, "DEMO_AUTO_ENTRY": True}).test_client()
+        self.assertIn('data-demo-auto-entry="false"', self.get("/", ordinary).get_data(as_text=True))
+        self.assertIsNone(self.get("/api/session", ordinary).json["user"])
 
     def test_loopback_host_origin_and_csrf_gates(self):
         self.assertEqual(self.get("/", environ_overrides={"REMOTE_ADDR": "10.0.0.1"}).status_code, 403)
@@ -145,7 +162,7 @@ class DemoIdentityTests(unittest.TestCase):
             session["sid"] = sid
         self.assertEqual(self.get("/api/demo/accounts", ordinary).status_code, 404)
         self.assertEqual(self.get("/api/admin/users", ordinary).status_code, 401)
-        self.assertNotIn('id="demoidentity"', self.get("/", ordinary).get_data(as_text=True))
+        self.assertNotIn('id="demo-account-select"', self.get("/", ordinary).get_data(as_text=True))
 
     def test_demo_refuses_production_security_state_public_url_and_oidc(self):
         with self.assertRaises(ValueError):

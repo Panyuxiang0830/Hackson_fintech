@@ -29,6 +29,7 @@
 - `docs/product/roadmap.md`：依据需求差距整理的实现顺序；
 - `docs/product/workload.md`：2026-10-10 一周／三位同事的工作拆分；五个 Handbook 场景优先，含当前差距、分工、验收门槛与后续功能；
 - `docs/product/llm-feature-plan.md`：本轮保留审计解释、检索规划与零证据提示；模型引用复核/反馈重答已取消；真实质量与录制验收待完成；
+- `docs/product/frontend-team-integration.md`：用户 DashKit 英文前端与团队版规划、问答和审计接口的本地集成范围及验收边界；
 - `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
