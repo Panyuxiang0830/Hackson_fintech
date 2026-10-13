@@ -49,6 +49,41 @@ async def main():
         await page.click('#btn-ask')
         assert 'enter a question' in await page.locator('#error-message').inner_text()
         checks.append({'empty_question': 'blocked'})
+
+        async def missing_csrf(route):
+            headers = await route.request.all_headers()
+            headers.pop('x-csrf-token', None)
+            await route.continue_(headers=headers)
+
+        await page.route('**/api/ask', missing_csrf)
+        denied = await ask('TracePay 当前每日转账上限是多少？')
+        assert denied['error'] == 'csrf_failed'
+        await expect(page.locator('#error-state')).to_be_visible()
+        await expect(page.locator('#error-message')).to_contain_text('Access denied')
+        checks.append({'real_csrf_rejection': 'HTTP 403 displayed; controls recovered'})
+        await page.unroute('**/api/ask', missing_csrf)
+
+        for status, message in [(409, 'permissions changed'), (503, 'unavailable')]:
+            async def fail(route, code=status):
+                await route.fulfill(status=code, json={'error': 'injected_failure'})
+            await page.route('**/api/ask', fail)
+            await ask('TracePay 当前每日转账上限是多少？')
+            await expect(page.locator('#error-state')).to_be_visible()
+            await expect(page.locator('#error-message')).to_contain_text(message)
+            checks.append({'injected_http_error': status, 'displayed': True})
+            await page.unroute('**/api/ask', fail)
+
+        async def disconnect(route):
+            await route.abort('failed')
+
+        await page.route('**/api/ask', disconnect)
+        await page.fill('#query-input', 'TracePay 当前每日转账上限是多少？')
+        await page.click('#btn-ask')
+        await expect(page.locator('#error-message')).to_contain_text('connectivity error')
+        await expect(page.locator('#btn-ask')).to_be_enabled()
+        checks.append({'injected_network_failure': 'displayed; controls recovered'})
+        await page.unroute('**/api/ask', disconnect)
+
         result = await ask('HarborLedger 是做什么的？简单说一下。')
         assert result['decision'] == 'answered', result
         assert await page.locator('#answer-box').inner_text() == result['answer']
@@ -105,6 +140,27 @@ async def main():
         assert await page.locator('#answer-box').is_hidden() and await page.locator('.evidence-card').count() == 0
         checks.append({'late_answer_after_identity_change': 'ignored'})
         await page.unroute('**/api/ask', delay)
+
+        error_ready, error_release = asyncio.Event(), asyncio.Event()
+        async def late_error(route):
+            error_ready.set()
+            await error_release.wait()
+            await route.fulfill(status=409, json={'error': 'injected_old_conflict'})
+        await page.route('**/api/ask', late_error)
+        await page.fill('#query-input', 'HarborLedger 是做什么的？')
+        await page.click('#btn-ask')
+        await asyncio.wait_for(error_ready.wait(), 10)
+        await page.select_option('#demo-account-select', people['alice']['id'])
+        await expect(page.locator('#current-identity')).to_contain_text('alice')
+        current_generation = await page.evaluate('requestGeneration')
+        error_release.set()
+        await expect(page.locator('#btn-ask')).to_be_enabled(timeout=90000)
+        assert await page.evaluate('requestGeneration') == current_generation
+        await expect(page.locator('#onboarding-state')).to_be_visible()
+        assert await page.locator('#error-state').is_hidden()
+        checks.append({'injected_late_error_after_identity_change': 'ignored'})
+        await page.unroute('**/api/ask', late_error)
+
         await select('ContextLedger 管理员')
         await page.click('#nav-admin')
         await expect(page.locator('#view-admin')).to_be_visible()

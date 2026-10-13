@@ -47,3 +47,5 @@ systemctl --user stop contextledger-tailnet-preview.service
 - 验证报告保存在本机 `runtime/deploy/tailnet`，13 项浏览器检查通过：首次自动进入、空问题、真实 DeepSeek 回答、原文、问题编辑、移动布局、身份切换、越权零模型调用、已有身份重载、未知实体、旧请求隔离、管理与审计导航；无 JavaScript 错误。另一台 `VM-0-7-ubuntu` 已验证真实 TLS 页面、检索、原文和越权拒答。Radar 以已有真实模型响应回放展示并通过当前原文接口，不将回放计为新模型测评。聊天仍为单轮；评测结果不因 UI 更新而改写。
 
 UI 已通过 [PR #15](https://github.com/Panyuxiang0830/Hackson_fintech/pull/15) 合入 main（`c2a930e`）；聊天与私有网关仍在独立 PR #14。部署版本、报告和后台状态可分别核对，UI 合并不等于 PR #14 已合并。
+
+浏览器调用 API 失败时应显示具体拒绝／冲突／连接错误并恢复操作；清除证据不会吞掉当前错误。旧身份请求返回的错误不清除或覆盖新身份页面。自动回归中的 HTTP 409/503 与断网场景为明确失败注入，CSRF 403 使用真实后端拒绝。
