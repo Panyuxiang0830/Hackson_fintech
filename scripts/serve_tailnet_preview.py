@@ -30,7 +30,7 @@ def main():
     from waitress import serve
     local = f'http://127.0.0.1:{args.port}'
     app = create_app(args.out / 'canonical.sqlite', args.security_dir,
-                     config={'DEMO_MODE': True, 'BROWSER_LOGIN_ENABLED': False,
+                     config={'DEMO_MODE': True, 'DEMO_AUTO_ENTRY': True, 'BROWSER_LOGIN_ENABLED': False,
                              'PUBLIC_URL': local, 'SESSION_COOKIE_SECURE': True})
     gateway = TailnetPreview(app, public_url=args.public_url, local_url=local,
                             allowed_logins=args.allowed_login)

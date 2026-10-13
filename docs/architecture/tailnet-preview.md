@@ -37,4 +37,11 @@ tailscale serve --https=8444 off
 systemctl --user stop contextledger-tailnet-preview.service
 ```
 
-浏览器连接同一获准 Tailscale 账号后访问 HTTPS 域名；选择 alice 可查询合成资料，outside 用于拒答，管理员用于权限与审计。管理员角色不会自动获得业务读取权。当前界面支持单轮问答，追问保留业务名称。
+浏览器连接同一获准 Tailscale 账号后访问 HTTPS 域名。该私有部署显式启用 `DEMO_AUTO_ENTRY`：首次通过既有 CSRF 接口选择启用且绑定来源的普通员工 alice，提问框和按钮即可使用；已有选择及撤权保留，不默认进入管理员。右上角可切换 outside 验证拒答，管理员用于权限与审计。管理员角色不会自动获得业务读取权。当前界面支持单轮问答，追问保留业务名称。
+
+## 当前入口
+
+- URL：<https://lab-cw3.tail4ecfc0.ts.net:8444/>，允许的 Tailscale 登录为 `idjyiq@gmail.com`。
+- UI：`feat/REQ-017-team-ui-integration` 的 `81d4164`，同步 main 并保留当前 Radar 展示；浏览器可用例题为“HarborLedger 是做什么的？”和“TracePay 当前每日转账上限是多少？”。
+- 内容、安全状态和 Qdrant 位于独立 `runtime/deploy/tailnet` 目录；代码通过固定提交的 Git worktree 发布。浏览器选择身份不会重置权限，服务重启也不重新初始化账号。
+- 验证报告保存在本机 `runtime/deploy/tailnet`，部署完成后的页面、真实回答、角色导航、越权拒答与跨机器检查另行记录。聊天仍为单轮；评测结果不因 UI 更新而改写。
