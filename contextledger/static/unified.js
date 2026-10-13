@@ -7,6 +7,7 @@ let currentEpoch = null;
 let isDemoMode = document.body.dataset.demoMode === 'true';
 let requestGeneration = 0;
 let queryBusy = false;
+let identityBusy = false;
 let adminPeople = [];
 let adminPrincipals = [];
 let auditData = null;
@@ -165,7 +166,8 @@ async function sessionStatus() {
 }
 
 function setQueryControls() {
-  const disabled = !currentUser || queryBusy;
+  const disabled = !currentUser || queryBusy || identityBusy;
+  if (els.demoSelect) els.demoSelect.disabled = identityBusy;
   for (const control of [els.datasetSelect, els.queryInput, els.btnAsk, els.btnSearch, ...els.modeRadios]) {
     if (control) control.disabled = disabled;
   }
@@ -218,6 +220,9 @@ async function loadDemoAccounts() {
 }
 
 async function selectDemoAccount(userId) {
+  if (identityBusy) return;
+  identityBusy = true;
+  setQueryControls();
   try {
     await api('/api/demo/select', {
       method: 'POST',
@@ -229,6 +234,9 @@ async function selectDemoAccount(userId) {
     if (currentUser) els.demoSelect.value = currentUser.id;
   } catch (e) {
     showError('Demo Selection Failed', e.message);
+  } finally {
+    identityBusy = false;
+    setQueryControls();
   }
 }
 
