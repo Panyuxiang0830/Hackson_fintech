@@ -280,7 +280,8 @@ class UnifiedService:
         if query:
             users = {row["id"]: User(row["id"], row["name"], "", row["role"], "internal")
                      for row in self.identities.users()}
-            parsed = AuditQueryParser().parse(query, users, [])
+            parsed = AuditQueryParser().parse(query, users, [],
+                parse_time=not bool(filters.get("start") or filters.get("end")))
             filters = {**parsed, **{key: value for key, value in filters.items() if value}}
         maximum = filters.pop("limit", 100)
         if type(maximum) is not int or not 1 <= maximum <= 100:

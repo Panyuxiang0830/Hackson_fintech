@@ -243,6 +243,25 @@
   - 测试：`tests/test_audit_query.py`, `tests/test_integration.py`, `tests/test_answering.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`
   - 文档：`docs/product/llm-feature-plan.md`, `docs/product/workload.md`, `docs/product/demo-acceptance.md`, `docs/architecture/llm-workflows.md`
 
+### 功能扩展 · 审计自然语言时间条件解析修复
+
+- 扩展键：`audit_relative_time_filters`
+- 来源：user confirmed parser repair on 2026-10-13 after actual request-log validation
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`implemented`
+- 说明：修复过去一周／一个月被静默当作无时间条件的问题；使用确定性规则生成带时区的起止时间，不新增日志时间字段或LLM查询解析。模型路由是后续独立改动。
+- 验收标准：
+
+  - 最近／过去N天、N周、N个月支持数字和常用中文数量；一周是连续7天，一个月按自然月回退并处理月末
+  - 今天／昨天按UTC日界查询；支持范围及UTC口径在文档说明，不支持或歧义的时间条件返回明确错误，不静默扩大为全时间范围
+  - 通过实际统一审计服务验证旧事件在模型调用前被过滤；保持普通员工拒绝、脱敏、完整性校验及失败回退
+
+- 影响范围：
+
+  - 代码：`src/audit_query.py`, `contextledger/unified_service.py`
+  - 测试：`tests/test_audit_time_parser.py`
+  - 文档：`docs/architecture/audit-query-flow.md`
+
 ## REQ-009 · LLM 安全边界
 
 - 来源：FinTech track handbook
@@ -351,7 +370,7 @@
 - 影响范围：
 
   - 代码：`src/answering.py`, `contextledger/radar_protocol.py`, `scripts/sync_preview_config.py`, `.env.example`, `.env.integration.example`
-  - 测试：`tests/test_radar_synthesis.py`, `tests/test_preview_config.py`
+  - 测试：`tests/test_radar_synthesis.py`, `tests/test_preview_config.py`, `tests/test_audit_time_parser.py`
   - 文档：`docs/architecture/radar-reasoning-comparison.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作
