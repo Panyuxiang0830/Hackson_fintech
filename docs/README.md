@@ -38,6 +38,9 @@
 - `docs/product/tool-entry-scope.md`：延期的未来 Tool 设想与可信上游身份边界，不是当前前端验收前置条件；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
 - `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
+- `docs/architecture/decision-radar-v1.md`：最终方案：默认自动内部工具调用、查询时实体展开、具体事实可靠性与四案例回放；本地 v1 已实现，REQ-011 为 in_progress，质量／生产验收另记；
+- `docs/architecture/decision-radar-validation.md`：接口／父分支兼容、四案例实验、真实模型和剩余质量限制；
+- `docs/decisions/ADR-0004-decision-radar.md`：Accepted 的自动内部 Radar 工具决策；约束内部自动工具、事实证据边界与安全发布；
 - `docs/architecture/index-and-freshness.md`：索引分工、内容版本、新鲜度和安全索引发布的设计草案；
 - `docs/architecture/query-planning.md`：有开关的受限问题规划、FTS／Qdrant 分流和纠错确认；实际收益待评测；
 - `docs/decisions/`：重要且难以逆转的架构决定；

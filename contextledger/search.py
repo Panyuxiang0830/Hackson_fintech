@@ -474,3 +474,21 @@ def _rrf(rankings: list[list[str]], constant: int = 60) -> list[str]:
         for rank, doc_id in enumerate(ranking, start=1):
             scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (constant + rank)
     return [doc_id for doc_id, _score in sorted(scores.items(), key=lambda item: (-item[1], item[0]))]
+
+
+def contains_query_entities(text: str, terms: list[str]) -> bool:
+    """Native-ID comparisons may seed separate documents, names remain constrained.
+
+    Requiring every ticket/PR ID in a single document prevents relationship queries
+    from reaching the query-time Radar. Exact ID boundaries still prevent ENG-12
+    from matching ENG-123; semantic neighbors cannot substitute a named ID.
+    """
+    from contextledger.radar_protocol import identifiers
+    native, names = [], []
+    for term in terms:
+        ids = identifiers(term)
+        if len(ids) == 1 and len(term) == len(ids[0]):
+            native.extend(ids)
+        else:
+            names.append(term)
+    return contains_terms(text, names) and (not native or bool(set(native).intersection(identifiers(text))))

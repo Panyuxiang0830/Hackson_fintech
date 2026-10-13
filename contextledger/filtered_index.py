@@ -11,6 +11,7 @@ import difflib
 import json
 import re
 import sqlite3
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -19,7 +20,7 @@ from pathlib import Path
 from qdrant_client import models as qm
 
 from contextledger.identity_store import Actor, IdentityStore
-from contextledger.search import _fts_query, _rrf, _snippet, contains_terms, entity_terms
+from contextledger.search import _fts_query, _rrf, _snippet, contains_terms, contains_query_entities, entity_terms
 from contextledger.store import chunk_digest, connect
 
 LEVELS = {"public": 0, "internal": 1, "confidential": 2, "restricted": 3}
@@ -200,7 +201,7 @@ class FilteredIndex:
                 db.execute("INSERT INTO cl_mutation_published(corpus, n) VALUES (?, ?) ON CONFLICT(corpus) DO UPDATE SET n=excluded.n", (corpus, current))
             db.commit()
 
-    def search(self, scope: Scope, query: str, mode="hybrid", limit=8):
+    def search(self, scope: Scope, query: str, mode="hybrid", limit=8, *, required_terms=None):
         if mode not in {"keyword", "vector", "hybrid"}:
             raise ValueError("unknown retrieval mode")
         where, args = self.sql_filter(scope)
@@ -210,7 +211,9 @@ class FilteredIndex:
             db.execute("BEGIN")
             state = self.consistent(db, scope.corpus)
             keyword = []
-            anchors = entity_terms(query)
+            # Only the server-side name search supplies validated literal names.
+            # Descriptive translated terms are ranking hints, not all mandatory names.
+            anchors = entity_terms(query) if required_terms is None else required_terms
             match = _fts_query(query)
             if mode != "vector" and match:
                 keyword = [r[0] for r in db.execute(f"""SELECT d.doc_id FROM docs_fts
@@ -241,7 +244,7 @@ class FilteredIndex:
             hits = []
             for doc_id in ranking:
                 hit = self._document(db, scope, doc_id, chunks.get(doc_id), query)
-                if hit and (not anchors or contains_terms(hit["full_text"], anchors)):
+                if hit and not hit["metadata"].get("historical_revision") and (not anchors or contains_query_entities(hit["full_text"], anchors)):
                     hits.append(hit)
                     if len(hits) >= limit:
                         break
@@ -254,6 +257,17 @@ class FilteredIndex:
             WHERE {where} AND d.doc_id=?""", (*args, doc_id)).fetchone()
         if row is None:
             return None
+        # Comments and imported revisions inherit the current parent resource ACL.
+        extra = json.loads(row["extra_json"])
+        if scope.day is not None and extra.get("radar_snapshot_only"):
+            return None  # Native final snapshots lack reliable OrgForge day histories.
+        root = extra.get("radar_root_doc_id")
+        if root and root != doc_id:
+            parent = db.execute(f"SELECT d.content_hash,d.text,d.extra_json FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND d.doc_id=?", (*args, root)).fetchone()
+            if parent is None or json.loads(parent["extra_json"]).get("radar_root_doc_id") not in {None, root}:
+                return None
+            if hashlib.sha256(parent["text"].encode()).hexdigest() != parent["content_hash"]:
+                raise IndexUnavailable("Root resource hash mismatch")
         if hashlib.sha256(row["text"].encode()).hexdigest() != row["content_hash"]:
             raise IndexUnavailable("Canonical content hash mismatch.")
         if vector_payload:
@@ -303,6 +317,34 @@ class FilteredIndex:
             hit = self._document(db, scope, doc_id)
             return hit, state["generation"]
 
+    def related(self, scope, anchors, limit=40):
+        """Exact-ID expansion inside the existing SQL ACL filter; bounded scan."""
+        from contextledger.radar_protocol import identifiers
+        wanted = set(anchors)
+        where, args = self.sql_filter(scope)
+        with connect(self.db_path) as db:
+            db.execute("BEGIN")
+            state = self.consistent(db, scope.corpus)
+            deadline = time.monotonic() + 2
+            db.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
+            db.create_function("radar_matches", 1, lambda text: bool(wanted.intersection(identifiers(text or ""))))
+            hits = []
+            try:
+                rows = db.execute(f"SELECT d.doc_id FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND radar_matches(d.title || '\n' || d.text) ORDER BY CASE WHEN json_extract(d.extra_json,'$.historical_revision')=1 THEN 4 WHEN json_extract(d.extra_json,'$.record_type')='native_state' THEN 0 WHEN json_extract(d.extra_json,'$.record_type')='description' THEN 1 WHEN json_extract(d.extra_json,'$.record_type')='comment' THEN 2 ELSE 3 END,d.doc_id", args)
+                for row in rows:
+                    hit = self._document(db, scope, row["doc_id"], query=" ".join(anchors))
+                    if hit:
+                        hits.append(hit)
+                        if len(hits) > limit:
+                            return hits[:limit], state["generation"], True
+            except sqlite3.OperationalError as error:
+                if "interrupt" not in str(error).lower():
+                    raise IndexUnavailable("Radar authorised scan failed") from error
+                return hits, state["generation"], True
+            finally:
+                db.set_progress_handler(None, 0)
+            return hits, state["generation"], False
+
     def suggestions(self, scope, query):
         """Only names found in currently authorised titles, never global vocab."""
         anchors = entity_terms(query)
@@ -313,9 +355,10 @@ class FilteredIndex:
         with connect(self.db_path) as db:
             db.execute("BEGIN")
             self.consistent(db, scope.corpus)
-            titles = db.execute(f"SELECT d.title FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND instr(lower(d.title),?)>0 LIMIT 200",
+            titles = db.execute(f"SELECT d.doc_id,d.title FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND instr(lower(d.title),?)>0 LIMIT 200",
                                 (*args, term[:2].lower())).fetchall()
-        names = {name for row in titles for name in entity_terms(row[0])}
+            visible = [row for row in titles if self._document(db, scope, row["doc_id"]) is not None]
+        names = {name for row in visible for name in entity_terms(row["title"])}
         ranked = sorted(((difflib.SequenceMatcher(None, term.lower(), name.lower()).ratio(), name) for name in names),
                         key=lambda item: (-item[0], item[1]))
         return [name for score, name in ranked if score >= .7 and name.lower() != term.lower()][:3]
