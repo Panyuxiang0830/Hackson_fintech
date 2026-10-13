@@ -1,6 +1,6 @@
 # 聊天评测
 
-2026-10-13，REQ-001 / REQ-017 / REQ-018。基线为 main `a3af35b`，包含已合并的 Radar #13；远端 DashKit 分支 `feat/REQ-017-team-ui-integration` 的 `81d4164` 尚未合入 main，不作为本次已部署前端。
+2026-10-13，REQ-001 / REQ-017 / REQ-018。基线为 main `a3af35b`，包含已合并的 Radar #13；42 次模型测评时 DashKit 分支 `feat/REQ-017-team-ui-integration` 的 `81d4164` 尚未合入，原有 8 项浏览器报告使用当时前端。随后该 UI 经 PR #15 合入 main `c2a930e` 并部署到私有 Tailscale 入口，新增 13 项浏览器检查与跨机器 TLS 访问通过；见 [部署与报告边界](../architecture/tailnet-preview.md)。模型测量数值保留，不以 UI 更新重写旧测评。
 
 ## 运行方式
 
