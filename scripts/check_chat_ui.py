@@ -64,8 +64,8 @@ async def main():
         await page.unroute('**/api/ask', missing_csrf)
 
         for status, message in [(409, 'permissions changed'), (503, 'unavailable')]:
-            async def fail(route, code=status):
-                await route.fulfill(status=code, json={'error': 'injected_failure'})
+            async def fail(route):
+                await route.fulfill(status=status, json={'error': 'injected_failure'})
             await page.route('**/api/ask', fail)
             await ask('TracePay 当前每日转账上限是多少？')
             await expect(page.locator('#error-state')).to_be_visible()
