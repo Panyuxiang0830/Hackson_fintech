@@ -126,6 +126,26 @@
   - 测试：`tests/test_permission_freshness.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/index-and-freshness.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`
 
+### 功能扩展 · 正式新增与修改的自动索引发布闭环
+
+- 扩展键：`document-update-chain`
+- 来源：user requested automatic add/update to indexed answers on 2026-10-12
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：管理员或可信运维提交新增／修改后，由持久化后台任务更新事实库、FTS 与受影响分块的向量并发布，随后问答使用新版证据。用户于 2026-10-12 明确跳过本次真实模型验收。
+- 验收标准：
+
+  - 新增／修改通过受控 API 与 CLI 提交，版本前置条件防止旧任务覆盖新内容，来源 ACL 不默认放开
+  - 更新任务持久化、进程重启可恢复、失败可重试；更新未发布时不交付旧版证据或答案
+  - 事实库与关键词索引事务更新，向量只重算受影响分块；两类索引核对成功后发布新的代次
+  - 保存旧版内容、版本、ACL 与分块；同一问题在新增／修改后从 5 万切换到 10 万，分别验证关键词、向量、混合检索、回答与审计
+
+- 影响范围：
+
+  - 代码：`contextledger/document_updates.py`, `contextledger/index_lock.py`, `contextledger/filtered_index.py`, `contextledger/web.py`, `contextledger/integration.py`, `contextledger/vectors.py`, `scripts/verify_document_updates.py`
+  - 测试：`tests/test_document_updates.py`
+  - 文档：`QUICKSTART.md`, `docs/architecture/index-and-freshness.md`
+
 ## REQ-005 · 权限变更即时生效
 
 - 来源：FinTech track handbook

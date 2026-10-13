@@ -21,6 +21,7 @@ from qdrant_client import QdrantClient
 
 from contextledger.audit_store import AuditStore
 from contextledger.demo_identity import LOOPBACK_HOSTS, MARKER, load_roster
+from contextledger.document_updates import DocumentUpdates, UpdateConflict
 from contextledger.filtered_index import FilteredIndex, IndexUnavailable
 from contextledger.identity_store import IdentityStore
 from contextledger.source_permissions import SourcePermissionAdapter
@@ -29,7 +30,7 @@ from contextledger.unified_service import PermissionChanged, UnifiedService, tim
 from src.audit import AuditIntegrityError
 
 
-def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
+def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, updates=None):
     validate_security_path(Path(db_path).parent, Path(security_dir))
     app = Flask(__name__)
     app.config.update(
@@ -75,14 +76,26 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
             server_metadata_url=issuer.rstrip("/") + "/.well-known/openid-configuration",
             client_kwargs={"scope": "openid profile", "code_challenge_method": "S256",
                 "token_endpoint_auth_method": "client_secret_basic" if app.config["OIDC_CLIENT_SECRET"] else "none"})
-    if service is None:
+    managed_service = service is None
+    if managed_service:
         identities = IdentityStore(Path(security_dir) / "identities.sqlite")
         client = QdrantClient(url=os.getenv("QDRANT_URL", "http://127.0.0.1:6335"),
                               api_key=os.getenv("QDRANT_API_KEY") or None, timeout=60)
         service = UnifiedService(FilteredIndex(db_path, client, identities), identities,
                                  AuditStore(Path(security_dir) / "audit.sqlite"))
-        service.index.install_snapshot_guard()
     app.extensions["unified_service"] = service
+    updates = updates or DocumentUpdates(service.index, service.identities, service.audit,
+                                         autostart=managed_service)
+    app.extensions["document_updates"] = updates
+    if managed_service:
+        import atexit
+        try:
+            service.index.install_snapshot_guard()
+        except IndexUnavailable:
+            with connect(db_path) as db:
+                if not db.execute("SELECT 1 FROM cl_update_jobs WHERE state IN ('queued','running','failed') LIMIT 1").fetchone():
+                    raise
+        atexit.register(updates.close)
     app.extensions["oidc_client"] = oidc
     roster = load_roster(db_path, security_dir, service.identities) if demo_mode else None
     if demo_mode and service.audit.path.resolve() != (Path(security_dir) / "audit.sqlite").resolve():
@@ -187,6 +200,10 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
         if getattr(g, "actor", None):
             service.record(g.actor, "invalid_request", decision="denied", endpoint=request.path)
         return jsonify(error=str(error)), 400
+
+    @app.errorhandler(UpdateConflict)
+    def update_conflict(error):
+        return jsonify(error=str(error)), 409
 
     def role(*allowed):
         def decorate(fn):
@@ -382,6 +399,23 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None):
     def principals():
         with connect(db_path) as db:
             return jsonify([dict(r) for r in db.execute("SELECT * FROM principals ORDER BY corpus,name")])
+
+    @app.post("/api/admin/documents")
+    @role("admin")
+    def update_document():
+        service.fence(g.actor)
+        return jsonify(job=updates.submit(g.actor.id, request.get_json())), 202
+
+    @app.get("/api/admin/document-updates/<job_id>")
+    @role("admin")
+    def document_update_status(job_id):
+        return jsonify(job=updates.status(g.actor.id, job_id))
+
+    @app.post("/api/admin/document-updates/<job_id>/retry")
+    @role("admin")
+    def retry_document_update(job_id):
+        service.fence(g.actor)
+        return jsonify(job=updates.retry(g.actor.id, job_id)), 202
 
     @app.post("/api/admin/permissions")
     @role("admin")

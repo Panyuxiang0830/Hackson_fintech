@@ -53,3 +53,8 @@ RADAR_LLM_TIMEOUT_SECONDS=60
 ## 实际统一问答链路验证
 
 修改后的代码重新执行任务三：真实模型与UnifiedService完成37条授权资料展开，诊断显示route_or_direct为Flash low/1600tokens/30秒，radar_synthesis为Flash high/6000tokens/60秒；整次请求34.79秒，answered，审计链有效。回答开头明确只有“可能相关”而无客户直接因果证明，部署消息标为来源报告；结尾“最终以供应商/复盘结论为准”仍强于独立确认，不能称为全部来源冲突已解决。原始输出在ignored的runtime/radar-synthesis-live-20261013/synthesis-check.json。254项主回归、8项Part A、同步和diff检查通过。尚未部署。
+
+
+## 与最新main兼容
+
+本分支已同步main `41e455c8` 的PR #11新增/修改文档自动发布功能，业务代码自动合并；重新生成需求文档并通过272项主回归、8项Part A、同步、JS语法和diff检查。后续PR直接以main为目标，同时集成此前只合入工作流分支的Radar，避免再次停在已关闭的父PR分支。PR #12审计时间解析仍为独立审阅，不在本次声称已合并或部署。

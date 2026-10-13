@@ -23,6 +23,8 @@
 
 - 2026-10-12 新建 `feat/decision-radar-v1`，基于现有统一服务梳理 Decision Radar v1 的业务实体、证据事件、状态分栏、规则提示、兼容接口、权限与小快照回放方案；扩充既有 REQ-011 为 planned 并保持 team_decision，新增 Proposed ADR-0004 与设计文档，补充 REQ-004/017/018 文档影响范围。现有工作目录改动保留；本轮仅方案与台账，未实现业务接口、部署或合并。
 
+- 接通 REQ-004 的正式新增／修改闭环：管理员 API 与 CLI 提交持久化任务，后台事务替换事实库和 FTS、只更新受影响文档的 MiniLM 向量，核对后发布新代次供问答使用；保留历史，支持重启恢复和三次自动重试，版本前置条件及查询／交付门闩阻止旧任务和旧答案覆盖。真实模型验收按用户要求跳过。
+
 - 2026-10-12 修复 PR #7 与 main（#8/#9）在需求台账、生成视图和变更日志中的合并冲突：保留取消模型复核后的工作流验收与新鲜度评测验收，重新生成需求文档；业务代码自动合并，未合并 PR 到 main 或重新部署。
 
 - Add a short English freshness quick start to the benchmark guide, including replay, report paths and offline rescoring.
