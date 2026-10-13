@@ -598,6 +598,26 @@
   - 测试：`tests/test_chat_evaluation.py`, `tests/test_answering.py`, `tests/test_radar_synthesis.py`, `tests/test_radar_integration.py`
   - 文档：`docs/evaluation/chat.md`, `docs/README.md`, `BENCHMARK_QUICKSTART.md`, `docs/product/prompt-and-login-walkthrough.md`
 
+### 功能扩展 · 聊天延迟分阶段对照
+
+- 扩展键：`chat_latency_experiments`
+- 来源：user requested measured optimisation opportunities on 2026-10-14
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：冻结合成内容、权限、原生索引与模型，交错比较既有 high、只改工具提示与低推理参数；逐次计时模型调用、检索和工具，并保留失败。不修改在线服务或已确认的复杂问题 high 默认。 补充固定复杂业务综合输入的 high/low/none 与严格 JSON 候选；none仅隔离属性覆写，不扩展生产配置。 2026-10-14 完成36个原生完整HTTP与14个固定综合阶段观测；原始与重评分分开，记录候选退化和复杂材料失败，不宣称已完成生产优化。
+- 验收标准：
+
+  - 同一问题和快照交错运行至少两轮，记录当前模型参数、实际工具调用、阶段耗时、事实/引用/版本与失败，原始结果不可覆盖
+  - 权限与发布门闩、未知实体和越权零模型调用保留；简单事实工具提示不能取消显式历史/关系/业务链的 Radar 要求
+  - 性能按实际完整请求计时，内部阶段计时另列；推理预算改变按当前提供方实际支持和观测解释，不承诺只改 low 必然提速
+  - 小规模开发对照不冒充未见测试集或通用语义准确率；没有跨业务复杂场景质量证据时不替换已确认默认配置
+
+- 影响范围：
+
+  - 代码：`scripts/evaluate_chat_latency.py`, `scripts/evaluate_radar_latency.py`
+  - 测试：`tests/test_chat_latency.py`, `tests/test_chat_evaluation.py`, `tests/test_radar_integration.py`
+  - 文档：`docs/evaluation/chat-latency.md`, `docs/evaluation/chat.md`, `docs/README.md`, `docs/decisions/ADR-0004-decision-radar.md`
+
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 
 - 来源：user requested recording answer prompt design on 2026-10-06
