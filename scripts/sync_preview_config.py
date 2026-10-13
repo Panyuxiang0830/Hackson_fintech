@@ -16,7 +16,7 @@ from dotenv import dotenv_values
 WORKFLOW_FIELDS = ("LLM_PLANNER_ENABLED", *(
     f"LLM_{stage}_{field}" for stage in ("PLANNER", "AUDIT")
     for field in ("MODEL", "BASE_URL", "API_KEY", "REASONING_EFFORT"))) + tuple(
-    "RADAR_LLM_" + field for field in ("MODEL", "REASONING_EFFORT", "MAX_TOKENS", "TIMEOUT_SECONDS"))
+    "RADAR_LLM_" + field for field in ("REASONING_EFFORT", "MAX_TOKENS", "TIMEOUT_SECONDS"))
 
 
 def preview_config(values, public_url, security_dir, qdrant_url, hf_home=None):
@@ -63,7 +63,7 @@ allowed = {"APP_PUBLIC_URL", "BROWSER_LOGIN_ENABLED", "DEMO_MODE", "SECURITY_DIR
 optional = {"HF_HOME", "LLM_PLANNER_ENABLED"} | {
     f"LLM_{stage}_{field}" for stage in ("PLANNER", "AUDIT")
     for field in ("MODEL", "BASE_URL", "API_KEY", "REASONING_EFFORT")} | {
-    "RADAR_LLM_" + field for field in ("MODEL", "REASONING_EFFORT", "MAX_TOKENS", "TIMEOUT_SECONDS")}
+    "RADAR_LLM_" + field for field in ("REASONING_EFFORT", "MAX_TOKENS", "TIMEOUT_SECONDS")}
 if not allowed.issubset(incoming) or not set(incoming).issubset(allowed | optional) or any(not isinstance(v, str) or any(c in v for c in "\r\n\x00") for v in incoming.values()):
     raise SystemExit("Invalid configuration payload")
 if "HF_HOME" in incoming and (not Path(incoming["HF_HOME"]).is_absolute() or not Path(incoming["HF_HOME"]).is_dir()):

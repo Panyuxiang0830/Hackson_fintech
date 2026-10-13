@@ -129,7 +129,6 @@ class AnswerService:
         self.base_url = os.getenv("LLM_BASE_URL", DEFAULT_TOKENHUB_BASE_URL).rstrip("/")
         self.model = os.getenv("LLM_MODEL", DEFAULT_MODEL)
         self.reasoning_effort = os.getenv("LLM_REASONING_EFFORT", "low").strip()
-        self.radar_model = os.getenv("RADAR_LLM_MODEL", "").strip() or self.model
         self.radar_reasoning = os.getenv("RADAR_LLM_REASONING_EFFORT", "high").strip()
         self.radar_tokens = int(os.getenv("RADAR_LLM_MAX_TOKENS", "6000"))
         self.radar_timeout = int(os.getenv("RADAR_LLM_TIMEOUT_SECONDS", "60"))
@@ -305,7 +304,7 @@ class AnswerService:
             raise ValueError("model input budget exceeded")
         # This field is created only after the server-validated internal tool ran.
         synthesis = "decision_radar_result" in payload
-        model = self.radar_model if synthesis else self.model
+        model = self.model
         effort = self.radar_reasoning if synthesis else self.reasoning_effort
         tokens = self.radar_tokens if synthesis else ANSWER_MAX_TOKENS
         timeout = self.radar_timeout if synthesis else 30
@@ -321,13 +320,6 @@ class AnswerService:
         }
         if effort:
             request_body["reasoning_effort"] = effort
-        if model == "kimi-k3":
-            # K3 has a different completion-budget parameter and fixed sampling.
-            request_body["max_completion_tokens"] = request_body.pop("max_tokens")
-            request_body.pop("temperature")
-        if synthesis and model.startswith("deepseek"):
-            request_body["thinking"] = {"type": "enabled"}
-
         details = self.last_diagnostics
         details.setdefault("model_stages", []).append({
             "stage": "radar_synthesis" if synthesis else "route_or_direct",

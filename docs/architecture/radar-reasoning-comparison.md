@@ -25,18 +25,17 @@
 | DeepSeek-V4-Pro 0813 high，收紧提示 | 0/2 | 均90秒超时 | 无最终回答，无法判断语义质量；不代表模型本身能力不够 |
 | Kimi K3 high，收紧提示 | 1/2 | 一次75.83秒、一次90秒超时 | 成功的一次来源报告与发布时间边界更清楚，但本轮时延/可用性不足以默认启用 |
 
-## 配置与行为
+## 最终选择与配置
 
 普通回答/工具选择保持 `LLM_MODEL` 和 `LLM_REASONING_EFFORT`（默认Flash low）。只有服务端成功执行内部Radar后，最终综合调用才使用：
 
 ```dotenv
-RADAR_LLM_MODEL=glm-5.3-flash
 RADAR_LLM_REASONING_EFFORT=high
 RADAR_LLM_MAX_TOKENS=6000
 RADAR_LLM_TIMEOUT_SECONDS=60
 ```
 
-未设RADAR_LLM_MODEL时沿用基础model，综合阶段默认high。可选GLM-5.3；Kimi K3适配其max_completion_tokens及固定采样参数，可能需要90秒；DeepSeek适配thinking.enabled。各模型支持的推理档位以官方参数为准。tokens限制1600–8000，timeout限制10–120秒，不为模型失败无限延长预算。
+用户最终选择Flash high，不启用旗舰模型。综合阶段与普通路径使用同一个LLM_MODEL（默认glm-5.3-flash）；旧RADAR_LLM_MODEL不生效，也不进入预览配置同步。旗舰候选测试仅作为比较记录，本版不保留其专用参数适配。tokens限制1600–8000，timeout限制10–120秒，不为模型失败无限延长预算。
 
 模型选择不能由用户正文或工具参数指定。不改变身份/检索范围，不新增语义复核调用；格式重试只在已完成的综合阶段重试，不再运行工具。失败保留证据、安全降级，不自动切换到Flash编造答案。诊断记录调用阶段、requested/actual model、预算与用量，最终provider对应实际返回模型。
 
@@ -58,3 +57,7 @@ RADAR_LLM_TIMEOUT_SECONDS=60
 ## 与最新main兼容
 
 本分支已同步main `41e455c8` 的PR #11新增/修改文档自动发布功能，业务代码自动合并；重新生成需求文档并通过272项主回归、8项Part A、同步、JS语法和diff检查。后续PR直接以main为目标，同时集成此前只合入工作流分支的Radar，避免再次停在已关闭的父PR分支。PR #12审计时间解析仍为独立审阅，不在本次声称已合并或部署。
+
+## 最终Flash方案回归
+
+用户选择Flash high后，本版移除独立旗舰模型配置及专用适配；271项主回归、8项Part A和同步/JS/diff检查通过。8项综合阶段回归覆盖同一Flash的low→high、重试档位、旧旗舰配置不生效、预算与配置白名单。上述真实Flash链路输入与调用参数未变，未追加模型比较或部署。
