@@ -1,5 +1,7 @@
 # ContextLedger MVP v0 开发规格
 
+> 历史规格：2026-10-14 功能分包已退出旧 Streamlit 与两份 data JSON 的专用链路。本文保留早期设计背景，不作为当前启动或权限实现依据；当前实现见 [功能分包](../architecture/functional-packages.md) 与 [统一服务](../architecture/unified-integration.md)。
+
 > 版本：v0  
 > 日期：2026-09-28  
 > 目标：先完成一个可运行、可演示、可测试的最小闭环，再逐步增加真实连接器、时序冲突检测与高级评测。

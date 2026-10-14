@@ -1,2 +1,0 @@
-"""ContextLedger MVP core package."""
-
