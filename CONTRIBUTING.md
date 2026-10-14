@@ -40,3 +40,11 @@
 不要只在聊天或 Obsidian 中记录项目决定。讨论结论应进入需求台账或 `docs/decisions/`，再由 Git 评审和追踪。
 
 项目内容并不限于代码。需求、设计、测试数据说明、评测方案、演示脚本和架构图也应与对应代码一起提交；只有密钥、个人环境、缓存和运行时产物不应入库。
+
+## 代码与测试位置
+
+- 业务代码放在 `contextledger/<功能包>/`；避免从业务包反向依赖 `scripts`。
+- `scripts/` 保留命令入口和独立运维/项目管理工具，排序与评分实现放入 `contextledger/evaluation/`。
+- 所有测试放在 `tests/<功能>/`，共享核心测试构造小样本；`fixtures/` 保留固定业务回放资料。
+- 完成前同时运行 `python -m unittest discover -s tests -v` 和 `python -m pytest tests -q`；pytest 已包含 unittest，不能相加宣称测试数量。
+- Part A 的测试分词器只能放在 `tests/ingestion/part_a/conftest.py`；真实模型/真实来源验证另报。

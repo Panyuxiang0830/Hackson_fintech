@@ -1,6 +1,6 @@
 # Part A Quick Start
 
-> Integration branch: `demo` opens the unified Part A-style frontend for current acceptance. Browser login is deferred and disabled by default, but identity/permissions remain. A future Agent tool is deferred and is not required for this release. The explicitly enabled isolated demo offers one administrator and six employees; ordinary unauthenticated APIs remain locked. The commands below prepare offline Part A artifacts but do not publish Qdrant or provision demo accounts. See [demo acceptance](docs/product/demo-acceptance.md) and [unified setup](docs/architecture/unified-integration.md); do not continue Auth0 configuration for the current scope.
+> `demo` opens the unified frontend for current acceptance. Browser login is deferred and disabled by default, but identity/permissions remain. Optional [MCP/source adapters](docs/architecture/source-and-agent-interfaces.md) coexist with the frontend. The explicitly enabled isolated demo offers one administrator and six employees; ordinary unauthenticated APIs remain locked. Commands below prepare offline Part A artifacts but do not publish Qdrant or provision demo accounts. See [demo acceptance](docs/product/demo-acceptance.md), [unified setup](docs/architecture/unified-integration.md) and [functional package map](docs/architecture/functional-packages.md). Do not continue Auth0 configuration for the current scope.
 
 Requires Linux x86_64 (AVX2), Python 3.10, Git and a C++17/OpenMP compiler.
 Run from the repository root:

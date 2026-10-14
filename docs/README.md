@@ -22,6 +22,7 @@
 ## 文档地图
 
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
+- `docs/architecture/functional-packages.md`：本轮功能分包、旧 JSON/Streamlit 退出范围、命令兼容与统一测试；对应 ADR-0006；
 - `docs/requirements.md`：由台账自动生成的只读视图；
 - `BENCHMARK_QUICKSTART.md`：英文简短测评入口，包含 Part A 检索与新鲜度回放命令及报告位置；
 - `docs/evaluation/chat-latency.md`：固定数据与模型的延迟分阶段对照、工具提示和推理参数实验及拒绝采用的条件；

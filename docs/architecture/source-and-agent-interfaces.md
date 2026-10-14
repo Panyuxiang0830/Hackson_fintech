@@ -17,14 +17,14 @@
 
 来源更新保留既有系统分类、部门、角色约束和本地拒绝规则，不把受限分类重置为 internal。新资料默认 internal，但读取仍取决于精确来源 ACL；项目/部门跨平台归属不由模型猜测，可在来源配置中显式提供 project 标签，未完成企业目录与统一分类自动对齐。
 
-先在 canonical corpus 建立来源 principals，并由管理员把系统用户显式绑定到正确 principal。已有 CLI `contextledger.integration user` 仅绑定已存在 principal；本轮不自动创建来源用户或提升权限。正式接入须通过企业身份目录/管理员核对完成这个前置步骤。
+先在 canonical corpus 建立来源 principals，并由管理员把系统用户显式绑定到正确 principal。已有 CLI `contextledger.interfaces.integration user` 仅绑定已存在 principal；本轮不自动创建来源用户或提升权限。正式接入须通过企业身份目录/管理员核对完成这个前置步骤。
 
 复制 `config/sources.example.json` 到私有配置，替换站点、范围、native ID → canonical principal 映射，并把目标来源的 enabled 改为 true。建议使用独立 enterprise corpus；不复用离线演示 corpus 来伪装真实公司。必须已有该 corpus 的已发布初始索引，增量更新不能替代初次索引建立。
 
 密钥通过配置中的环境变量名读取；不放入 JSON、不打印请求或原始失败响应。第一版 Atlassian 使用租户域名与 email/API Token；Drive 接收已授权 access token，不实现刷新/注册授权流程。公司权限不足/Token 过期返回失败，不能标为已接通。
 
 ```bash
-python -m contextledger.source_sync --out /absolute/content \
+python -m contextledger.ingestion.source_sync --out /absolute/content \
   --security-dir /absolute/security --config /private/sources.json \
   --env-file /private/connectors.env --source confluence --admin-id EXISTING_ADMIN_ID
 ```
@@ -62,17 +62,17 @@ Token检查通过请求局部 ContextVar 接入现有检索/模型/交付 fence�
 ```bash
 # 安装动作仅供操作者后续执行，本轮没有安装或启动。
 python -m pip install -r requirements-tools.txt
-python -m contextledger.tool_api --out /absolute/content --security-dir /absolute/security \
+python -m contextledger.interfaces.tool_api --out /absolute/content --security-dir /absolute/security \
   issue-token --admin-id EXISTING_ADMIN_ID --user-id EXISTING_EMPLOYEE_ID
 # 输出一次明文 Token，只存入客户端私有配置，不提交/截图。
 # 自动配置时改用 --output-file /private-0700-directory/codex-employee.json：
 # 独占创建0600文件，已有文件不会覆盖，stdout仅返回无密钥的Token ID。
 # 需要内部回答时，发行命令额外指定 --capabilities search,fetch,ask；
 # 需要审计则加 audit，且账号本身必须已有 admin/compliance 角色。
-python -m contextledger.tool_api --out /absolute/content --security-dir /absolute/security \
+python -m contextledger.interfaces.tool_api --out /absolute/content --security-dir /absolute/security \
   --env-file /private/tools.env serve --port 17864
 # 撤销个人凭据，不等于删除账号或恢复来源权限。
-python -m contextledger.tool_api --out /absolute/content --security-dir /absolute/security \
+python -m contextledger.interfaces.tool_api --out /absolute/content --security-dir /absolute/security \
   revoke-token --admin-id EXISTING_ADMIN_ID --token-id TOKEN_ID
 ```
 
@@ -83,7 +83,7 @@ python -m contextledger.tool_api --out /absolute/content --security-dir /absolut
 ```toml
 [mcp_servers.contextledger]
 command = "/absolute/venv/bin/python"
-args = ["-m", "contextledger.mcp_server"]
+args = ["-m", "contextledger.interfaces.mcp_server"]
 cwd = "/absolute/repository"
 env_vars = ["CL_TOOL_URL", "CL_TOOL_CORPUS", "CL_TOOL_TOKEN", "CL_MCP_ENABLE_ASK", "CL_MCP_ENABLE_AUDIT"]
 ```
@@ -95,7 +95,7 @@ env_vars = ["CL_TOOL_URL", "CL_TOOL_CORPUS", "CL_TOOL_TOKEN", "CL_MCP_ENABLE_ASK
   "mcpServers": {
     "contextledger": {
       "command": "/absolute/venv/bin/python",
-      "args": ["-m", "contextledger.mcp_server"],
+      "args": ["-m", "contextledger.interfaces.mcp_server"],
       "env": {
         "PYTHONPATH": "/absolute/repository",
         "CL_TOOL_URL": "http://127.0.0.1:17864",
@@ -108,7 +108,7 @@ env_vars = ["CL_TOOL_URL", "CL_TOOL_CORPUS", "CL_TOOL_TOKEN", "CL_MCP_ENABLE_ASK
 }
 ```
 
-Claude Code 使用其 MCP 私有配置；WorkBuddy 使用其 MCP 配置入口。不同客户端环境变量/secret扩展行为可能不同，不假设都支持 `${VAR}`。不要把真实 Token 放到 Git 的项目配置。`python -m contextledger.mcp_server` 的 stdout 专供 MCP 协议，不输出启动日志。
+Claude Code 使用其 MCP 私有配置；WorkBuddy 使用其 MCP 配置入口。不同客户端环境变量/secret扩展行为可能不同，不假设都支持 `${VAR}`。不要把真实 Token 放到 Git 的项目配置。`python -m contextledger.interfaces.mcp_server` 的 stdout 专供 MCP 协议，不输出启动日志。
 
 CL_TOOL_CORPUS 指定默认数据集（未配置为 orgforge），因此普通提问不必先知道数据库名；显式 corpus 参数仍由服务端验证当前用户范围，该配置不授予权限。
 

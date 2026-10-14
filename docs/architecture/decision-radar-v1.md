@@ -196,7 +196,7 @@ facts、ground_truth、causal_chain、recurrence_of 等评测元数据不进入�
 
 ## 10. 影响范围和当前状态
 
-实际接入：src/answering.py、contextledger/unified_service.py、filtered_index.py、search.py、templates/unified.html、static/unified.js/css。保留 PR #7 的 QueryPlanner、请求字段、原文入口和 HTTP delivery fence；没有改造原始 QueryPlanner 协议。
+实际接入：contextledger/answering/service.py、contextledger/application/service.py、filtered_index.py、search.py、templates/unified.html、static/unified.js/css。保留 PR #7 的 QueryPlanner、请求字段、原文入口和 HTTP delivery fence；没有改造原始 QueryPlanner 协议。
 
 新增：radar_protocol.py（结构化 action 与提示词）、radar_tool.py（补查与事实来源指引）、radar_data.py（业务材料适配／回放裁剪）、radar_store.py（不可变观测修订）、scripts/radar_demo.py（隔离发布与实测）。普通数据仍照常存，未增加强制 LLM 入库标签或实体图谱。
 
