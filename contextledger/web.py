@@ -455,7 +455,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     @app.get("/api/admin/source-permissions")
     @role("admin")
     def source_status():
-        adapter = SourcePermissionAdapter()
+        adapter = SourcePermissionAdapter(service.identities)
         return jsonify([adapter.sync(source) for source in ("slack", "jira", "confluence", "google_drive")])
 
     return app

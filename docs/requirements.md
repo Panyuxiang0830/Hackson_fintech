@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-13
+最后更新：2026-10-14
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -19,13 +19,13 @@
 | REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/connectors.py`<br>`contextledger/models.py`<br>`contextledger/store.py`<br>`contextledger/pipeline.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/llm_workflows.py`<br>`src/answering.py`<br>`contextledger/radar_protocol.py`<br>`contextledger/radar_tool.py`<br>`contextledger/radar_data.py`<br>`contextledger/radar_store.py`<br>`scripts/radar_demo.py`<br>`contextledger/search.py`<br>`contextledger/radar_resolution.py` | `tests/test_integration.py`<br>`tests/test_llm_integration.py`<br>`tests/test_permission_freshness.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_answering.py`<br>`tests/test_radar.py`<br>`tests/test_radar_data.py`<br>`tests/test_radar_integration.py`<br>`tests/test_radar_resolution.py` |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
-| REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
+| REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `in_progress` | `contextledger/source_adapters.py`<br>`contextledger/source_sync.py` | `tests/test_source_adapters.py` |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py`<br>`contextledger/unified_service.py` | `tests/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
 | REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml`<br>`contextledger/static/onboarding.svg` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py`<br>`tests/test_llm_integration.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh`<br>`contextledger/freshness_eval.py`<br>`contextledger/freshness_workload.py`<br>`contextledger/freshness_replay.py`<br>`scripts/freshness_eval.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py`<br>`tests/test_freshness_eval.py` |
 | REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/llm_workflows.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_llm_workflows.py` |
-| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `planned` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
+| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/tool_access.py`<br>`contextledger/tool_api.py`<br>`contextledger/mcp_server.py`<br>`scripts/mcp_private_launcher.py`<br>`requirements-tools.txt` | `tests/test_integration.py`<br>`tests/test_tool_interfaces.py`<br>`tests/test_mcp_launcher.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -105,6 +105,25 @@
   - 代码：`src/models.py`, `src/policy.py`, `data/documents.json`, `data/users.json`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/source_permissions.py`
   - 测试：`tests/test_policy.py`, `tests/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
+
+### 功能扩展 · 四平台只读适配的来源授权快照
+
+- 扩展键：`live_source_permission_snapshots`
+- 来源：user confirmed automatic source permission reads on 2026-10-14
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。初次实现按用户要求不运行测试；随后 Codex 试用阶段离线回归通过，但四来源未做真实联调，状态不提升为 validated。
+- 验收标准：
+
+  - Jira/Confluence 使用来源有效权限检查，Slack 使用完整成员快照，Drive 保留权限条目并仅映射可验证的用户授权；来源身份映射显式配置，未映射或不支持的权限语义不猜测放行
+  - 分页、限流和检查失败不生成宽松 ACL；原始记录和权限检查依据保存于私有存储，权限未知的新记录不入检索，既有记录重新检查时先阻断旧授权
+  - 来源授权仅证明本次观察快照，不宣称实时原平台撤权或完整企业目录同步；系统内权限限制仍优先生效
+
+- 影响范围：
+
+  - 代码：`contextledger/source_adapters.py`, `contextledger/source_sync.py`
+  - 测试：`tests/test_source_adapters.py`
+  - 文档：`docs/architecture/source-and-agent-interfaces.md`, `config/sources.example.json`
 
 ## REQ-004 · 新鲜度与来源状态
 
@@ -415,7 +434,7 @@
 
 - 来源：team discussion marked 【新需求】 on 2026-10-02
 - 权威级别：`team_decision`
-- 状态：`planned`
+- 状态：`in_progress`
 - 说明：Confluence、Jira、Slack 和 Google Drive 使用来源感知的处理链路，优先以确定性规则过滤低价值内容，只把可追溯的高价值信息送入索引和模型。
 - 验收标准：
 
@@ -429,9 +448,9 @@
 
 - 影响范围：
 
-  - 代码：—
-  - 测试：—
-  - 文档：`docs/product/roadmap.md`, `docs/product/workload.md`
+  - 代码：`contextledger/source_adapters.py`, `contextledger/source_sync.py`
+  - 测试：`tests/test_source_adapters.py`
+  - 文档：`docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/source-and-agent-interfaces.md`, `config/sources.example.json`
 
 ## REQ-015 · 统一分类、混合索引与身份感知查询路由
 
@@ -646,20 +665,23 @@
 
 - 来源：user proposed future tool on 2026-10-06; 2026-10-11 meeting recap specifies future Codex plugin direction
 - 权威级别：`team_decision`
-- 状态：`planned`
-- 说明：用户提供的 2026-10-11 会议纪要将未来产品目标定为 Codex 工具/插件，前端仅保留验证与演示。此为后续 planned，不属于本次取消复核的实现范围；协议、打包和可信最终用户身份待设计，复用统一服务，不恢复浏览器登录，不宣称插件已实现。
+- 状态：`in_progress`
+- 说明：2026-10-14 用户确认实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。随后用户授权配置其 Codex 并试用：已以现有 Jax 演示员工权限经 SSH 连接 gpushare 私有网关。实际 SDK 握手、关键词/混合检索、原文与零证据，以及凭据/伪造身份/越权负例已验证；本机300项回归通过。桌面重载及真人问答待用户试用，不提升为企业认证、宿主最终答案或四来源验收。
 - 验收标准：
 
-  - 明确工具接入协议、部署信任边界与上游最终用户身份验证方式，再实现适配层；浏览器登录不是工具接入的必要前置条件
+  - 首版使用 MCP stdio 经私有 HTTP 工具 API 调用统一服务；Codex/Claude Code/WorkBuddy 提供配置示例，标准 MCP HTTP 与企业 OAuth 后续单独确认；浏览器登录不是工具接入的必要前置条件
   - 工具只接受问题与已授权范围内的检索条件，权限身份由可信运行时注入或验证，不能由模型在工具参数中任意选择 user_id、角色或来源 principal
   - 即使使用共享服务凭据，也必须保留并验证最终用户身份，不把全部请求归为拥有所有员工权限的一个服务账号
   - 工具复用统一身份权限库、Qdrant/FTS 前置过滤、证据二次校验、交付检查和审计，不建立旁路权限实现
   - 默认返回可追溯的授权证据、来源、版本和请求标识供上游模型使用；是否在工具内部再次生成回答需要明确，不强制每次工具调用重复调用模型
   - 测试同一问题对两个不同权限身份的结果、伪造身份、未验证身份、系统内撤权、原文访问和审计权限；未建立可信身份时拒绝访问
-  - 不以实现 Tool 阻塞 REQ-017 当前前端验收；未来 Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录
+  - 不以实现 Tool 阻塞 REQ-017 当前前端验收；Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录
+  - 默认 search/fetch 不调用内部生成或规划模型；ask/audit 的内部生成需服务端显式启用，API 地址/Key/模型由部署者配置，模型参数不得携带凭据或任意地址
+  - 工具凭据只保存哈希，绑定单一稳定身份及能力范围、有效期，调用和交付前检查撤销/停用/当前权限，不向模型提供平台凭据、管理或同步写入工具
+  - Codex 试用仅开放普通员工 search/fetch；凭据可独占写入0600私有文件，启动器拒绝链接/不安全权限，不在配置或命令参数存放明文 Token；保留已有 Codex 配置及服务器权限、索引和审计
 
 - 影响范围：
 
-  - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/web.py`
-  - 测试：`tests/test_integration.py`
-  - 文档：`docs/product/update-2026-10-11.md`, `docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`
+  - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/tool_access.py`, `contextledger/tool_api.py`, `contextledger/mcp_server.py`, `scripts/mcp_private_launcher.py`, `requirements-tools.txt`
+  - 测试：`tests/test_integration.py`, `tests/test_tool_interfaces.py`, `tests/test_mcp_launcher.py`
+  - 文档：`docs/product/update-2026-10-11.md`, `docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/decisions/ADR-0005-source-adapters-and-mcp.md`, `docs/architecture/source-and-agent-interfaces.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `.env.tools.example`

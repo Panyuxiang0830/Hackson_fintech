@@ -39,7 +39,9 @@
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
-- `docs/product/tool-entry-scope.md`：延期的未来 Tool 设想与可信上游身份边界，不是当前前端验收前置条件；
+- `docs/product/tool-entry-scope.md`：历史 Tool 设想、可信上游身份边界及2026-10-14获准实现的阶段更新，不阻塞当前前端验收；
+- `docs/architecture/source-and-agent-interfaces.md`：四平台只读API/来源权限快照、宿主优先与可选内部模型路线、个人工具凭据、MCP stdio及三客户端模板；2026-10-14 已配置用户Codex并验证stdio/授权检索，桌面真人问答及真实来源/其他客户端待验收；
+- `docs/decisions/ADR-0005-source-adapters-and-mcp.md`：用户确认的来源适配、宿主模型优先MCP及凭据/快照边界，浏览器登录继续延期；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
 - `docs/architecture/unified-integration.md`：集成分支实际实现边界、配置、启动与人工验收；
 - `docs/architecture/decision-radar-v1.md`：最终方案：默认自动内部工具调用、查询时实体展开、具体事实可靠性与四案例回放；本地 v1 已实现，REQ-011 为 in_progress，质量／生产验收另记；
