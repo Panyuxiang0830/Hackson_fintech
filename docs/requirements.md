@@ -25,7 +25,7 @@
 | REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml`<br>`contextledger/static/onboarding.svg` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py`<br>`tests/test_llm_integration.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh`<br>`contextledger/freshness_eval.py`<br>`contextledger/freshness_workload.py`<br>`contextledger/freshness_replay.py`<br>`scripts/freshness_eval.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py`<br>`tests/test_freshness_eval.py` |
 | REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/llm_workflows.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_llm_workflows.py` |
-| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/tool_access.py`<br>`contextledger/tool_api.py`<br>`contextledger/mcp_server.py`<br>`requirements-tools.txt` | `tests/test_integration.py`<br>`tests/test_tool_interfaces.py` |
+| REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/tool_access.py`<br>`contextledger/tool_api.py`<br>`contextledger/mcp_server.py`<br>`scripts/mcp_private_launcher.py`<br>`requirements-tools.txt` | `tests/test_integration.py`<br>`tests/test_tool_interfaces.py`<br>`tests/test_mcp_launcher.py` |
 
 ## REQ-001 · 跨来源自然语言问答与引用
 
@@ -603,7 +603,7 @@
 - 来源：user proposed future tool on 2026-10-06; 2026-10-11 meeting recap specifies future Codex plugin direction
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：2026-10-14 用户确认本轮实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。用户要求跳过测试与真实联调，客户端兼容、部署和生产验收仍未验证。
+- 说明：2026-10-14 用户确认实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。初次实现按用户要求跳过测试；随后用户授权配置其 Codex 并试用：补充私有凭据文件与 stdio 启动器，使用现有普通员工权限，经 SSH 连接 gpushare 私有网关。联调结果单独记录，不把单客户端测试提升为企业部署或四来源验收。
 - 验收标准：
 
   - 首版使用 MCP stdio 经私有 HTTP 工具 API 调用统一服务；Codex/Claude Code/WorkBuddy 提供配置示例，标准 MCP HTTP 与企业 OAuth 后续单独确认；浏览器登录不是工具接入的必要前置条件
@@ -615,9 +615,10 @@
   - 不以实现 Tool 阻塞 REQ-017 当前前端验收；Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录
   - 默认 search/fetch 不调用内部生成或规划模型；ask/audit 的内部生成需服务端显式启用，API 地址/Key/模型由部署者配置，模型参数不得携带凭据或任意地址
   - 工具凭据只保存哈希，绑定单一稳定身份及能力范围、有效期，调用和交付前检查撤销/停用/当前权限，不向模型提供平台凭据、管理或同步写入工具
+  - Codex 试用仅开放普通员工 search/fetch；凭据可独占写入0600私有文件，启动器拒绝链接/不安全权限，不在配置或命令参数存放明文 Token；保留已有 Codex 配置及服务器权限、索引和审计
 
 - 影响范围：
 
-  - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/tool_access.py`, `contextledger/tool_api.py`, `contextledger/mcp_server.py`, `requirements-tools.txt`
-  - 测试：`tests/test_integration.py`, `tests/test_tool_interfaces.py`
+  - 代码：`contextledger/unified_service.py`, `contextledger/identity_store.py`, `contextledger/filtered_index.py`, `contextledger/tool_access.py`, `contextledger/tool_api.py`, `contextledger/mcp_server.py`, `scripts/mcp_private_launcher.py`, `requirements-tools.txt`
+  - 测试：`tests/test_integration.py`, `tests/test_tool_interfaces.py`, `tests/test_mcp_launcher.py`
   - 文档：`docs/product/update-2026-10-11.md`, `docs/product/tool-entry-scope.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/decisions/ADR-0005-source-adapters-and-mcp.md`, `docs/architecture/source-and-agent-interfaces.md`, `docs/architecture/unified-integration.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `.env.tools.example`

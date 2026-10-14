@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import uuid
 from pathlib import Path
 
@@ -18,6 +19,20 @@ from contextledger.tool_access import ToolAccess, CAPABILITIES
 from contextledger.unified_service import UnifiedService, PermissionChanged, validate_security_path, timestamp, ACCESS_GUARD
 from src.answering import empty_evidence_answer
 from src.audit import AuditIntegrityError
+
+
+def write_credential_file(path, value):
+    """Exclusive private runtime output; never overwrite an existing credential."""
+    path = Path(path).absolute()
+    parent = path.parent.stat()
+    if path.parent.is_symlink() or parent.st_uid != os.getuid() or stat.S_IMODE(parent.st_mode) & 0o077:
+        raise ValueError("credential destination requires an owned private directory")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
+        json.dump(value, handle)
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def create_tool_app(service, access, *, internal_answers=False):
@@ -165,6 +180,8 @@ def main(argv=None):
     issue.add_argument("--user-id", required=True)
     issue.add_argument("--capabilities", default="search,fetch")
     issue.add_argument("--days", type=int, default=30)
+    issue.add_argument("--output-file", type=Path,
+                       help="write once to an owned 0700 directory/0600 file, instead of printing the token")
     revoke = commands.add_parser("revoke-token")
     revoke.add_argument("--admin-id", required=True)
     revoke.add_argument("--token-id", required=True)
@@ -182,8 +199,18 @@ def main(argv=None):
         raise PermissionError("local operator must select an existing administrator")
     if args.command == "issue-token":
         token_id, token = access.issue(args.user_id, args.capabilities.split(","), args.days)
+        if args.output_file:
+            try:
+                write_credential_file(args.output_file, {"token_id": token_id, "token": token, "shown_once": True})
+            except Exception:
+                access.revoke(token_id)
+                raise
         service.record(admin, "tool_token_issued", target_user_id=args.user_id, token_id=token_id)
-        print(json.dumps({"token_id": token_id, "token": token, "shown_once": True}))
+        if args.output_file:
+            print(json.dumps({"token_id": token_id, "credential_file": str(args.output_file),
+                              "user_id": args.user_id, "capabilities": args.capabilities.split(",")}))
+        else:
+            print(json.dumps({"token_id": token_id, "token": token, "shown_once": True}))
     else:
         access.revoke(args.token_id)
         service.record(admin, "tool_token_revoked", token_id=args.token_id)

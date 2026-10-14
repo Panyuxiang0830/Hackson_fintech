@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .venv/
+.venv-tools/
 .obsidian/
 __pycache__/
 *.py[cod]

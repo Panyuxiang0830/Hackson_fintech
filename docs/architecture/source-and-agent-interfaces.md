@@ -1,6 +1,6 @@
 # 四来源适配与 Agent/MCP 接口
 
-日期：2026-10-14。分支 `codex/REQ-020-source-mcp-adapters`，基于 main `c2a930e1`。本轮代码待验收：用户要求不运行测试/真实联调；未部署、未推送、未合并。
+日期：2026-10-14。分支 `codex/REQ-020-source-mcp-adapters`，基于 main `c2a930e1`。初次实现按用户要求不运行测试/真实联调；随后用户授权配置其 Codex 试用，MCP 联调结果在下文单独记录。四来源未做真实平台联调，未推送、未合并。
 
 ## 数据接入
 
@@ -65,6 +65,8 @@ python -m pip install -r requirements-tools.txt
 python -m contextledger.tool_api --out /absolute/content --security-dir /absolute/security \
   issue-token --admin-id EXISTING_ADMIN_ID --user-id EXISTING_EMPLOYEE_ID
 # 输出一次明文 Token，只存入客户端私有配置，不提交/截图。
+# 自动配置时改用 --output-file /private-0700-directory/codex-employee.json：
+# 独占创建0600文件，已有文件不会覆盖，stdout仅返回无密钥的Token ID。
 # 需要内部回答时，发行命令额外指定 --capabilities search,fetch,ask；
 # 需要审计则加 audit，且账号本身必须已有 admin/compliance 角色。
 python -m contextledger.tool_api --out /absolute/content --security-dir /absolute/security \
@@ -109,6 +111,12 @@ env_vars = ["CL_TOOL_URL", "CL_TOOL_CORPUS", "CL_TOOL_TOKEN", "CL_MCP_ENABLE_ASK
 Claude Code 使用其 MCP 私有配置；WorkBuddy 使用其 MCP 配置入口。不同客户端环境变量/secret扩展行为可能不同，不假设都支持 `${VAR}`。不要把真实 Token 放到 Git 的项目配置。`python -m contextledger.mcp_server` 的 stdout 专供 MCP 协议，不输出启动日志。
 
 CL_TOOL_CORPUS 指定默认数据集（未配置为 orgforge），因此普通提问不必先知道数据库名；显式 corpus 参数仍由服务端验证当前用户范围，该配置不授予权限。
+
+### Codex 私有文件／SSH 试用
+
+`scripts/mcp_private_launcher.py --credentials /private/codex-employee.json --corpus orgforge` 读取上述私有凭据文件，拒绝符号链接、非当前用户拥有的文件、组/其他用户可读权限与非法Token；固定关闭 ask/audit，只注册 search/fetch。本地或远端均可运行，stdout仅用于MCP协议。
+
+若数据在 gpushare，Codex 的 command 可配置为 `/usr/bin/ssh`，args 使用 `-T -o BatchMode=yes -o ConnectTimeout=12 gpushare`，再跟远端独立虚拟环境的 Python、启动器和私有文件路径。私有网关只监听远端回环17864，凭据留在服务器；Codex config.toml不存明文Token，不需要额外模型API Key。首次试用使用现有 Jax 演示员工权限，不把演示身份称为真实企业认证。重启 MCP 连接可加载配置；服务器停机则需要恢复网关和Qdrant，不自动重建索引或恢复被撤权限。
 
 **首版只有 stdio MCP + 私有 HTTP 工具 API；HTTP 工具 API 不是 `/mcp`，不能直接当作标准远程 MCP 地址填入客户端。** 三客户端模板未联调；发行安装包、插件市场、Streamable HTTP/OAuth 为后续任务。
 
