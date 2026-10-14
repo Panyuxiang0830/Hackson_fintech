@@ -9,6 +9,7 @@ import time
 from contextvars import ContextVar
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 
 from .models import Evidence, User
 
@@ -16,7 +17,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v9-2026-10-11"
+PROMPT_VERSION = "answer-v10-2026-10-13"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 SYSTEM_PROMPT = (
@@ -30,14 +31,24 @@ SYSTEM_PROMPT = (
     "documents exist or blame permissions, departments or sources. Never reveal hidden "
     "names, titles, links, IDs, counts, or use training memory to fill the gap. "
     "State material gaps or conflicts instead of guessing. "
+    "status=answered means a supported informational answer, not business approval. "
+    "A documented pending, rejected or not-yet-effective decision is an answer: cite "
+    "the proposal and its approval state, distinguish a proposed amount from an active "
+    "limit, and state when the active limit is unknown. Likewise, report conflicting "
+    "source values with local citations instead of choosing a winner or refusing all "
+    "supported facts. Return insufficient only when no supported response to the "
+    "named entity and question can be given. Never add undocumented benefits, future "
+    "steps or operational conclusions just to make an answer longer. "
     "回答表达要求：用自己的话给用户讲明白，而不是翻译或抄写检索片段。默认面对非技术同事，"
     "先直接回答，再按问题需要解释具体用途和关系；详细程度来自有用的解释，不是罗列术语。"
-    "对于‘是什么／做什么的’：先给一句通俗结论，再分两三点讲数据从哪里来、保存什么、谁怎样使用。"
+    "对于‘是什么／做什么的’：先给一句通俗结论，再按资料讲数据从哪里来、保存什么、谁怎样使用。"
+    "资料只支持一句时，一句即可；不为凑段落添加自动化、保证效果或未知步骤。"
     "每一点独立成段，段间空行。讲清业务动作，不列开发框架、编程语言、实现缩写或参数；"
     "只有原问题明确询问技术实现时才写这些。原问题没问优化或未来计划时，不提迁移、监控或测试。"
     "直接选择相关证据，不需要用完全部证据，也不要附一段无关的技术总结。"
     "If technical depth, code or a verbatim quote is explicitly requested, match that "
-    "request instead of forcing a basic explanation. Cite every factual paragraph. Put [n] citations next to the "
+    "request instead of forcing a basic explanation. Cite every factual paragraph, "
+    "including the first direct conclusion. Put [n] citations next to the "
     "supported claims. Use plain text, no Markdown headings, bold, HTML or tables. "
     "An answered response longer than 200 characters must have at least two short "
     "paragraphs separated by blank lines. Encode newlines correctly inside JSON. "
@@ -63,6 +74,26 @@ def empty_evidence_answer(question: str) -> str:
             if re.search(r"[\u4e00-\u9fff]", question) else
             "This request found insufficient usable evidence to answer the question. "
             "You can add more detail or rephrase your question.")
+
+
+def reasoning_parameters(base_url, effort):
+    if not effort:
+        return {}
+    if urlparse(base_url).hostname == "openrouter.ai":
+        return {"reasoning": {"effort": effort, "exclude": True}}
+    return {"reasoning_effort": effort}
+
+
+def _check_answer_language(question, answer):
+    if re.search(r"[\u4e00-\u9fff]", question) or not re.match(
+            r"(?:what|who|when|where|which|why|how|is|are|do|does|can|could|please)\b", question.strip(), re.I):
+        return
+    if re.search(r"\b(?:Chinese|Mandarin|quote|translate|translation)\b", question, re.I):
+        return
+    chinese = len(re.findall(r"[\u4e00-\u9fff]", answer))
+    latin = len(re.findall(r"[A-Za-z]", answer))
+    if chinese >= 10 and chinese > latin:
+        raise ValueError("answer language does not match English question")
 
 
 def _completion_json(raw_content):
@@ -180,8 +211,9 @@ class AnswerService:
                     break  # No automatic retries of network/auth/limit failures.
                 except (ValueError, TypeError, KeyError, IndexError, AttributeError, RecursionError) as error:
                     reason = "invalid_json" if isinstance(error, json.JSONDecodeError) else (
+                        "language_validation_failed" if isinstance(error, ValueError) and "answer language" in str(error) else (
                         "citation_validation_failed" if isinstance(error, ValueError) and "citat" in str(error) else (
-                        "readability_validation_failed" if isinstance(error, ValueError) and "paragraph" in str(error) else "invalid_output"))
+                        "readability_validation_failed" if isinstance(error, ValueError) and "paragraph" in str(error) else "invalid_output")))
                     details = self.last_diagnostics
                     details["failures"].append(reason)
                     _DIAGNOSTICS.set(details)
@@ -255,6 +287,8 @@ class AnswerService:
             details["radar_prompt_hash"] = hashlib.sha256((TOOL_PROMPT + (SYNTHESIS_PROMPT if tool_state["called"] else "")).encode()).hexdigest()
             _DIAGNOSTICS.set(details)
         if self.last_diagnostics.get("attempts", 0) > 1:
+            if self.last_diagnostics["failures"][-1] == "language_validation_failed":
+                system += " The previous response used the wrong language. Answer this English question in English; preserve names and citation IDs."
             if tool_handler is not None and not tool_state["called"]:
                 system += " A format repair does not disable the tool. If missing history/status needs expansion, return the exact tool action JSON, without Markdown fences or answer fields."
             system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON."
@@ -263,6 +297,13 @@ class AnswerService:
             "caller_context": {"name": user.name, "role": user.role, "department": user.department},
             "authorised_evidence": context,
         }
+        if tool_handler is not None and not tool_state["called"]:
+            from contextledger.radar_protocol import identifiers
+            payload["decision_radar_options"] = {
+                "allowed_anchor_ids": list(dict.fromkeys(identifiers(question) +
+                    [anchor for entry in context for anchor in identifiers(entry["title"] + " " + entry["content"])])),
+                "focus": ["current_status", "history", "conflicts", "relationships"],
+            }
         if tool_handler is not None and tool_state["called"]:
             payload["decision_radar_result"] = tool_state["result"]
             system += " Tool invocation is exhausted. Return ordinary answer JSON only." + SYNTHESIS_PROMPT
@@ -276,6 +317,10 @@ class AnswerService:
             if truncated:
                 tool_state["result"].setdefault("coverage", {})["model_input_truncated"] = True
                 self.last_diagnostics["radar_context_truncated"] = True
+        system += (" Answer in Chinese, matching original_question; cite the first factual sentence."
+                   if re.search(r"[\u4e00-\u9fff]", question) else
+                   " Match the language of original_question. For an English question, every answer sentence "
+                   "must be English even when evidence or style guidance is Chinese. Cite the first factual sentence.")
         raw_content = self._completion(system, payload)
         parsed = _completion_json(raw_content)
         if isinstance(parsed, dict) and parsed.get("action") == "call_tool":
@@ -295,7 +340,10 @@ class AnswerService:
                 before_call()
             return self._openai_compatible(user, question, evidence, tool_handler=tool_handler,
                                           tool_state=tool_state, before_call=before_call)
-        return _validate_model_output(raw_content, len(evidence))
+        answer, status = _validate_model_output(raw_content, len(evidence))
+        if status == "answered":
+            _check_answer_language(question, answer)
+        return answer, status
 
     def _completion(self, system, payload):
         api_key = os.getenv("LLM_API_KEY", "").strip()
@@ -318,8 +366,7 @@ class AnswerService:
                 {"role": "user", "content": user_prompt},
             ],
         }
-        if effort:
-            request_body["reasoning_effort"] = effort
+        request_body.update(reasoning_parameters(self.base_url, effort))
         details = self.last_diagnostics
         details.setdefault("model_stages", []).append({
             "stage": "radar_synthesis" if synthesis else "route_or_direct",

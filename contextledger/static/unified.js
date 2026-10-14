@@ -67,6 +67,8 @@ const els = {
 
 // 1. Core API Wrapper
 async function api(path, options = {}) {
+  const generation = requestGeneration;
+  let errorGeneration = generation;
   const headers = new Headers(options.headers || {});
   const isPost = options.method && options.method.toUpperCase() === 'POST';
 
@@ -83,8 +85,9 @@ async function api(path, options = {}) {
       cache: 'no-store'
     });
 
-    if (res.status === 401 || res.status === 403 || res.status === 409) {
+    if ([401, 403, 409].includes(res.status) && generation === requestGeneration) {
       clearEvidence();
+      errorGeneration = requestGeneration;
     }
 
     if (!res.ok) {
@@ -99,12 +102,12 @@ async function api(path, options = {}) {
       if (res.status === 503) msg = 'Service temporarily unavailable. Please try again later.';
       if (res.status === 404) msg = 'Resource not found.';
 
-      throw { status: res.status, message: msg };
+      throw { status: res.status, message: msg, generation: errorGeneration };
     }
 
     return await res.json();
   } catch (error) {
-    if (!error.status) throw { status: 0, message: 'Network or connectivity error.' };
+    if (!error.status) throw { status: 0, message: 'Network or connectivity error.', generation };
     throw error;
   }
 }
@@ -353,7 +356,7 @@ async function query(ask) {
     renderResults(data, ask);
 
   } catch (e) {
-    if (generation === requestGeneration) showError('Request Failed', e.message);
+    if (generation === requestGeneration || e.generation === requestGeneration) showError('Request Failed', e.message);
   } finally {
     queryBusy = false;
     setQueryControls();
@@ -518,7 +521,7 @@ async function openDoc(corpus, doc_id, titleText) {
       showError('Not Available', 'The original document is not available in the snapshot.');
     }
   } catch (e) {
-    if (generation === requestGeneration) showError('Document Error', e.message);
+    if (generation === requestGeneration || e.generation === requestGeneration) showError('Document Error', e.message);
   }
 }
 
@@ -690,7 +693,7 @@ async function runAudit(generateAnswer) {
       els.auditAnswer.classList.remove('hidden');
     }
   } catch (error) {
-    if (generation === requestGeneration) {
+    if (generation === requestGeneration || error.generation === requestGeneration) {
       els.auditResults.textContent = 'Audit request failed: ' + error.message;
     }
   } finally {

@@ -46,7 +46,7 @@
 
   - 代码：`app.py`, `src/retrieval.py`, `src/answering.py`, `src/service.py`, `contextledger/unified_service.py`, `contextledger/web.py`
   - 测试：`tests/test_end_to_end.py`, `tests/test_integration.py`
-  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
+  - 文档：`README.md`, `docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`, `docs/evaluation/chat.md`
 
 ## REQ-002 · 检索前确定性权限过滤
 
@@ -531,7 +531,28 @@
 
   - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `contextledger/rechunk.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `scripts/sync_preview_config.py`, `requirements-integration.txt`, `.github/workflows/ci.yml`, `contextledger/static/onboarding.svg`
   - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`, `tests/test_llm_integration.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/product/frontend-team-integration.md`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/evaluation/chat.md`, `docs/product/frontend-team-integration.md`
+
+### 功能扩展 · Tailscale 私有常驻试用入口
+
+- 扩展键：`private-tailnet-preview`
+- 来源：user requested deployment for browser use on other Tailscale machines on 2026-10-13
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：通过 Tailscale Serve 与回环可信网关部署隔离演示；保持固定账号、CSRF、权限与版本检查，持久化内容/权限/审计和 Qdrant，由后台服务常驻。不是生产登录。 2026-10-13 固定代码部署通过新浏览器、真实模型、角色导航、零证据拒答及另一台 Tailscale 机器 TLS 检查；适用合成演示与允许登录范围。
+- 验收标准：
+
+  - 入口只通过私有 Tailscale Serve 到达回环后端，校验明确允许的 Tailscale 登录、固定 Host 和浏览器 Origin；不开启公网 Funnel
+  - TLS、Secure Cookie、固定演示账号与原应用 CSRF/ACL/版本检查保留；来源身份不能由代理头授予
+  - 后台服务和 Qdrant 可重启，内容与安全状态分离并持久化；部署使用固定代码提交，不重跑或改写测评结果
+  - 实测 HTTPS 页面、身份选择、真实模型回答、越权拒答和跨机器访问，保存部署步骤与当前 URL
+  - 2026-10-13 API 交互检查：当前请求的拒绝／冲突／网络失败显示明确错误并恢复按钮；错误响应清理证据后仍可提示，身份或问题变化后的旧成功与旧错误都不能覆盖当前页面。真实请求与失败注入分别报告
+
+- 影响范围：
+
+  - 代码：`contextledger/tailnet_preview.py`, `scripts/serve_tailnet_preview.py`, `requirements-tailnet-preview.txt`, `contextledger/web.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/static/onboarding.svg`
+  - 测试：`tests/test_tailnet_preview.py`, `tests/test_demo_identity.py`, `tests/test_integration.py`, `tests/test_llm_integration.py`, `scripts/check_chat_ui.py`
+  - 文档：`docs/architecture/tailnet-preview.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 
@@ -556,6 +577,26 @@
   - 代码：`contextledger/evaluation.py`, `contextledger/eval_scenarios.py`, `contextledger/benchmark_quality.py`, `scripts/refine_part_a_retrieval.py`, `scripts/tune_part_a_retrieval.py`, `scripts/part_a.sh`, `contextledger/freshness_eval.py`, `contextledger/freshness_workload.py`, `contextledger/freshness_replay.py`, `scripts/freshness_eval.sh`
   - 测试：`tests/test_part_a_evaluation.py`, `tests/test_part_a_refinement.py`, `tests/test_part_a_tuning.py`, `tests/test_llm_workflows.py`, `tests/test_llm_integration.py`, `tests/test_freshness_eval.py`
   - 文档：`docs/product/engineering-challenges.md`, `docs/product/roadmap.md`, `BENCHMARK_QUICKSTART.md`, `QUICKSTART.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/product/update-2026-10-11.md`, `docs/README.md`, `docs/architecture/llm-workflows.md`, `docs/architecture/decision-radar-v1.md`
+
+### 功能扩展 · 真实模型聊天与前端回归评测
+
+- 扩展键：`real-chat-evaluation`
+- 来源：user requested chat evaluation and latest frontend update on 2026-10-13
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：固定合成授权资料与问题，调用实际 /api/ask、Qdrant、回答和审计链；分别记录事实/状态/引用检查、拒答、更新与浏览器行为。真实模型实测不等同完整语义或生产验收。
+- 验收标准：
+
+  - 保存固定问题、期望事实与证据版本；失败和拒答保留在分母
+  - 使用本地配置的真实模型及原生 Qdrant，分别报告回答、跨来源审批状态、无证据/越权、更新后答案和延迟
+  - 浏览器检查回答/原文/权限切换与手机布局；明确当前为单轮问答，省略实体的追问不自动继承旧上下文
+  - 保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料
+
+- 影响范围：
+
+  - 代码：`scripts/evaluate_chat.py`, `scripts/check_chat_ui.py`, `fixtures/chat/evaluation.json`, `src/answering.py`, `contextledger/static/unified.js`, `contextledger/templates/unified.html`, `contextledger/radar_protocol.py`, `contextledger/llm_workflows.py`
+  - 测试：`tests/test_chat_evaluation.py`, `tests/test_answering.py`, `tests/test_radar_synthesis.py`, `tests/test_radar_integration.py`
+  - 文档：`docs/evaluation/chat.md`, `docs/README.md`, `BENCHMARK_QUICKSTART.md`, `docs/product/prompt-and-login-walkthrough.md`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 
