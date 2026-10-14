@@ -112,7 +112,7 @@
 - 来源：user confirmed automatic source permission reads on 2026-10-14
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`in_progress`
-- 说明：本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。用户要求不运行测试/真实联调，状态不提升为 validated。
+- 说明：本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。初次实现按用户要求不运行测试；随后 Codex 试用阶段离线回归通过，但四来源未做真实联调，状态不提升为 validated。
 - 验收标准：
 
   - Jira/Confluence 使用来源有效权限检查，Slack 使用完整成员快照，Drive 保留权限条目并仅映射可验证的用户授权；来源身份映射显式配置，未映射或不支持的权限语义不猜测放行
@@ -603,7 +603,7 @@
 - 来源：user proposed future tool on 2026-10-06; 2026-10-11 meeting recap specifies future Codex plugin direction
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：2026-10-14 用户确认实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。初次实现按用户要求跳过测试；随后用户授权配置其 Codex 并试用：补充私有凭据文件与 stdio 启动器，使用现有普通员工权限，经 SSH 连接 gpushare 私有网关。联调结果单独记录，不把单客户端测试提升为企业部署或四来源验收。
+- 说明：2026-10-14 用户确认实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。随后用户授权配置其 Codex 并试用：已以现有 Jax 演示员工权限经 SSH 连接 gpushare 私有网关。实际 SDK 握手、关键词/混合检索、原文与零证据，以及凭据/伪造身份/越权负例已验证；本机300项回归通过。桌面重载及真人问答待用户试用，不提升为企业认证、宿主最终答案或四来源验收。
 - 验收标准：
 
   - 首版使用 MCP stdio 经私有 HTTP 工具 API 调用统一服务；Codex/Claude Code/WorkBuddy 提供配置示例，标准 MCP HTTP 与企业 OAuth 后续单独确认；浏览器登录不是工具接入的必要前置条件

@@ -118,11 +118,21 @@ CL_TOOL_CORPUS 指定默认数据集（未配置为 orgforge），因此普通�
 
 若数据在 gpushare，Codex 的 command 可配置为 `/usr/bin/ssh`，args 使用 `-T -o BatchMode=yes -o ConnectTimeout=12 gpushare`，再跟远端独立虚拟环境的 Python、启动器和私有文件路径。私有网关只监听远端回环17864，凭据留在服务器；Codex config.toml不存明文Token，不需要额外模型API Key。首次试用使用现有 Jax 演示员工权限，不把演示身份称为真实企业认证。重启 MCP 连接可加载配置；服务器停机则需要恢复网关和Qdrant，不自动重建索引或恢复被撤权限。
 
-**首版只有 stdio MCP + 私有 HTTP 工具 API；HTTP 工具 API 不是 `/mcp`，不能直接当作标准远程 MCP 地址填入客户端。** 三客户端模板未联调；发行安装包、插件市场、Streamable HTTP/OAuth 为后续任务。
+**首版只有 stdio MCP + 私有 HTTP 工具 API；HTTP 工具 API 不是 `/mcp`，不能直接当作标准远程 MCP 地址填入客户端。** Codex 配置及实际stdio协议已验证，桌面真人问答待重载后试用；Claude Code/WorkBuddy 模板未联调。发行安装包、插件市场、Streamable HTTP/OAuth 为后续任务。
 
 ## 本轮验证与 Demo 表述
 
-按用户要求，离线回归用例已准备但未运行；未请求真实平台或GLM、未验证三客户端、未重建现有索引、未改服务器权限或数据。仅进行静态语法、需求生成与diff检查，不能把这些当成功能验收。
+初次实现按用户要求仅做静态语法、需求生成与diff检查。随后 Codex 试用授权及验证如下；未请求真实来源平台或GLM，不把MCP联调当来源接入或模型语义质量验收。
+
+### 2026-10-14 Codex 接入记录
+
+- 代码快照 `91f57447` 独立部署至 gpushare `/hy-tmp/data_pyx/contextledger-integration/releases/source-mcp-91f57447`；传输包两端 SHA-256 一致。原服务当时已停止，恢复原 Qdrant 6335/6336（PID577299），复用已发布 generation `874d91dbd8684f29a997b56860e1043f`，没有重建或删除索引。新增私有网关 PID578124，仅监听127.0.0.1:17864，内部模型与规划停用。
+- 为已有 Jax 普通演示员工发行30天 search/fetch个人凭据，私有文件0600、父目录0700；数据库仅保存哈希。发行及试用查询进入既有审计；未改账号、来源绑定或本地限制，未清除历史日志。平台Key与GLMKey不用于这条路线。
+- 用户 `/Users/panyuxiang/.codex/config.toml` 注册 `contextledger`，SSH运行私有启动器，仅search/fetch。配置无明文Token；原配置备份 `config.toml.before-contextledger-20261014`，解析比较确认全部原有设置保持一致。没有提交个人配置或凭据。
+- 实际MCP Python SDK1.30.0使用上述启动配置完成 initialize/list_tools/call_tool。关键词 TitanDB 和中文混合检索均返回5条授权证据；混合检索一次5.35秒，不是性能基准。search请求 `2db9939b-f27c-443c-93e7-6c7a95ea1e10` 的query_plan为disabled/attempts0；fetch `7a9be637-8095-4f62-8e27-ecce5761cec6` 读取当前版本fba68e1daf7e、6584字符原文。零证据请求 `515c5839-50ed-49e8-8fba-e6085b079d01` 返回insufficient、空hits和中性提示。
+- HTTP负例：无凭据401、伪造身份400、普通Token调用ask/audit均401、浏览器Origin403；来源ACL不允许的文档fetch返回404/available=false，无标题/正文。审计链验证有效，不声称记录或校验了宿主最终回答。
+- 本机独立 `.venv-tools` 运行300项主回归通过，含7项工具接口、4项私有凭据/实际SDK注册和6项来源模拟回归；需求检查通过。真实四来源、Claude Code/WorkBuddy、内部ask及企业认证未验收。桌面需重启MCP连接后由用户实际提问。
+- 此为回环+SSH开发试用，网关使用Flask开发服务，没有设定开机启动。服务器重启后须恢复Qdrant和网关，不自动重建数据/复位权限。移除入口用 `codex mcp remove contextledger`；凭据撤销另走revoke-token，仅删客户端配置不等于服务器凭据已撤销。
 
 建议 Demo：系统提供四平台只读API适配、可验证的来源权限快照及MCP工具入口；演示使用离线数据。企业需配置凭据、采集范围和稳定身份映射，真实企业环境联调及完整目录/实时撤权同步尚待验证。不要宣称“填一个Key就已支持企业全部权限”。
 
