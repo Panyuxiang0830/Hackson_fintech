@@ -79,7 +79,7 @@ class DocumentUpdates:
             raise ValueError(f"invalid {name}")
         return value.strip()
 
-    def _document(self, db, body, version):
+    def _document(self, db, body, version, *, source_refresh=False):
         allowed = {"corpus", "doc_id", "source", "title", "text", "expected_version", "acl",
                    "department", "project", "classification", "allowed_roles", "allowed_departments",
                    "source_updated_at", "source_metadata"}
@@ -101,7 +101,8 @@ class DocumentUpdates:
         title = self._text(body.get("title"), "title", 1000)
         self._text(body.get("text"), "text", 24000)
         text = body["text"]
-        acl = body.get("acl", json.loads(old["acl_json"]) if old else None)
+        previous_acl = json.loads(old["acl_json"]) if old else None
+        acl = body.get("acl", previous_acl)
         if not isinstance(acl, list) or len(acl) > 100 or any(not isinstance(p, str) for p in acl) or len(set(acl)) != len(acl):
             raise ValueError("explicit source ACL required; an empty list denies all access")
         for principal in acl:
@@ -133,14 +134,50 @@ class DocumentUpdates:
         allowed_metadata = {"source_resource_id", "source_url", "source_revision", "source_acl_observed_at", "source_acl_basis"}
         if not isinstance(metadata, dict) or set(metadata) - allowed_metadata:
             raise ValueError("invalid source metadata")
+        acl_source_fields = {"source_acl_basis", "source_acl_observed_at"}
         for key, value in metadata.items():
-            extra[key] = self._text(value, key, 2000 if key == "source_url" else 256)
+            value = self._text(value, key, 2000 if key == "source_url" else 256)
+            if key in acl_source_fields and not source_refresh:
+                # Administrator-provided annotations are references, not proof
+                # that the current ACL was checked on the source platform.
+                reference = extra.get("source_acl_reference")
+                if not isinstance(reference, dict):
+                    reference = extra["source_acl_reference"] = {}
+                reference[key] = value
+                reference["authority"] = "administrator_supplied_unverified_reference"
+            else:
+                extra[key] = value
+        acl_basis = old["acl_basis"] if old else "trusted administrator supplied ACL"
+        provenance = None
+        if source_refresh:
+            if acl_source_fields <= set(metadata):
+                acl_basis = extra["source_acl_basis"]
+                provenance = {"kind": "source_snapshot", "observed_at": extra["source_acl_observed_at"]}
+            else:
+                # Quarantine/missing-resource withdrawals do not constitute a
+                # newly verified grant; never inherit the previous source label.
+                for key in acl_source_fields:
+                    extra.pop(key, None)
+                acl_basis = ("source ACL withdrawn: permission unavailable or resource absent" if not acl else
+                             "trusted operator supplied ACL; source verification metadata unavailable")
+                provenance = {"kind": "source_withdrawal" if not acl else "operator_snapshot",
+                              "observed_at": extra["observed_at"]}
+        elif previous_acl is None or set(acl) != set(previous_acl):
+            for key in acl_source_fields:
+                extra.pop(key, None)
+            acl_basis = "administrator adjusted ACL; previous provenance retained in document history" if old else acl_basis
+            provenance = {"kind": "administrator_adjustment" if old else "administrator_snapshot",
+                          "observed_at": extra["observed_at"]}
+        if provenance is not None:
+            if old:
+                provenance["previous_version"] = old["version"]
+            extra["acl_provenance"] = provenance
         department = body.get("department", old["dept"] if old else "")
         if not isinstance(department, str) or len(department) > 256 or "\x00" in department:
             raise ValueError("invalid department")
         return CanonicalDoc(corpus, doc_id, source, title, text, old["day"] if old else None,
             source_time, department, json.loads(old["actors_json"]) if old else [], acl,
-            extra.get("source_acl_basis", "trusted administrator supplied source ACL snapshot"), version, content_hash(text), extra, [])
+            acl_basis, version, content_hash(text), extra, [])
 
     def submit(self, actor_id, body, *, source_refresh=False):
         self._admin(actor_id)
@@ -149,7 +186,7 @@ class DocumentUpdates:
         job_id = uuid.uuid4().hex
         with connect(self.db_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            document = self._document(db, body, job_id)
+            document = self._document(db, body, job_id, source_refresh=source_refresh)
             source_scope = None
             if source_refresh:
                 # Not a document/body field: only SourceSync opts into this path.

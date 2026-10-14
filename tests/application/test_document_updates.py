@@ -13,6 +13,7 @@ from contextledger.audit.store import AuditStore
 from contextledger.storage.document_updates import DocumentUpdates, UpdateConflict
 from contextledger.retrieval.filtered_index import FilteredIndex, IndexUnavailable, payload_for, point_id, prepare_snapshot
 from contextledger.access.identity_store import IdentityStore
+from contextledger.ingestion.source_sync import SourceSync
 from contextledger.storage.index_lock import index_lock
 from contextledger.storage.models import CanonicalDoc, Chunk, Principal
 from contextledger.storage.store import chunk_digest, connect, init_db, insert_documents, insert_principals
@@ -88,6 +89,139 @@ class DocumentUpdateTests(unittest.TestCase):
         ready = self.updates.status(self.admin.id, job["id"])
         self.assertEqual(ready["state"], "ready", ready)
         return ready
+
+    def source_ready(self, *, version=None, amount="50,000", **changes):
+        sync = SourceSync(self.service, self.updates, self.security / "source-raw.sqlite")
+        sync.gate("alpha", "confluence", "refreshing")
+        body = self.body(version=version, amount=amount, doc_id="live:confluence:payment",
+            source_metadata={"source_resource_id": "payment", "source_url": "https://source.example/payment",
+                "source_revision": "source-r1", "source_acl_basis": "verified source per-user read permission",
+                "source_acl_observed_at": "2026-10-14T00:00:00Z"}, **changes)
+        job = self.updates.submit(self.admin.id, body, source_refresh=True)
+        self.assertTrue(self.updates.process_one())
+        ready = self.updates.status(self.admin.id, job["id"])
+        self.assertEqual(ready["state"], "ready", ready)
+        sync.gate("alpha", "confluence", "ready", time.time()+300)
+        return ready
+
+    def live_document(self):
+        with connect(self.db_path) as db:
+            return dict(db.execute("SELECT * FROM documents WHERE doc_id='live:confluence:payment'").fetchone())
+
+    def historical_document(self, version):
+        with connect(self.db_path) as db:
+            row = db.execute("SELECT document_json FROM cl_document_history WHERE corpus='alpha' AND doc_id='live:confluence:payment' AND version=?", (version,)).fetchone()
+            self.assertIsNotNone(row)
+            return json.loads(row[0])
+
+    def test_admin_acl_change_relabels_current_basis_and_preserves_exact_source_history(self):
+        first = self.source_ready()
+        original = self.live_document()
+        second = self.submit_ready(self.body(version=first["version"], doc_id=original["doc_id"], acl=[]))
+        current = self.live_document()
+        extra = json.loads(current["extra_json"])
+        self.assertEqual(json.loads(current["acl_json"]), [])
+        self.assertIn("administrator adjusted ACL", current["acl_basis"])
+        self.assertEqual(extra["acl_provenance"]["kind"], "administrator_adjustment")
+        self.assertEqual(extra["acl_provenance"]["previous_version"], first["version"])
+        self.assertNotIn("source_acl_basis", extra)
+        self.assertNotIn("source_acl_observed_at", extra)
+        self.assertEqual(extra["source_revision"], "source-r1")
+        self.assertEqual(self.historical_document(first["version"]), original)
+        self.assertEqual(current["version"], second["version"])
+        self.assertEqual(self.service.open(self.alice.id, "alpha", original["doc_id"])[0], {"available": False})
+        points, _ = self.client.scroll("updates", limit=10, with_payload=True)
+        self.assertEqual([point.payload["acl"] for point in points if point.payload["doc_id"] == original["doc_id"]], [[]])
+        self.assertTrue(self.audit.verify().valid)
+
+    def test_content_only_update_preserves_source_acl_basis_and_observation(self):
+        first = self.source_ready()
+        original = self.live_document()
+        original_extra = json.loads(original["extra_json"])
+        body = self.body(version=first["version"], doc_id=original["doc_id"], amount="100,000")
+        body.pop("acl")
+        self.submit_ready(body)
+        current = self.live_document()
+        extra = json.loads(current["extra_json"])
+        self.assertEqual(current["acl_basis"], original["acl_basis"])
+        self.assertEqual(extra["source_acl_observed_at"], original_extra["source_acl_observed_at"])
+        self.assertEqual(extra["acl_provenance"], original_extra["acl_provenance"])
+        self.assertEqual(self.historical_document(first["version"]), original)
+
+    def test_acl_reordering_does_not_claim_an_administrator_permission_change(self):
+        with connect(self.db_path) as db:
+            insert_principals(db, [Principal("alpha", "alpha:b", "Bob", "engineer", "eng")], {})
+        first = self.source_ready(acl=["alpha:a", "alpha:b"])
+        original = self.live_document()
+        self.submit_ready(self.body(version=first["version"], doc_id=original["doc_id"], acl=["alpha:b", "alpha:a"]))
+        self.assertEqual(self.live_document()["acl_basis"], original["acl_basis"])
+        self.assertEqual(json.loads(self.live_document()["extra_json"])["acl_provenance"]["kind"], "source_snapshot")
+
+    def test_admin_source_annotation_cannot_claim_a_verified_current_acl(self):
+        first = self.source_ready()
+        original = self.live_document()
+        self.submit_ready(self.body(version=first["version"], doc_id=original["doc_id"], acl=[],
+            source_metadata={"source_acl_basis": "claimed fresh platform verification", "source_acl_observed_at": "2026-10-15T00:00:00Z"}))
+        current = self.live_document()
+        extra = json.loads(current["extra_json"])
+        self.assertIn("administrator adjusted ACL", current["acl_basis"])
+        self.assertEqual(extra["source_acl_reference"]["authority"], "administrator_supplied_unverified_reference")
+        self.assertNotIn("source_acl_basis", extra)
+        self.assertEqual(self.historical_document(first["version"]), original)
+
+    def test_source_reverification_replaces_admin_basis_but_preserves_admin_history(self):
+        first = self.source_ready()
+        original = self.live_document()
+        second = self.submit_ready(self.body(version=first["version"], doc_id=original["doc_id"], acl=[]))
+        admin_snapshot = self.live_document()
+        self.source_ready(version=second["version"])
+        current = self.live_document()
+        self.assertEqual(current["acl_basis"], original["acl_basis"])
+        self.assertEqual(json.loads(current["extra_json"])["acl_provenance"]["kind"], "source_snapshot")
+        self.assertEqual(self.historical_document(second["version"]), admin_snapshot)
+        self.assertEqual(self.historical_document(first["version"]), original)
+        self.assertTrue(self.service.open(self.alice.id, "alpha", original["doc_id"])[0]["available"])
+
+    def test_source_withdrawal_does_not_inherit_old_verified_basis(self):
+        first = self.source_ready()
+        original = self.live_document()
+        sync = SourceSync(self.service, self.updates, self.security / "source-raw.sqlite")
+        sync.gate("alpha", "confluence", "refreshing")
+        job = self.updates.submit(self.admin.id, SourceSync.denial(original), source_refresh=True)
+        self.updates.process_one()
+        self.assertEqual(self.updates.status(self.admin.id, job["id"])["state"], "ready")
+        current = self.live_document()
+        self.assertIn("source ACL withdrawn", current["acl_basis"])
+        extra = json.loads(current["extra_json"])
+        self.assertEqual(extra["acl_provenance"]["kind"], "source_withdrawal")
+        self.assertNotIn("source_acl_observed_at", extra)
+        self.assertEqual(self.historical_document(first["version"]), original)
+
+    def test_repeated_admin_changes_do_not_restore_source_label_or_history_access(self):
+        first = self.source_ready()
+        original = self.live_document()
+        second = self.submit_ready(self.body(version=first["version"], doc_id=original["doc_id"], acl=[]))
+        restricted = self.live_document()
+        self.submit_ready(self.body(version=second["version"], doc_id=original["doc_id"], acl=["alpha:a"]))
+        self.assertIn("administrator adjusted ACL", self.live_document()["acl_basis"])
+        self.assertEqual(self.historical_document(first["version"]), original)
+        self.assertEqual(self.historical_document(second["version"]), restricted)
+        self.ids.restrict(self.alice.id, "alpha", "document", original["doc_id"], True)
+        self.assertEqual(self.service.open(self.alice.id, "alpha", original["doc_id"])[0], {"available": False})
+
+    def test_failed_acl_publication_and_retry_preserve_original_source_history(self):
+        first = self.source_ready()
+        original = self.live_document()
+        job = self.updates.submit(self.admin.id, self.body(version=first["version"], doc_id=original["doc_id"], acl=[]))
+        with patch.object(self.updates, "embed", side_effect=RuntimeError("offline")):
+            self.updates.process_one()
+        self.assertEqual(self.updates.status(self.admin.id, job["id"])["state"], "failed")
+        self.assertEqual(self.historical_document(first["version"]), original)
+        self.updates.retry(self.admin.id, job["id"])
+        self.updates.process_one()
+        self.assertEqual(self.updates.status(self.admin.id, job["id"])["state"], "ready")
+        self.assertEqual(self.historical_document(first["version"]), original)
+        self.assertIn("administrator adjusted ACL", self.live_document()["acl_basis"])
 
     def assert_answer(self, amount, version):
         for mode in ("keyword", "vector", "hybrid"):

@@ -120,11 +120,12 @@
   - 来源授权仅证明本次观察快照，不宣称实时原平台撤权或完整企业目录同步；系统内权限限制仍优先生效
   - 来源刷新、失败、快照过期或缺少就绪依据时，仅 live:<source>: 资源及其待发布版本被检索前隔离；同 corpus 静态数据、其他有效来源和其他 corpus 不被来源门闩整体锁住，SQL 与 Qdrant 均前置过滤
   - 来源队列在分块/向量发布期间和失败重试后仍隔离对应资料；模型前后、原文、Radar 与交付复核重新读取门闩；整库重建和非来源手工更新继续保留既有一致性保护，不把来源部分结果当作全库完整扫描
+  - 2026-10-15 用户确认修复 ACL 依据：管理员改变实际 ACL 后，当前依据标为管理员调整，原来源依据、观察时间、版本及 ACL 保存在既有不可变版本历史；仅正文修改或 ACL 重排不冒充权限变更，可信来源重新验证与来源撤权分别标注，依据说明不参与授权决定
 
 - 影响范围：
 
   - 代码：`contextledger/ingestion/source_adapters.py`, `contextledger/ingestion/source_sync.py`, `contextledger/retrieval/filtered_index.py`, `contextledger/storage/document_updates.py`
-  - 测试：`tests/ingestion/test_source_adapters.py`, `tests/ingestion/test_source_sync.py`
+  - 测试：`tests/ingestion/test_source_adapters.py`, `tests/ingestion/test_source_sync.py`, `tests/application/test_document_updates.py`
   - 文档：`docs/architecture/source-and-agent-interfaces.md`, `config/sources.example.json`, `docs/decisions/ADR-0005-source-adapters-and-mcp.md`, `docs/architecture/index-and-freshness.md`
 
 ## REQ-004 · 新鲜度与来源状态

@@ -51,6 +51,19 @@ python -m contextledger.ingestion.source_sync --out /absolute/content \
 
 2026-10-15 本机验证：14项来源编排用例通过；全量337项 unittest、包含其在内的345项 pytest通过；需求同步、JavaScript语法与diff检查通过。本修复未部署gpushare、未合并main，真实四来源和生产并发/性能验收仍待完成。
 
+### 当前 ACL 依据与历史来源信息
+
+2026-10-15 用户确认将当前授权依据与历史来源证明分开。`acl_basis` 是解释字段，不决定谁能读取；权限仍由实际 ACL、当前系统限制及来源门闩判断。
+
+- 管理员改变 ACL 的成员集合后，当前 `acl_basis` 标为管理员调整，`acl_provenance.kind` 为 `administrator_adjustment`，记录本地调整时刻和 `previous_version`。当前记录移除旧 `source_acl_basis/source_acl_observed_at`，不再把原来源观察说成这次 ACL 的验证依据；初次人工录入标为 `administrator_snapshot`。
+- 原来源的 ACL、依据、观察时间、资源 ID、URL 和来源版本随完整旧记录保存在私有 `cl_document_history.document_json`；复用不可变版本保存和失败重试，不新建无界内嵌历史数组，不改写/删除原历史。当前资源 URL 和来源版本仍可作为原始内容的来源引用，不证明管理员新 ACL 已获原平台认可。
+- 普通管理员提交的来源 ACL 文字/时间仅存为 `source_acl_reference`，明确标注 `administrator_supplied_unverified_reference`，不能升级为平台验证。可信 SourceSync 刷新携带新的依据与观察时间时，当前记录标为 `source_snapshot`；资料消失/权限未知造成空 ACL 时标为 `source_withdrawal`，旧来源记录仍在历史中。
+- 只修改正文、未传 ACL 或 ACL 顺序变化不重新标记权限来源；系统内拒绝规则仍优先生效。保留历史不恢复历史读取权限，普通搜索/原文没有新增历史访问入口。既有错误标注不在本轮自动批量回填，运行中的数据库未被迁移/修改；这是后续更新路径的修正。
+
+对应回归在 `tests/application/test_document_updates.py`，覆盖当前标注、旧来源完整保留、重复修改、重新验证、撤权、伪造来源说明、失败重试与历史不能绕过当前拒绝规则。不调用真实平台或模型。
+
+本轮本机验证：新增8项 ACL 依据回归，文档更新与来源编排合计40项通过；全量345项 unittest及包含其在内的353项 pytest通过；需求同步、JavaScript语法和diff检查通过。未批量修正部署库、未部署服务器或合并main。
+
 ## 两条模型路线
 
 宿主路线（默认）：Agent → MCP search/fetch → 私有 Tool API → UnifiedService → 授权证据 → 宿主模型回答。search 的 planning 固定 false，不调用内部 GLM；向量查询仍使用既有本地 Embedding。宿主自己的模型/API 在宿主产品内配置，与 ContextLedger 的 Key 无关。
