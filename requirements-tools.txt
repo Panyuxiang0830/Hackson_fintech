@@ -1,3 +1,0 @@
-# Optional adapter dependency; not imported by the ordinary frontend.
--r requirements-integration.txt
-mcp>=1.26,<2

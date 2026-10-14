@@ -69,7 +69,7 @@
 python scripts/prepare_integration_preview.py --source /absolute/current-content --target /absolute/new-content --fresh-vectors
 python -m contextledger rechunk --out /absolute/new-content
 # 新分块必须使用新生成的向量，此处不复用旧分块缓存。
-python -m contextledger.interfaces.integration --out /absolute/new-content --security-dir /absolute/existing-security index
+python -m contextledger.integration --out /absolute/new-content --security-dir /absolute/existing-security index
 python scripts/verify_unified_snapshot.py --out /absolute/new-content
 ```
 

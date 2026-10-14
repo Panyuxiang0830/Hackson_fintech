@@ -6,7 +6,7 @@
 
 ## 1. 当前实际发送给回答模型的内容
 
-实现：`contextledger/answering/service.py` 的 `AnswerService._openai_compatible`，集成入口为 `contextledger/application/service.py` 的 `ask`。
+实现：`src/answering.py` 的 `AnswerService._openai_compatible`，集成入口为 `contextledger/unified_service.py` 的 `ask`。
 
 ### 英文问题的 System message 原文
 

@@ -1,1 +1,0 @@
-"""tests.radar functional package."""

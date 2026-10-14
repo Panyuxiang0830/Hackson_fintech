@@ -41,13 +41,9 @@
 ```bash
 .venv/bin/python scripts/project_sync.py --check
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m pytest tests -q
-node --check contextledger/interfaces/static/unified.js
 ```
 
 如果没有 `.venv`，以上命令中的 `.venv/bin/python` 可替换为 `python3`。
-
-业务实现按功能放在 `contextledger/` 下；`scripts/` 仅放命令入口及独立运维/项目工具。共享测试自行构造小样本；Part A 分词器 fixture 限于 `tests/ingestion/part_a/`，不要提升到全局。
 
 ## Git 约定
 

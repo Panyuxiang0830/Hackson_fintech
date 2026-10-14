@@ -1,1 +1,0 @@
-"""contextledger.evaluation functional package."""

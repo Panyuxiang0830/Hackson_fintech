@@ -1,1 +1,0 @@
-"""contextledger.ingestion functional package."""

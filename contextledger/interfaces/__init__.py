@@ -1,1 +1,0 @@
-"""contextledger.interfaces functional package."""

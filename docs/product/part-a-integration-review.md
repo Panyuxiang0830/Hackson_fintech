@@ -14,7 +14,7 @@
 
 ## 比较基线与本次范围
 
-- 本次核对的远程 `main`：`1359a7dacb54b3e0eb33f281ffd43eeb51aace06`，其中 Part A 使用 `contextledger/interfaces/demo_app.py`、`contextledger/retrieval/search.py` 和本地 RaBitQ。
+- 本次核对的远程 `main`：`1359a7dacb54b3e0eb33f281ffd43eeb51aace06`，其中 Part A 使用 `contextledger/demo_app.py`、`contextledger/search.py` 和本地 RaBitQ。
 - 集成功能实现核对点：`0aef6ea42ced9c61ad6e2c48044605c87b25f7fe`，工作分支 `codex/REQ-017-unified-integration`；本次交接随后增加审查说明、需求影响范围及文档同步，并修正 PR 干净环境的依赖声明、添加相应回归，不增加业务功能。
 - main 已有两个独立原型：Part A 的数据／检索演示，以及旧 Streamlit 的小数据安全问答。不能把旧 Streamlit 已有的审计、回答和撤权说成此次从零发明；本次重点是让它们实际接到 Part A 数据和检索上。
 - 用户授权创建 PR，交由同事审查并决定合并；Agent 不执行 main 合并，不启用自动合并。需求仍为 in_progress，不把提交 PR 当作完整产品验收。
@@ -52,7 +52,7 @@ flowchart LR
   Service --> Audit["查询与权限事件 → 哈希链审计"]
 ```
 
-只画当前实现，不包含真实连接器、Query Planner、实时新鲜度、生产登录或未来 Tool。入口和权限检查在 `contextledger/interfaces/web.py`，业务编排在 `contextledger/application/service.py`，检索在 `contextledger/retrieval/filtered_index.py`，身份在 `contextledger/access/identity_store.py`，审计在 `contextledger/audit/store.py`，模型请求在 `contextledger/answering/service.py`。
+只画当前实现，不包含真实连接器、Query Planner、实时新鲜度、生产登录或未来 Tool。入口和权限检查在 `contextledger/web.py`，业务编排在 `contextledger/unified_service.py`，检索在 `contextledger/filtered_index.py`，身份在 `contextledger/identity_store.py`，审计在 `contextledger/audit_store.py`，模型请求在 `src/answering.py`。
 
 ## 验证证据与未完成事项
 
@@ -71,7 +71,7 @@ flowchart LR
 1. `identity_store.py`、`demo_identity.py`、`web.py`：身份来源、演示隔离、角色／CSRF／Host／Origin、管理员业务权限。
 2. `filtered_index.py`、`unified_service.py`：FTS／Qdrant 条件等价、证据二次校验、撤权和版本变化时丢弃结果。
 3. `audit_store.py`：事务与并发追加、完整性检查、审计读取脱敏；本地 checkpoint 的边界。
-4. `contextledger/answering/service.py`、前端与测试：真实模型配置、输入结构、引用编号、有限格式重试、拒答和安全诊断。
+4. `src/answering.py`、前端与测试：真实模型配置、输入结构、引用编号、有限格式重试、拒答和安全诊断。
 5. 需求、ADR、依赖、脚本与部署说明：原 Part A 的启动未删除，索引重建不能删除 IAM／审计；没有将密钥、缓存、真实公司数据或运行时库纳入 PR。
 
 人工流程见 [演示验收](demo-acceptance.md)：两员工同问题 → 引用／原文 → 管理员本地撤权 → 员工重试 → 审计查询与完整性 → 恢复仍受原 ACL 限制。测试通过不替代同事评审。

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "ContextLedger",
   "repository": "https://github.com/Panyuxiang0830/Hackson_fintech",
-  "updated_at": "2026-10-14",
+  "updated_at": "2026-10-13",
   "requirements": [
     {
       "id": "REQ-001",
@@ -20,101 +20,33 @@
         "证据不足时系统明确说明限制"
       ],
       "evaluation_experiments": {
-        "code": [
-          "contextledger/evaluation/retrieval.py",
-          "contextledger/evaluation/scenarios.py",
-          "contextledger/evaluation/quality.py",
-          "scripts/tune_part_a_retrieval.py",
-          "contextledger/evaluation/tuning.py",
-          "scripts/compare_part_a_rerankers.py",
-          "contextledger/evaluation/rerankers.py",
-          "scripts/expand_part_a_candidates.py",
-          "contextledger/evaluation/candidates.py",
-          "scripts/experiment_part_a_ranking.py",
-          "contextledger/evaluation/ranking.py",
-          "scripts/experiment_part_a_qwen_shortlist.py",
-          "contextledger/evaluation/qwen_shortlist.py"
-        ],
-        "tests": [
-          "tests/evaluation/test_part_a_evaluation.py",
-          "tests/evaluation/test_part_a_tuning.py",
-          "tests/evaluation/test_part_a_rerankers.py",
-          "tests/evaluation/test_part_a_ranking_fork.py",
-          "tests/evaluation/test_part_a_qwen_shortlist.py"
-        ],
+        "code": ["contextledger/evaluation.py", "contextledger/eval_scenarios.py", "contextledger/benchmark_quality.py", "scripts/tune_part_a_retrieval.py", "scripts/compare_part_a_rerankers.py", "scripts/expand_part_a_candidates.py", "scripts/experiment_part_a_ranking.py", "scripts/experiment_part_a_qwen_shortlist.py"],
+        "tests": ["tests/test_part_a_evaluation.py", "tests/test_part_a_tuning.py", "tests/test_part_a_rerankers.py", "tests/test_part_a_ranking_fork.py", "tests/test_part_a_qwen_shortlist.py"],
         "metric": "Fixed-reference macro document Recall@K and all-evidence rate, with corpus coverage and all-reference denominators. Extractive checks are lexical diagnostics; generated-answer quality and final-test performance remain unmeasured.",
         "refinement": {
-          "code": [
-            "scripts/refine_part_a_retrieval.py",
-            "contextledger/evaluation/refinement.py",
-            "scripts/part_a.sh",
-            "scripts/tune_part_a_retrieval.py",
-            "contextledger/evaluation/tuning.py"
-          ],
-          "tests": [
-            "tests/evaluation/test_part_a_refinement.py",
-            "tests/operations/test_part_a_launcher.py"
-          ],
-          "docs": [
-            "QUICKSTART.md"
-          ],
-          "target_recall10": 0.9,
+          "code": ["scripts/refine_part_a_retrieval.py", "scripts/part_a.sh", "scripts/tune_part_a_retrieval.py"],
+          "tests": ["tests/test_part_a_refinement.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
+          "target_recall10": 0.90,
           "scope": "Combine the existing calibrated ranking with token-budgeted vector candidates and bounded Qwen replacements. Select settings on development questions and report the reused validation split separately; no serving changes."
         },
         "chunking": {
-          "code": [
-            "contextledger/ingestion/processors.py",
-            "contextledger/storage/rechunk.py",
-            "contextledger/storage/store.py",
-            "contextledger/retrieval/vectors.py",
-            "contextledger/interfaces/part_a.py",
-            "scripts/part_a.sh",
-            "scripts/evaluate_part_a_chunking.py",
-            "contextledger/evaluation/chunking.py"
-          ],
-          "tests": [
-            "tests/ingestion/test_part_a_chunking.py",
-            "tests/operations/test_part_a_launcher.py"
-          ],
-          "docs": [
-            "QUICKSTART.md"
-          ],
+          "code": ["contextledger/processors.py", "contextledger/rechunk.py", "contextledger/store.py", "contextledger/vectors.py", "contextledger/__main__.py", "scripts/part_a.sh", "scripts/evaluate_part_a_chunking.py"],
+          "tests": ["tests/test_part_a_chunking.py", "tests/test_part_a_launcher.py"],
+          "docs": ["QUICKSTART.md"],
           "scope": "Token-budgeted source sections with document context; preserve source IDs and ACL; compare on the fixed covered question set."
         },
         "protocol": {
           "authority": "team_decision",
-          "code": [
-            "contextledger/evaluation/retrieval.py",
-            "contextledger/evaluation/quality.py",
-            "contextledger/evaluation/scenarios.py",
-            "contextledger/retrieval/search.py",
-            "contextledger/interfaces/part_a.py"
-          ],
-          "tests": [
-            "tests/evaluation/test_part_a_evaluation.py"
-          ],
-          "docs": [
-            "QUICKSTART.md",
-            "BENCHMARK_QUICKSTART.md"
-          ],
+          "code": ["contextledger/evaluation.py", "contextledger/benchmark_quality.py", "contextledger/eval_scenarios.py", "contextledger/search.py", "contextledger/__main__.py"],
+          "tests": ["tests/test_part_a_evaluation.py"],
+          "docs": ["QUICKSTART.md", "BENCHMARK_QUICKSTART.md"],
           "scope": "Separate regression retrieval, exact ANN agreement, extractive diagnostics, synthetic security fixtures, and final system acceptance. Preserve gold evidence and record scoring populations, fixed retrieval depth, missing evidence, and unmeasured generation/serving metrics. Provide a concise English benchmark quick start."
         }
       },
-      "code": [
-        "contextledger/answering/service.py",
-        "contextledger/application/service.py",
-        "contextledger/interfaces/web.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "README.md",
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md",
-        "docs/evaluation/chat.md"
-      ]
+      "code": ["app.py", "src/retrieval.py", "src/answering.py", "src/service.py", "contextledger/unified_service.py", "contextledger/web.py"],
+      "tests": ["tests/test_end_to_end.py", "tests/test_integration.py"],
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/evaluation/chat.md"]
     },
     {
       "id": "REQ-002",
@@ -145,42 +77,14 @@
             "Demo 保持员工账号和会话有效，仅撤销全部业务读取权限：先正常回答、管理员撤权、相同问题返回零证据与安全提示、尝试旧原文被拒绝、合规人员核对审计；权限恢复只恢复演示前合法状态",
             "中英文未知问题和撤权后的零证据均使用不暗示受限内容存在的措辞；有权限时仍有正常回答的正向对照"
           ],
-          "code": [
-            "contextledger/answering/service.py",
-            "contextledger/application/service.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/interfaces/static/unified.js"
-          ],
-          "tests": [
-            "tests/answering/test_answering.py",
-            "tests/application/test_integration.py",
-            "tests/access/test_demo_identity.py",
-            "tests/application/test_llm_integration.py"
-          ],
-          "docs": [
-            "docs/product/llm-feature-plan.md",
-            "docs/product/workload.md",
-            "docs/product/demo-acceptance.md",
-            "docs/architecture/llm-workflows.md"
-          ]
+          "code": ["src/answering.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js"],
+          "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_llm_integration.py"],
+          "docs": ["docs/product/llm-feature-plan.md", "docs/product/workload.md", "docs/product/demo-acceptance.md", "docs/architecture/llm-workflows.md"]
         }
       ],
-      "code": [
-        "contextledger/answering/service.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/application/service.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py",
-        "tests/answering/test_answering.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md",
-        "docs/product/llm-feature-plan.md",
-        "docs/product/demo-acceptance.md"
-      ]
+      "code": ["src/policy.py", "src/service.py", "src/answering.py", "contextledger/filtered_index.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_policy.py", "tests/test_no_leakage.py", "tests/test_integration.py", "tests/test_answering.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-003",
@@ -189,50 +93,13 @@
       "authority": "handbook_mandatory",
       "status": "in_progress",
       "description": "统一层必须保留来源系统的部门、角色、项目和敏感级别约束。",
-      "extensions": [
-        {
-          "key": "live_source_permission_snapshots",
-          "title": "四平台只读适配的来源授权快照",
-          "source": "user confirmed automatic source permission reads on 2026-10-14",
-          "authority": "team_decision",
-          "status": "in_progress",
-          "description": "本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。初次实现按用户要求不运行测试；随后 Codex 试用阶段离线回归通过，但四来源未做真实联调，状态不提升为 validated。",
-          "acceptance_criteria": [
-            "Jira/Confluence 使用来源有效权限检查，Slack 使用完整成员快照，Drive 保留权限条目并仅映射可验证的用户授权；来源身份映射显式配置，未映射或不支持的权限语义不猜测放行",
-            "分页、限流和检查失败不生成宽松 ACL；原始记录和权限检查依据保存于私有存储，权限未知的新记录不入检索，既有记录重新检查时先阻断旧授权",
-            "来源授权仅证明本次观察快照，不宣称实时原平台撤权或完整企业目录同步；系统内权限限制仍优先生效"
-          ],
-          "code": [
-            "contextledger/ingestion/source_adapters.py",
-            "contextledger/ingestion/source_sync.py"
-          ],
-          "tests": [
-            "tests/ingestion/test_source_adapters.py"
-          ],
-          "docs": [
-            "docs/architecture/source-and-agent-interfaces.md",
-            "config/sources.example.json"
-          ]
-        }
-      ],
       "acceptance_criteria": [
         "合成数据包含部门、角色、项目和敏感级别元数据",
         "后续真实连接器不得把来源权限降级为单一公开/私有标记"
       ],
-      "code": [
-        "contextledger/answering/models.py",
-        "contextledger/access/identity_store.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/access/source_permissions.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md"
-      ]
+      "code": ["src/models.py", "src/policy.py", "data/documents.json", "data/users.json", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/source_permissions.py"],
+      "tests": ["tests/test_policy.py", "tests/test_integration.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-004",
@@ -255,22 +122,9 @@
             "事实库与关键词索引事务更新，向量只重算受影响分块；两类索引核对成功后发布新的代次",
             "保存旧版内容、版本、ACL 与分块；同一问题在新增／修改后从 5 万切换到 10 万，分别验证关键词、向量、混合检索、回答与审计"
           ],
-          "code": [
-            "contextledger/storage/document_updates.py",
-            "contextledger/storage/index_lock.py",
-            "contextledger/retrieval/filtered_index.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/interfaces/integration.py",
-            "contextledger/retrieval/vectors.py",
-            "scripts/verify_document_updates.py"
-          ],
-          "tests": [
-            "tests/application/test_document_updates.py"
-          ],
-          "docs": [
-            "QUICKSTART.md",
-            "docs/architecture/index-and-freshness.md"
-          ]
+          "code": ["contextledger/document_updates.py", "contextledger/index_lock.py", "contextledger/filtered_index.py", "contextledger/web.py", "contextledger/integration.py", "contextledger/vectors.py", "scripts/verify_document_updates.py"],
+          "tests": ["tests/test_document_updates.py"],
+          "docs": ["QUICKSTART.md", "docs/architecture/index-and-freshness.md"]
         }
       ],
       "acceptance_criteria": [
@@ -280,22 +134,9 @@
         "旧版本被保留但不会进入当前检索视图，删除、撤回和回滚使用显式状态表达",
         "系统可以通过 active version 指针或等效机制安全回退，并记录回退审计事件"
       ],
-      "code": [
-        "contextledger/answering/models.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/storage/rechunk.py",
-        "contextledger/retrieval/vectors.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/architecture/index-and-freshness.md",
-        "docs/product/workload.md",
-        "docs/architecture/decision-radar-v1.md"
-      ]
+      "code": ["src/models.py", "src/freshness.py", "src/retrieval.py", "src/service.py", "app.py", "data/documents.json", "contextledger/filtered_index.py", "contextledger/rechunk.py", "contextledger/vectors.py"],
+      "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/index-and-freshness.md", "docs/product/workload.md", "docs/architecture/decision-radar-v1.md"]
     },
     {
       "id": "REQ-005",
@@ -310,20 +151,9 @@
         "每次请求从当前 IdentityService 重新解析身份，不沿用调用方的旧用户对象",
         "集成版系统内撤权持久化生效，搜索、原文、模型输入和回答交付均校验当前权限；旧缓存或历史回答不得绕过校验"
       ],
-      "code": [
-        "contextledger/access/identity_store.py",
-        "contextledger/interfaces/web.py",
-        "contextledger/application/service.py",
-        "contextledger/interfaces/static/unified.js"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md"
-      ]
+      "code": ["src/identity.py", "src/policy.py", "src/service.py", "app.py", "contextledger/identity_store.py", "contextledger/web.py", "contextledger/unified_service.py", "contextledger/static/unified.js"],
+      "tests": ["tests/test_permission_freshness.py", "tests/test_integration.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-006",
@@ -339,21 +169,9 @@
         "审计展示不泄漏无权限文档标题或正文",
         "集成版明确记录服务端策略版本、实际返回候选的授权决定与证据版本；不把候选审计宣称为全库逐文档审计，长期合规与诊断日志范围由 EC-009 后续验收"
       ],
-      "code": [
-        "contextledger/audit/chain.py",
-        "contextledger/audit/store.py",
-        "contextledger/application/service.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/architecture/unified-integration.md",
-        "docs/product/engineering-challenges.md",
-        "docs/product/workload.md"
-      ]
+      "code": ["src/audit.py", "src/service.py", "app.py", "contextledger/audit_store.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_end_to_end.py", "tests/test_audit_query.py", "tests/test_integration.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/architecture/unified-integration.md", "docs/product/engineering-challenges.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-007",
@@ -367,20 +185,9 @@
         "验证工具能检测事件删除、重排和内容修改",
         "演示一次篡改检测"
       ],
-      "code": [
-        "contextledger/audit/chain.py",
-        "scripts/demo_audit_tamper.py",
-        "contextledger/audit/store.py"
-      ],
-      "tests": [
-        "tests/audit/test_audit.py",
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/mvp-v0.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md"
-      ]
+      "code": ["src/audit.py", "scripts/demo_audit_tamper.py", "contextledger/audit_store.py"],
+      "tests": ["tests/test_audit.py", "tests/test_integration.py"],
+      "docs": ["docs/product/mvp-v0.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-008",
@@ -411,21 +218,22 @@
             "模型失败、未配置或输出不合规时回退现有确定性查询结果，不宣称已生成可靠的模型审计回答"
           ],
           "code": [
-            "contextledger/application/service.py",
-            "contextledger/answering/workflows.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/audit/store.py",
-            "contextledger/interfaces/static/unified.js",
-            "contextledger/interfaces/templates/unified.html",
-            "contextledger/audit/query.py",
-            "contextledger/answering/service.py",
+            "contextledger/unified_service.py",
+            "contextledger/llm_workflows.py",
+            "contextledger/web.py",
+            "contextledger/audit_store.py",
+            "contextledger/static/unified.js",
+            "contextledger/templates/unified.html",
+            "src/audit_query.py",
+            "src/answering.py",
             ".env.integration.example"
           ],
           "tests": [
-            "tests/application/test_integration.py",
-            "tests/answering/test_answering.py",
-            "tests/answering/test_llm_workflows.py",
-            "tests/application/test_llm_integration.py"
+            "tests/test_audit_query.py",
+            "tests/test_integration.py",
+            "tests/test_answering.py",
+            "tests/test_llm_workflows.py",
+            "tests/test_llm_integration.py"
           ],
           "docs": [
             "docs/product/llm-feature-plan.md",
@@ -447,11 +255,11 @@
             "通过实际统一审计服务验证旧事件在模型调用前被过滤；保持普通员工拒绝、脱敏、完整性校验及失败回退"
           ],
           "code": [
-            "contextledger/audit/query.py",
-            "contextledger/application/service.py"
+            "src/audit_query.py",
+            "contextledger/unified_service.py"
           ],
           "tests": [
-            "tests/audit/test_audit_time_parser.py"
+            "tests/test_audit_time_parser.py"
           ],
           "docs": [
             "docs/architecture/audit-query-flow.md"
@@ -459,16 +267,19 @@
         }
       ],
       "code": [
-        "contextledger/audit/chain.py",
-        "contextledger/audit/query.py",
-        "contextledger/answering/service.py",
-        "contextledger/application/service.py",
-        "contextledger/interfaces/web.py",
-        "contextledger/interfaces/static/unified.js"
+        "src/audit.py",
+        "src/audit_query.py",
+        "src/answering.py",
+        "src/service.py",
+        "app.py",
+        "contextledger/unified_service.py",
+        "contextledger/web.py",
+        "contextledger/static/unified.js"
       ],
       "tests": [
-        "tests/application/test_integration.py",
-        "tests/answering/test_answering.py"
+        "tests/test_audit_query.py",
+        "tests/test_integration.py",
+        "tests/test_answering.py"
       ],
       "docs": [
         "docs/product/mvp-v0.md",
@@ -478,6 +289,7 @@
         "docs/product/demo-acceptance.md"
       ]
     },
+
     {
       "id": "REQ-009",
       "title": "LLM 安全边界",
@@ -507,51 +319,14 @@
             "继续确定性校验输出格式与本次授权引用编号，模型调用前后和 HTTP 交付时仍校验权限、版本；审计仍校验角色、事件引用和哈希链",
             "页面、文档和审计不把取消后的回答宣称为逐句事实已验证；历史记录保留，不清除身份权限、内容索引或审计数据"
           ],
-          "code": [
-            "contextledger/answering/service.py",
-            "contextledger/answering/workflows.py",
-            "contextledger/application/service.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/interfaces/static/unified.js",
-            "contextledger/interfaces/static/unified.css",
-            "contextledger/interfaces/templates/unified.html",
-            ".env.integration.example",
-            "scripts/sync_preview_config.py"
-          ],
-          "tests": [
-            "tests/answering/test_answering.py",
-            "tests/application/test_integration.py",
-            "tests/answering/test_llm_workflows.py",
-            "tests/application/test_llm_integration.py",
-            "tests/operations/test_preview_config.py"
-          ],
-          "docs": [
-            "docs/product/llm-feature-plan.md",
-            "docs/product/workload.md",
-            "docs/product/demo-acceptance.md",
-            "docs/architecture/llm-workflows.md",
-            "docs/product/prompt-and-login-walkthrough.md",
-            "docs/product/update-2026-10-11.md"
-          ]
+          "code": ["src/answering.py", "contextledger/llm_workflows.py", "contextledger/unified_service.py", "contextledger/web.py", "contextledger/static/unified.js", "contextledger/static/unified.css", "contextledger/templates/unified.html", ".env.integration.example", "scripts/sync_preview_config.py"],
+          "tests": ["tests/test_answering.py", "tests/test_integration.py", "tests/test_no_leakage.py", "tests/test_llm_workflows.py", "tests/test_llm_integration.py", "tests/test_preview_config.py"],
+          "docs": ["docs/product/llm-feature-plan.md", "docs/product/workload.md", "docs/product/demo-acceptance.md", "docs/architecture/llm-workflows.md", "docs/product/prompt-and-login-walkthrough.md", "docs/product/update-2026-10-11.md"]
         }
       ],
-      "code": [
-        "contextledger/answering/service.py",
-        "contextledger/application/service.py"
-      ],
-      "tests": [
-        "tests/answering/test_answering.py",
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "README.md",
-        "docs/product/mvp-v0.md",
-        "docs/evaluation/model-selection.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md",
-        "docs/product/llm-feature-plan.md",
-        "docs/product/demo-acceptance.md"
-      ]
+      "code": ["src/answering.py", "src/service.py", "app.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_end_to_end.py", "tests/test_integration.py"],
+      "docs": ["README.md", "docs/product/mvp-v0.md", "docs/evaluation/model-selection.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/product/demo-acceptance.md"]
     },
     {
       "id": "REQ-010",
@@ -566,10 +341,7 @@
       ],
       "code": [],
       "tests": [],
-      "docs": [
-        "README.md",
-        "docs/source/handbook-fintech-track.md"
-      ]
+      "docs": ["README.md", "docs/source/handbook-fintech-track.md"]
     },
     {
       "id": "REQ-011",
@@ -599,37 +371,37 @@
         "四案例补充全部不含内部编号的真实模型问题；区分名称匹配、证据召回、工具触发、故事节点覆盖与全量语料泛化，增加未知/同名/权限变更负例"
       ],
       "code": [
-        "contextledger/ingestion/connectors.py",
-        "contextledger/storage/models.py",
-        "contextledger/storage/store.py",
-        "contextledger/ingestion/pipeline.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/application/service.py",
-        "contextledger/interfaces/web.py",
-        "contextledger/interfaces/integration.py",
-        "contextledger/interfaces/templates/unified.html",
-        "contextledger/interfaces/static/unified.js",
-        "contextledger/interfaces/static/unified.css",
-        "contextledger/answering/workflows.py",
-        "contextledger/answering/service.py",
-        "contextledger/radar/protocol.py",
-        "contextledger/radar/tool.py",
-        "contextledger/radar/data.py",
-        "contextledger/radar/store.py",
+        "contextledger/connectors.py",
+        "contextledger/models.py",
+        "contextledger/store.py",
+        "contextledger/pipeline.py",
+        "contextledger/filtered_index.py",
+        "contextledger/unified_service.py",
+        "contextledger/web.py",
+        "contextledger/integration.py",
+        "contextledger/templates/unified.html",
+        "contextledger/static/unified.js",
+        "contextledger/static/unified.css",
+        "contextledger/llm_workflows.py",
+        "src/answering.py",
+        "contextledger/radar_protocol.py",
+        "contextledger/radar_tool.py",
+        "contextledger/radar_data.py",
+        "contextledger/radar_store.py",
         "scripts/radar_demo.py",
-        "contextledger/evaluation/radar_demo.py",
-        "contextledger/retrieval/search.py",
-        "contextledger/radar/resolution.py"
+        "contextledger/search.py",
+        "contextledger/radar_resolution.py"
       ],
       "tests": [
-        "tests/application/test_integration.py",
-        "tests/application/test_llm_integration.py",
-        "tests/answering/test_llm_workflows.py",
-        "tests/answering/test_answering.py",
-        "tests/radar/test_radar.py",
-        "tests/radar/test_radar_data.py",
-        "tests/radar/test_radar_integration.py",
-        "tests/radar/test_radar_resolution.py"
+        "tests/test_integration.py",
+        "tests/test_llm_integration.py",
+        "tests/test_permission_freshness.py",
+        "tests/test_llm_workflows.py",
+        "tests/test_answering.py",
+        "tests/test_radar.py",
+        "tests/test_radar_data.py",
+        "tests/test_radar_integration.py",
+        "tests/test_radar_resolution.py"
       ],
       "docs": [
         "docs/product/roadmap.md",
@@ -655,16 +427,16 @@
             "固定任务三相同授权证据，分别测试原提示/收紧提示、Flash low/high及可用旗舰模型；保留格式失败、超时、耗时和小样本限制"
           ],
           "code": [
-            "contextledger/answering/service.py",
-            "contextledger/radar/protocol.py",
+            "src/answering.py",
+            "contextledger/radar_protocol.py",
             "scripts/sync_preview_config.py",
             ".env.example",
             ".env.integration.example"
           ],
           "tests": [
-            "tests/answering/test_radar_synthesis.py",
-            "tests/operations/test_preview_config.py",
-            "tests/audit/test_audit_time_parser.py"
+            "tests/test_radar_synthesis.py",
+            "tests/test_preview_config.py",
+            "tests/test_audit_time_parser.py"
           ],
           "docs": [
             "docs/architecture/radar-reasoning-comparison.md"
@@ -672,6 +444,7 @@
         }
       ]
     },
+
     {
       "id": "REQ-012",
       "title": "项目内容统一入库与 Git 协作",
@@ -686,77 +459,9 @@
         "密钥、虚拟环境和运行时日志不得提交到远程仓库",
         "基础需求下的团队功能扩展使用唯一 key、独立 authority 和 status；生成视图同时展示两者，不把团队 planned 扩展继承成官方硬性要求或已实现能力"
       ],
-      "extensions": [
-        {
-          "key": "functional_package_refactor",
-          "title": "按功能分包并统一测试目录",
-          "source": "user confirmed functional packages and small in-test fixtures on 2026-10-14",
-          "authority": "team_decision",
-          "status": "implemented",
-          "description": "已在独立重构分支保留 main bf57bebf 与四来源/MCP f590ba83 功能；src 共享核心和脚本内评测实现迁入十个功能包，scripts 保留命令/运维入口。删除旧 Streamlit、两份跟踪 JSON 及13项旧链路专用测试，共享回答/审计/解析改用小样本，新增11项组织与入口回归。323项 unittest、包含其在内的331项 pytest（含8项 Part A）、真实 stdio 握手及CLI回归通过；未改服务器/未合并，真实平台和生成模型联调不属于本次回归。",
-          "acceptance_criteria": [
-            "业务源码按 application/access/ingestion/storage/retrieval/answering/radar/audit/interfaces/evaluation 分包，scripts 只保留入口或独立运维工具",
-            "保留当前前端、四来源/MCP、问答规划/Radar、权限撤销、审计、增量发布、离线 Part A 与评测行为；不更改权限策略、模型默认、数据库或索引格式",
-            "删除跟踪的 data/documents.json、data/users.json 及旧 JSON/Streamlit 专用测试与服务；共享回答、审计、类型和解析测试使用构造的小样本继续覆盖，不通过删除核心测试掩盖回归",
-            "统一 tests 下的功能测试，保留 Part A 测试分词器的局部作用域；unittest 与 pytest 全量通过，无漏发现测试；CI 安装包括 MCP 在内的依赖",
-            "同步需求影响路径、CLI/资源路径、文档、生成视图和变更记录；保留必要 CLI 兼容入口，不删除本地未跟踪数据或服务器原文/权限/索引/审计"
-          ],
-          "code": [
-            "contextledger/application/service.py",
-            "contextledger/retrieval/filtered_index.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/answering/service.py",
-            "contextledger/audit/chain.py",
-            "contextledger/audit/query.py",
-            "contextledger/answering/models.py",
-            "scripts/project_sync.py",
-            ".github/workflows/ci.yml",
-            "contextledger/paths.py",
-            "contextledger/evaluation/audit_fixture.py",
-            "contextledger/interfaces/private_launcher.py",
-            "contextledger/interfaces/part_a.py",
-            "contextledger/evaluation/chat.py",
-            "contextledger/evaluation/chat_latency.py",
-            "contextledger/evaluation/refinement.py",
-            "requirements.txt"
-          ],
-          "tests": [
-            "tests/answering/test_answering.py",
-            "tests/audit/test_audit.py",
-            "tests/application/test_integration.py",
-            "tests/audit/test_audit_time_parser.py",
-            "tests/ingestion/part_a/test_supplemental.py",
-            "tests/audit/test_query.py",
-            "tests/operations/test_functional_packages.py",
-            "tests/operations/test_integration_dependencies.py"
-          ],
-          "docs": [
-            "docs/architecture/functional-packages.md",
-            "docs/decisions/ADR-0006-functional-packages.md",
-            "README.md",
-            "AGENTS.md",
-            "CHANGELOG.md",
-            "QUICKSTART.md",
-            "CONTRIBUTING.md",
-            "docs/README.md",
-            "docs/product/mvp-v0.md"
-          ]
-        }
-      ],
-      "code": [
-        "scripts/project_sync.py",
-        ".github/workflows/ci.yml"
-      ],
-      "tests": [
-        "tests/operations/test_project_sync.py"
-      ],
-      "docs": [
-        "AGENTS.md",
-        "CONTRIBUTING.md",
-        ".github/PULL_REQUEST_TEMPLATE.md",
-        "docs/README.md",
-        "docs/decisions/ADR-0001-repository-as-source-of-truth.md"
-      ]
+      "code": ["scripts/project_sync.py", ".github/workflows/ci.yml"],
+      "tests": ["tests/test_project_sync.py"],
+      "docs": ["AGENTS.md", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md", "docs/README.md", "docs/decisions/ADR-0001-repository-as-source-of-truth.md"]
     },
     {
       "id": "REQ-013",
@@ -772,18 +477,14 @@
       ],
       "code": [],
       "tests": [],
-      "docs": [
-        "docs/source/submission-open-questions.md",
-        "docs/source/handbook-fintech-track.md",
-        "docs/product/workload.md"
-      ]
+      "docs": ["docs/source/submission-open-questions.md", "docs/source/handbook-fintech-track.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-014",
       "title": "异构来源摄取、清洗与高价值信息筛选",
       "source": "team discussion marked 【新需求】 on 2026-10-02",
       "authority": "team_decision",
-      "status": "in_progress",
+      "status": "planned",
       "description": "Confluence、Jira、Slack 和 Google Drive 使用来源感知的处理链路，优先以确定性规则过滤低价值内容，只把可追溯的高价值信息送入索引和模型。",
       "acceptance_criteria": [
         "四类来源分别定义解析和清洗策略，不用同一个文本规则机械处理所有内容",
@@ -794,19 +495,9 @@
         "用保留率、关键事实召回率和节省的模型 Token 衡量筛选效果",
         "团队专题 EC-005：Primary 等信息层级标签可解释、可纠正，线程聚合和摘要不混用不同权限内容"
       ],
-      "code": [
-        "contextledger/ingestion/source_adapters.py",
-        "contextledger/ingestion/source_sync.py"
-      ],
-      "tests": [
-        "tests/ingestion/test_source_adapters.py"
-      ],
-      "docs": [
-        "docs/product/roadmap.md",
-        "docs/product/workload.md",
-        "docs/architecture/source-and-agent-interfaces.md",
-        "config/sources.example.json"
-      ]
+      "code": [],
+      "tests": [],
+      "docs": ["docs/product/roadmap.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-015",
@@ -842,50 +533,14 @@
             "纠错和话外意思仅为候选，不擅自更换实体、时间、否定或比较条件；改变问题含义时先要求用户确认，最终回答仍针对原问题",
             "设置功能开关与模型调用/Token/超时预算，记录计划和安全诊断版本；通过固定评测比较不开启与开启的召回、回答质量、延迟、费用与撤权安全"
           ],
-          "code": [
-            "contextledger/answering/workflows.py",
-            "contextledger/application/service.py",
-            "contextledger/retrieval/filtered_index.py",
-            "contextledger/retrieval/search.py",
-            "contextledger/interfaces/web.py",
-            "contextledger/interfaces/static/unified.js",
-            "contextledger/interfaces/templates/unified.html",
-            ".env.integration.example",
-            "scripts/sync_preview_config.py",
-            "contextledger/answering/service.py"
-          ],
-          "tests": [
-            "tests/application/test_integration.py",
-            "tests/answering/test_answering.py",
-            "tests/answering/test_llm_workflows.py",
-            "tests/application/test_llm_integration.py",
-            "tests/operations/test_preview_config.py"
-          ],
-          "docs": [
-            "docs/architecture/query-planning.md",
-            "docs/architecture/llm-workflows.md",
-            "docs/product/llm-feature-plan.md",
-            "docs/product/workload.md"
-          ]
+          "code": ["contextledger/llm_workflows.py", "contextledger/unified_service.py", "contextledger/filtered_index.py", "contextledger/search.py", "contextledger/web.py", "contextledger/static/unified.js", "contextledger/templates/unified.html", ".env.integration.example", "scripts/sync_preview_config.py", "src/answering.py"],
+          "tests": ["tests/test_integration.py", "tests/test_answering.py", "tests/test_no_leakage.py", "tests/test_llm_workflows.py", "tests/test_llm_integration.py", "tests/test_preview_config.py"],
+          "docs": ["docs/architecture/query-planning.md", "docs/architecture/llm-workflows.md", "docs/product/llm-feature-plan.md", "docs/product/workload.md"]
         }
       ],
-      "code": [
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/retrieval/search.py",
-        "contextledger/application/service.py"
-      ],
-      "tests": [
-        "tests/application/test_integration.py"
-      ],
-      "docs": [
-        "docs/product/roadmap.md",
-        "docs/architecture/integration-plan.md",
-        "docs/architecture/index-and-freshness.md",
-        "docs/architecture/query-planning.md",
-        "docs/product/demo-acceptance.md",
-        "docs/product/workload.md",
-        "docs/product/llm-feature-plan.md"
-      ]
+      "code": ["contextledger/filtered_index.py", "contextledger/search.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_integration.py"],
+      "docs": ["docs/product/roadmap.md", "docs/architecture/integration-plan.md", "docs/architecture/index-and-freshness.md", "docs/architecture/query-planning.md", "docs/product/demo-acceptance.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md"]
     },
     {
       "id": "REQ-016",
@@ -906,31 +561,9 @@
         "六个演示员工显式绑定到六个已存在的来源身份，页面可切换固定名单但不能创建任意身份；停用账号不可进入业务，成员不能直接调用管理员或审计接口",
         "演示初始化与重启保留已有撤权和本地限制，不自动恢复权限；拒绝将已有非演示权限库用于演示模式，禁止演示模式和 OIDC 混用"
       ],
-      "code": [
-        "contextledger/access/identity_store.py",
-        "contextledger/access/demo_identity.py",
-        "contextledger/interfaces/web.py",
-        "contextledger/interfaces/integration.py",
-        "contextledger/interfaces/templates/unified.html",
-        "contextledger/interfaces/static/unified.js",
-        "scripts/sync_preview_config.py",
-        ".env.integration.example"
-      ],
-      "tests": [
-        "tests/application/test_integration.py",
-        "tests/access/test_demo_identity.py",
-        "tests/operations/test_preview_config.py",
-        "tests/access/test_oidc.py"
-      ],
-      "docs": [
-        "docs/architecture/integration-plan.md",
-        "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md",
-        "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md",
-        "docs/architecture/unified-integration.md",
-        "docs/product/prompt-and-login-walkthrough.md",
-        "docs/product/tool-entry-scope.md",
-        "docs/product/workload.md"
-      ]
+      "code": ["contextledger/identity_store.py", "contextledger/demo_identity.py", "contextledger/web.py", "contextledger/integration.py", "contextledger/templates/unified.html", "contextledger/static/unified.js", "scripts/sync_preview_config.py", ".env.integration.example"],
+      "tests": ["tests/test_integration.py", "tests/test_demo_identity.py", "tests/test_preview_config.py", "tests/test_oidc.py"],
+      "docs": ["docs/architecture/integration-plan.md", "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/prompt-and-login-walkthrough.md", "docs/product/tool-entry-scope.md", "docs/product/workload.md"]
     },
     {
       "id": "REQ-017",
@@ -971,20 +604,20 @@
             "2026-10-13 API 交互检查：当前请求的拒绝／冲突／网络失败显示明确错误并恢复按钮；错误响应清理证据后仍可提示，身份或问题变化后的旧成功与旧错误都不能覆盖当前页面。真实请求与失败注入分别报告"
           ],
           "code": [
-            "contextledger/interfaces/tailnet_preview.py",
+            "contextledger/tailnet_preview.py",
             "scripts/serve_tailnet_preview.py",
             "requirements-tailnet-preview.txt",
-            "contextledger/interfaces/web.py",
-            "contextledger/interfaces/templates/unified.html",
-            "contextledger/interfaces/static/unified.js",
-            "contextledger/interfaces/static/unified.css",
-            "contextledger/interfaces/static/onboarding.svg"
+            "contextledger/web.py",
+            "contextledger/templates/unified.html",
+            "contextledger/static/unified.js",
+            "contextledger/static/unified.css",
+            "contextledger/static/onboarding.svg"
           ],
           "tests": [
-            "tests/interfaces/test_tailnet_preview.py",
-            "tests/access/test_demo_identity.py",
-            "tests/application/test_integration.py",
-            "tests/application/test_llm_integration.py",
+            "tests/test_tailnet_preview.py",
+            "tests/test_demo_identity.py",
+            "tests/test_integration.py",
+            "tests/test_llm_integration.py",
             "scripts/check_chat_ui.py"
           ],
           "docs": [
@@ -994,38 +627,38 @@
         }
       ],
       "code": [
-        "contextledger/application/service.py",
-        "contextledger/interfaces/web.py",
-        "contextledger/access/identity_store.py",
-        "contextledger/access/demo_identity.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/audit/store.py",
-        "contextledger/access/source_permissions.py",
-        "contextledger/interfaces/templates/unified.html",
-        "contextledger/interfaces/static/unified.js",
-        "contextledger/interfaces/static/unified.css",
-        "contextledger/interfaces/integration.py",
-        "contextledger/interfaces/demo_app.py",
-        "contextledger/ingestion/pipeline.py",
-        "contextledger/storage/rechunk.py",
+        "contextledger/unified_service.py",
+        "contextledger/web.py",
+        "contextledger/identity_store.py",
+        "contextledger/demo_identity.py",
+        "contextledger/filtered_index.py",
+        "contextledger/audit_store.py",
+        "contextledger/source_permissions.py",
+        "contextledger/templates/unified.html",
+        "contextledger/static/unified.js",
+        "contextledger/static/unified.css",
+        "contextledger/integration.py",
+        "contextledger/demo_app.py",
+        "contextledger/pipeline.py",
+        "contextledger/rechunk.py",
         "scripts/integration.sh",
         "scripts/prepare_integration_preview.py",
         "scripts/verify_unified_snapshot.py",
         "scripts/sync_preview_config.py",
         "requirements-integration.txt",
         ".github/workflows/ci.yml",
-        "contextledger/interfaces/static/onboarding.svg"
+        "contextledger/static/onboarding.svg"
       ],
       "tests": [
-        "tests/application/test_integration.py",
-        "tests/access/test_demo_identity.py",
-        "tests/operations/test_preview_config.py",
-        "tests/operations/test_prepare_preview.py",
-        "tests/access/test_oidc.py",
-        "tests/operations/test_integration_dependencies.py",
-        "tests/ingestion/part_a/test_supplemental.py",
-        "tests/ingestion/part_a/conftest.py",
-        "tests/application/test_llm_integration.py"
+        "tests/test_integration.py",
+        "tests/test_demo_identity.py",
+        "tests/test_preview_config.py",
+        "tests/test_prepare_preview.py",
+        "tests/test_oidc.py",
+        "tests/test_integration_dependencies.py",
+        "tests_part_a/test_supplemental.py",
+        "tests_part_a/conftest.py",
+        "tests/test_llm_integration.py"
       ],
       "docs": [
         "docs/architecture/integration-plan.md",
@@ -1079,20 +712,19 @@
           ],
           "code": [
             "scripts/evaluate_chat.py",
-            "contextledger/evaluation/chat.py",
             "scripts/check_chat_ui.py",
             "fixtures/chat/evaluation.json",
-            "contextledger/answering/service.py",
-            "contextledger/interfaces/static/unified.js",
-            "contextledger/interfaces/templates/unified.html",
-            "contextledger/radar/protocol.py",
-            "contextledger/answering/workflows.py"
+            "src/answering.py",
+            "contextledger/static/unified.js",
+            "contextledger/templates/unified.html",
+            "contextledger/radar_protocol.py",
+            "contextledger/llm_workflows.py"
           ],
           "tests": [
-            "tests/evaluation/test_chat_evaluation.py",
-            "tests/answering/test_answering.py",
-            "tests/answering/test_radar_synthesis.py",
-            "tests/radar/test_radar_integration.py"
+            "tests/test_chat_evaluation.py",
+            "tests/test_answering.py",
+            "tests/test_radar_synthesis.py",
+            "tests/test_radar_integration.py"
           ],
           "docs": [
             "docs/evaluation/chat.md",
@@ -1118,14 +750,12 @@
           ],
           "code": [
             "scripts/evaluate_chat_latency.py",
-            "contextledger/evaluation/chat_latency.py",
-            "scripts/evaluate_radar_latency.py",
-            "contextledger/evaluation/radar_latency.py"
+            "scripts/evaluate_radar_latency.py"
           ],
           "tests": [
-            "tests/evaluation/test_chat_latency.py",
-            "tests/evaluation/test_chat_evaluation.py",
-            "tests/radar/test_radar_integration.py"
+            "tests/test_chat_latency.py",
+            "tests/test_chat_evaluation.py",
+            "tests/test_radar_integration.py"
           ],
           "docs": [
             "docs/evaluation/chat-latency.md",
@@ -1136,26 +766,24 @@
         }
       ],
       "code": [
-        "contextledger/evaluation/retrieval.py",
-        "contextledger/evaluation/scenarios.py",
-        "contextledger/evaluation/quality.py",
+        "contextledger/evaluation.py",
+        "contextledger/eval_scenarios.py",
+        "contextledger/benchmark_quality.py",
         "scripts/refine_part_a_retrieval.py",
-        "contextledger/evaluation/refinement.py",
         "scripts/tune_part_a_retrieval.py",
-        "contextledger/evaluation/tuning.py",
         "scripts/part_a.sh",
-        "contextledger/evaluation/freshness.py",
-        "contextledger/evaluation/workload.py",
-        "contextledger/evaluation/replay.py",
+        "contextledger/freshness_eval.py",
+        "contextledger/freshness_workload.py",
+        "contextledger/freshness_replay.py",
         "scripts/freshness_eval.sh"
       ],
       "tests": [
-        "tests/evaluation/test_part_a_evaluation.py",
-        "tests/evaluation/test_part_a_refinement.py",
-        "tests/evaluation/test_part_a_tuning.py",
-        "tests/answering/test_llm_workflows.py",
-        "tests/application/test_llm_integration.py",
-        "tests/evaluation/test_freshness_eval.py"
+        "tests/test_part_a_evaluation.py",
+        "tests/test_part_a_refinement.py",
+        "tests/test_part_a_tuning.py",
+        "tests/test_llm_workflows.py",
+        "tests/test_llm_integration.py",
+        "tests/test_freshness_eval.py"
       ],
       "docs": [
         "docs/product/engineering-challenges.md",
@@ -1170,6 +798,7 @@
         "docs/architecture/decision-radar-v1.md"
       ]
     },
+
     {
       "id": "REQ-019",
       "title": "回答 Prompt 的管理与质量评测",
@@ -1186,71 +815,29 @@
         "Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持",
         "审计回答、检索规划及零证据提示模板单独记录版本、输入边界、输出格式和预算；answer-v9 移除已取消的引用复核和反馈重答上下文，保留原问题与授权证据；旧部署记录不能充当本次验证"
       ],
-      "code": [
-        "contextledger/answering/service.py",
-        "contextledger/answering/workflows.py",
-        "contextledger/application/service.py"
-      ],
-      "tests": [
-        "tests/answering/test_answering.py",
-        "tests/answering/test_llm_workflows.py"
-      ],
-      "docs": [
-        "docs/product/prompt-and-login-walkthrough.md",
-        "docs/product/demo-acceptance.md",
-        "docs/architecture/query-planning.md",
-        "docs/evaluation/model-selection.md",
-        "docs/product/workload.md",
-        "docs/product/llm-feature-plan.md",
-        "docs/architecture/decision-radar-v1.md"
-      ]
+      "code": ["src/answering.py", "contextledger/llm_workflows.py", "contextledger/unified_service.py"],
+      "tests": ["tests/test_answering.py", "tests/test_llm_workflows.py"],
+      "docs": ["docs/product/prompt-and-login-walkthrough.md", "docs/product/demo-acceptance.md", "docs/architecture/query-planning.md", "docs/evaluation/model-selection.md", "docs/product/workload.md", "docs/product/llm-feature-plan.md", "docs/architecture/decision-radar-v1.md"]
     },
     {
       "id": "REQ-020",
       "title": "面向上游 Agent 的权限感知工具接口",
       "source": "user proposed future tool on 2026-10-06; 2026-10-11 meeting recap specifies future Codex plugin direction",
       "authority": "team_decision",
-      "status": "in_progress",
-      "description": "2026-10-14 用户确认实现 MCP stdio 与可信工具 API：默认宿主模型消费授权证据，可选内部 ask 保留用户自行配置的 OpenAI-compatible API。两路复用统一服务；凭据绑定稳定用户且可撤销，不恢复浏览器登录。随后用户授权配置其 Codex 并试用：已以现有 Jax 演示员工权限经 SSH 连接 gpushare 私有网关。实际 SDK 握手、关键词/混合检索、原文与零证据，以及凭据/伪造身份/越权负例已验证；本机300项回归通过。桌面重载及真人问答待用户试用，不提升为企业认证、宿主最终答案或四来源验收。",
+      "status": "planned",
+      "description": "用户提供的 2026-10-11 会议纪要将未来产品目标定为 Codex 工具/插件，前端仅保留验证与演示。此为后续 planned，不属于本次取消复核的实现范围；协议、打包和可信最终用户身份待设计，复用统一服务，不恢复浏览器登录，不宣称插件已实现。",
       "acceptance_criteria": [
-        "首版使用 MCP stdio 经私有 HTTP 工具 API 调用统一服务；Codex/Claude Code/WorkBuddy 提供配置示例，标准 MCP HTTP 与企业 OAuth 后续单独确认；浏览器登录不是工具接入的必要前置条件",
+        "明确工具接入协议、部署信任边界与上游最终用户身份验证方式，再实现适配层；浏览器登录不是工具接入的必要前置条件",
         "工具只接受问题与已授权范围内的检索条件，权限身份由可信运行时注入或验证，不能由模型在工具参数中任意选择 user_id、角色或来源 principal",
         "即使使用共享服务凭据，也必须保留并验证最终用户身份，不把全部请求归为拥有所有员工权限的一个服务账号",
         "工具复用统一身份权限库、Qdrant/FTS 前置过滤、证据二次校验、交付检查和审计，不建立旁路权限实现",
         "默认返回可追溯的授权证据、来源、版本和请求标识供上游模型使用；是否在工具内部再次生成回答需要明确，不强制每次工具调用重复调用模型",
         "测试同一问题对两个不同权限身份的结果、伪造身份、未验证身份、系统内撤权、原文访问和审计权限；未建立可信身份时拒绝访问",
-        "不以实现 Tool 阻塞 REQ-017 当前前端验收；Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录",
-        "默认 search/fetch 不调用内部生成或规划模型；ask/audit 的内部生成需服务端显式启用，API 地址/Key/模型由部署者配置，模型参数不得携带凭据或任意地址",
-        "工具凭据只保存哈希，绑定单一稳定身份及能力范围、有效期，调用和交付前检查撤销/停用/当前权限，不向模型提供平台凭据、管理或同步写入工具",
-        "Codex 试用仅开放普通员工 search/fetch；凭据可独占写入0600私有文件，启动器拒绝链接/不安全权限，不在配置或命令参数存放明文 Token；保留已有 Codex 配置及服务器权限、索引和审计"
+        "不以实现 Tool 阻塞 REQ-017 当前前端验收；未来 Tool 与前端复用服务，测试注入身份不得暴露为生产伪登录"
       ],
-      "code": [
-        "contextledger/application/service.py",
-        "contextledger/access/identity_store.py",
-        "contextledger/retrieval/filtered_index.py",
-        "contextledger/access/tool_access.py",
-        "contextledger/interfaces/tool_api.py",
-        "contextledger/interfaces/mcp_server.py",
-        "scripts/mcp_private_launcher.py",
-        "contextledger/interfaces/private_launcher.py",
-        "requirements-tools.txt"
-      ],
-      "tests": [
-        "tests/application/test_integration.py",
-        "tests/interfaces/test_tool_interfaces.py",
-        "tests/interfaces/test_mcp_launcher.py"
-      ],
-      "docs": [
-        "docs/product/update-2026-10-11.md",
-        "docs/product/tool-entry-scope.md",
-        "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md",
-        "docs/decisions/ADR-0005-source-adapters-and-mcp.md",
-        "docs/architecture/source-and-agent-interfaces.md",
-        "docs/architecture/unified-integration.md",
-        "docs/product/roadmap.md",
-        "docs/product/workload.md",
-        ".env.tools.example"
-      ]
+      "code": ["contextledger/unified_service.py", "contextledger/identity_store.py", "contextledger/filtered_index.py", "contextledger/web.py"],
+      "tests": ["tests/test_integration.py"],
+      "docs": ["docs/product/update-2026-10-11.md", "docs/product/tool-entry-scope.md", "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md", "docs/architecture/unified-integration.md", "docs/product/roadmap.md", "docs/product/workload.md"]
     }
   ]
 }

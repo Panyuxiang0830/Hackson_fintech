@@ -1,12 +1,10 @@
 .DS_Store
 .env
 .venv/
-.venv-tools/
 .obsidian/
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.ruff_cache/
 runtime/*.jsonl
 runtime/*.head.json
 runtime/**
