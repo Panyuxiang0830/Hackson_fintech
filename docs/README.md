@@ -24,6 +24,7 @@
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
 - `docs/requirements.md`：由台账自动生成的只读视图；
 - `BENCHMARK_QUICKSTART.md`：英文简短测评入口，包含 Part A 检索与新鲜度回放命令及报告位置；
+- `docs/evaluation/chat-latency.md`：固定数据与模型的延迟分阶段对照、工具提示和推理参数实验及拒绝采用的条件；
 - `docs/evaluation/chat.md`：真实模型聊天与浏览器回归的协议、测量结果及语义／延迟边界；
 - `docs/architecture/tailnet-preview.md`：私有 Tailscale 浏览器试用的入口、安全边界和常驻服务维护；
 - `docs/source/`：Handbook 基线和仍待官方确认的提交字段；
