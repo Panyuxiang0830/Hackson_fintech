@@ -11,7 +11,7 @@ import uuid
 from qdrant_client import models as qm
 
 from contextledger.retrieval.filtered_index import (
-    IndexUnavailable, MODEL, _scan_snapshot, _sync_published_guard, now,
+    IndexUnavailable, MODEL, _scan_snapshot, _sync_published_guard, live_source, now,
     payload_for, point_id, snapshot_document,
 )
 from contextledger.storage.index_lock import index_lock
@@ -50,6 +50,8 @@ class DocumentUpdates:
                     document_json TEXT NOT NULL, chunks_json TEXT NOT NULL, saved_at TEXT NOT NULL,
                     PRIMARY KEY(corpus,doc_id,version));
             """)
+            if "source_scope" not in {row[1] for row in db.execute("PRAGMA table_info(cl_update_jobs)")}:
+                db.execute("ALTER TABLE cl_update_jobs ADD COLUMN source_scope TEXT")
         self.autostart = autostart
         if autostart:
             self.start()
@@ -140,25 +142,45 @@ class DocumentUpdates:
             source_time, department, json.loads(old["actors_json"]) if old else [], acl,
             extra.get("source_acl_basis", "trusted administrator supplied source ACL snapshot"), version, content_hash(text), extra, [])
 
-    def submit(self, actor_id, body):
+    def submit(self, actor_id, body, *, source_refresh=False):
         self._admin(actor_id)
+        if type(source_refresh) is not bool:
+            raise ValueError("invalid source refresh flag")
         job_id = uuid.uuid4().hex
         with connect(self.db_path) as db:
             db.execute("BEGIN IMMEDIATE")
             document = self._document(db, body, job_id)
+            source_scope = None
+            if source_refresh:
+                # Not a document/body field: only SourceSync opts into this path.
+                # A closed, persistent gate is required before touching canonical
+                # data or vectors, including when the worker resumes after restart.
+                self._source_fence(document)
+                source_scope = document.source
             self.index.state(db)
             if db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND doc_id=? AND state IN ('queued','running','failed')",
                           (document.corpus, document.doc_id)).fetchone():
                 raise UpdateConflict("document already has a pending update; wait or retry it")
             self._admin(actor_id)
             self._record(actor_id, "document_update_intent", job_id, corpus=document.corpus, doc_id=document.doc_id)
-            db.execute("INSERT INTO cl_update_jobs (id,corpus,doc_id,actor_id,base_version,document_json,state,created_at,updated_at) VALUES (?,?,?,?,?,?,'queued',?,?)",
+            db.execute("INSERT INTO cl_update_jobs (id,corpus,doc_id,actor_id,base_version,document_json,state,created_at,updated_at,source_scope) VALUES (?,?,?,?,?,?,'queued',?,?,?)",
                 (job_id, document.corpus, document.doc_id, actor_id, body["expected_version"],
-                 json.dumps(asdict(document), ensure_ascii=False), now(), now()))
+                 json.dumps(asdict(document), ensure_ascii=False), now(), now(), source_scope))
         if self.autostart:
             self.start()
         self._wake.set()
         return self.status(actor_id, job_id)
+
+    def _source_fence(self, document):
+        if live_source(document.source, document.doc_id) != document.source:
+            raise ValueError("source-scoped publication requires a matching live resource")
+        with self.identities.db() as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE name='live_source_guards'").fetchone():
+                raise IndexUnavailable("source permission gate required")
+            row = db.execute("SELECT state FROM live_source_guards WHERE corpus=? AND source=?",
+                             (document.corpus, document.source)).fetchone()
+        if row is None or row[0] not in {"refreshing", "blocked"}:
+            raise IndexUnavailable("source permission gate must stay closed during publication")
 
     def status(self, actor_id, job_id):
         self._admin(actor_id)
@@ -233,7 +255,8 @@ class DocumentUpdates:
             with connect(self.db_path) as db:
                 db.execute("UPDATE cl_update_jobs SET state='failed',error_type=?,retry_at=?,updated_at=? WHERE id=?",
                     (type(error).__name__, time.time() + min(2 ** job["attempts"], 8), now(), job["id"]))
-                db.execute("UPDATE cl_index_state SET state='failed' WHERE generation=?", (job["id"],))
+                if job["source_scope"] is None:
+                    db.execute("UPDATE cl_index_state SET state='failed' WHERE generation=?", (job["id"],))
             self._record(job["actor_id"], "document_update_failed", job["id"], error_type=type(error).__name__)
         return True
 
@@ -251,6 +274,11 @@ class DocumentUpdates:
     def _publish(self, job):
         self._admin(job["actor_id"])
         document = CanonicalDoc(**json.loads(job["document_json"]))
+        scoped = job["source_scope"] is not None
+        if scoped:
+            if job["source_scope"] != document.source:
+                raise UpdateConflict("source publication scope changed")
+            self._source_fence(document)
         source = SourceDoc(document.corpus, document.doc_id, document.source, document.title,
             document.text, document.day, document.ts, document.dept, document.actors, dict(document.extra))
         chunks = self.chunker(source)
@@ -265,6 +293,10 @@ class DocumentUpdates:
             if row is None:
                 raise IndexUnavailable("publish the initial index before updating documents")
             state = dict(row)
+            if scoped and state["state"] != "ready":
+                raise IndexUnavailable("source refresh cannot bypass a whole-index publication gate")
+            if scoped:
+                self.index.consistent(db, document.corpus)
             if not self.custom_embedding and (state["model"] != MODEL or state["dim"] != 384):
                 raise IndexUnavailable("update embedding configuration differs from published index")
             old = db.execute("SELECT * FROM documents WHERE corpus=? AND doc_id=?", (document.corpus, document.doc_id)).fetchone()
@@ -285,7 +317,14 @@ class DocumentUpdates:
                 db.execute(f"DELETE FROM {table} WHERE corpus=? AND doc_id=?", (document.corpus, document.doc_id))
             insert_documents(db, [document], chunks)
             snapshot_document(db, document.corpus, document.doc_id)
-            db.execute("UPDATE cl_index_state SET generation=?,state='building' WHERE id=1", (job["id"],))
+            if scoped:
+                # This known canonical mutation is isolated by the closed source
+                # gate AND pending-resource filter. Seal only after checking all
+                # canonical snapshots so unrelated edits cannot be legitimised.
+                _scan_snapshot(db, document.corpus)
+                _sync_published_guard(db, document.corpus)
+            else:
+                db.execute("UPDATE cl_index_state SET generation=?,state='building' WHERE id=1", (job["id"],))
             counter = db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (document.corpus,)).fetchone()[0]
         vectors = self.embed([chunk.text for chunk in chunks])
         if len(vectors) != len(chunks) or any(len(vector) != state["dim"] for vector in vectors):
@@ -305,21 +344,27 @@ class DocumentUpdates:
         if cursor is not None or {str(point.id): point.payload for point in actual} != expected:
             raise IndexUnavailable("updated vector payloads did not pass publication checks")
         self._admin(job["actor_id"])
+        if scoped:
+            self._source_fence(document)
         self._record(job["actor_id"], "document_update_publication_intent", job["id"], corpus=document.corpus, doc_id=document.doc_id)
         with connect(self.db_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            state = dict(db.execute("SELECT * FROM cl_index_state WHERE id=1").fetchone())
-            if state["generation"] != job["id"] or state["state"] != "building":
+            current = dict(db.execute("SELECT * FROM cl_index_state WHERE id=1").fetchone())
+            expected_generation, expected_state = (state["generation"], "ready") if scoped else (job["id"], "building")
+            if current["generation"] != expected_generation or current["state"] != expected_state:
                 raise UpdateConflict("a newer index publication superseded this update")
             if db.execute("SELECT n FROM cl_mutation WHERE corpus=?", (document.corpus,)).fetchone()[0] != counter:
                 raise UpdateConflict("canonical state changed during index publication")
             _scan_snapshot(db, document.corpus)
-            if client.count(state["collection"], exact=True).count != db.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]:
+            # A different quarantined live resource can have an unfinished vector
+            # write. This resource's exact payloads were checked above; do not let
+            # that unrelated failure prevent its own source from being published.
+            if not scoped and client.count(state["collection"], exact=True).count != db.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]:
                 raise IndexUnavailable("vector and canonical chunk counts differ")
             self._save_history(db, db.execute("SELECT * FROM documents WHERE corpus=? AND doc_id=?", (document.corpus, document.doc_id)).fetchone())
             _sync_published_guard(db, document.corpus)
             published_at = now()
             db.execute("UPDATE cl_metadata SET indexed_at=? WHERE corpus=? AND doc_id=?", (published_at, document.corpus, document.doc_id))
-            db.execute("UPDATE cl_index_state SET state='ready',indexed_at=? WHERE id=1", (published_at,))
+            db.execute("UPDATE cl_index_state SET generation=?,state='ready',indexed_at=? WHERE id=1", (job["id"], published_at))
             db.execute("UPDATE cl_update_jobs SET state='ready',error_type=NULL,generation=?,updated_at=? WHERE id=?", (job["id"], now(), job["id"]))
         self._record(job["actor_id"], "document_update_ready", job["id"], corpus=document.corpus, doc_id=document.doc_id, version=document.version)

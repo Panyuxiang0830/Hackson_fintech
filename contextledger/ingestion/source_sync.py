@@ -129,16 +129,23 @@ class SourceSync:
                 bodies.append(body)
             bodies.extend(self.denial(p) for p in old.values() if json.loads(p["acl_json"]))
             jobs = []
-            # Sequential publication: the existing update service has a corpus
-            # gate, not a batch commit. Keep our source guard closed throughout.
+            # Sequential publication behind this source's gate, not the corpus
+            # gate. Other verified sources/static imports remain available.
             for body in bodies:
                 self.service.fence(actor)
-                job = self.updates.submit(actor_id, body)
+                job = self.updates.submit(actor_id, body, source_refresh=True)
                 self.updates.start()
                 final = self.updates.wait(actor_id, job["id"], timeout=120)
                 if final["state"] != "ready":
                     raise SourceError("source_index_publication_incomplete")
                 jobs.append(job["id"])
+            # An unchanged canonical row can be left by a failed vector write.
+            # Do not mistake "no new bodies" for a complete published snapshot.
+            with connect(self.service.index.db_path) as db:
+                unfinished = db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND substr(doc_id,1,?)=? AND state IN ('queued','running','failed') LIMIT 1",
+                                        (corpus, len(prefix), prefix)).fetchone()
+            if unfinished:
+                raise SourceError("source_index_publication_incomplete")
             self.service.fence(actor)
             if time.time() >= started + ttl:
                 raise SourceError("source_permission_snapshot_expired_during_sync")

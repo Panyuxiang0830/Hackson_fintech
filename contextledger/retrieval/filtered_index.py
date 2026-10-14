@@ -13,7 +13,7 @@ import re
 import sqlite3
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,6 +27,7 @@ LEVELS = {"public": 0, "internal": 1, "confidential": 2, "restricted": 3}
 POLICY_VERSION = "snapshot-acl-and-local-deny-v1"
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 GUARD_VERSION = 2
+LIVE_SOURCES = frozenset({"jira", "confluence", "slack", "google_drive"})
 
 
 class IndexUnavailable(RuntimeError):
@@ -39,6 +40,13 @@ def now():
 
 def point_id(corpus, doc_id, version, chunk_id):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps([corpus, doc_id, version, chunk_id])))
+
+
+def live_source(source, doc_id):
+    """Reserved live IDs cannot silently fall back to static-snapshot access."""
+    if not doc_id.startswith("live:"):
+        return ""
+    return source if source in LIVE_SOURCES and doc_id.startswith(f"live:{source}:") else "unknown"
 
 
 def _name(value):
@@ -56,6 +64,8 @@ class Scope:
     departments: tuple[str, ...]
     denied: dict[str, list[str]]
     day: int | None
+    ready_live_sources: tuple[str, ...] = ()
+    blocked_live_documents: tuple[str, ...] = ()
 
 
 class FilteredIndex:
@@ -74,16 +84,6 @@ class FilteredIndex:
     def scope(self, actor: Actor, corpus: str, day=None) -> Scope:
         if not actor.enabled:
             raise PermissionError("account disabled")
-        # Opt-in live sources keep their ACL readiness in persistent IAM state,
-        # not rebuildable content. Block an expired/failed corpus rather than
-        # turn a source outage into a misleading zero-evidence answer.
-        with self.identity.db() as security:
-            if security.execute("SELECT 1 FROM sqlite_master WHERE name='live_source_guards'").fetchone():
-                import time
-                blocked = security.execute("SELECT 1 FROM live_source_guards WHERE corpus=? AND (state!='ready' OR expires_at<=?) LIMIT 1",
-                                           (corpus, time.time())).fetchone()
-                if blocked:
-                    raise IndexUnavailable("Live source permission snapshot is unavailable or expired; refresh the configured source.")
         if day is not None and (type(day) is not int or not 0 <= day <= 60):
             raise ValueError("as_of must be a day between 0 and 60")
         ids, denied = self.identity.scope(actor, corpus)
@@ -103,13 +103,46 @@ class FilteredIndex:
                 departments.add(row["dept"])
         if corpus in denied.get("corpus", []) or "*" in denied.get("corpus", []):
             valid = []
-        return Scope(actor, corpus, tuple(valid), tuple(sorted(roles)), tuple(sorted(departments)),
-                     denied, day if corpus == "orgforge" else None)
+        with connect(self.db_path) as db:
+            return self._source_scope(Scope(actor, corpus, tuple(valid), tuple(sorted(roles)), tuple(sorted(departments)),
+                                           denied, day if corpus == "orgforge" else None), db)
+
+    def _source_scope(self, scope, db):
+        """Re-read live ACL readiness, including old payloads without live_source.
+
+        New points carry live_source so concurrent inserts are filtered in Qdrant.
+        Existing live IDs are also denied explicitly: no reindex is required to
+        keep legacy points safe when their permission snapshot is unavailable.
+        """
+        ready = ()
+        with self.identity.db() as security:
+            if security.execute("SELECT 1 FROM sqlite_master WHERE name='live_source_guards'").fetchone():
+                ready = tuple(sorted(row[0] for row in security.execute(
+                    "SELECT source FROM live_source_guards WHERE corpus=? AND state='ready' AND expires_at>?",
+                    (scope.corpus, time.time())) if row[0] in LIVE_SOURCES))
+        blocked = {row["doc_id"] for row in db.execute(
+            "SELECT doc_id,source FROM documents WHERE corpus=? AND doc_id>='live:' AND doc_id<'live;'", (scope.corpus,))
+            if live_source(row["source"], row["doc_id"]) not in ready}
+        columns = {row[1] for row in db.execute("PRAGMA table_info(cl_update_jobs)")}
+        if "source_scope" in columns:
+            blocked.update(row[0] for row in db.execute(
+                "SELECT doc_id FROM cl_update_jobs WHERE corpus=? AND source_scope IS NOT NULL AND state IN ('queued','running','failed')",
+                (scope.corpus,)))
+        return replace(scope, ready_live_sources=ready, blocked_live_documents=tuple(sorted(blocked)))
 
     @staticmethod
     def sql_filter(scope: Scope):
         clauses = ["d.corpus=?", "m.classification<=?"]
         params: list = [scope.corpus, scope.actor.clearance]
+        live_clauses = []
+        for source in scope.ready_live_sources:
+            prefix = f"live:{source}:"
+            live_clauses.append("(d.source=? AND substr(d.doc_id,1,?)=?)")
+            params.extend((source, len(prefix), prefix))
+        clauses.append("(substr(d.doc_id,1,5)!='live:'" + (" OR " + " OR ".join(live_clauses) if live_clauses else "") + ")")
+        if scope.blocked_live_documents:
+            clauses.append(f"d.doc_id NOT IN ({','.join('?' for _ in scope.blocked_live_documents)})")
+            params.extend(scope.blocked_live_documents)
         if not scope.principals:
             clauses.append("0")
         else:
@@ -144,6 +177,10 @@ class FilteredIndex:
         must = [match("corpus", scope.corpus), match("published", True),
                 qm.FieldCondition(key="acl", match=qm.MatchAny(any=list(scope.principals))),
                 qm.FieldCondition(key="classification", range=qm.Range(lte=scope.actor.clearance))]
+        origins = [qm.IsEmptyCondition(is_empty=qm.PayloadField(key="live_source")), match("live_source", "")]
+        if scope.ready_live_sources:
+            origins.append(qm.FieldCondition(key="live_source", match=qm.MatchAny(any=list(scope.ready_live_sources))))
+        must.append(qm.Filter(should=origins))
         if scope.day is not None:
             must.append(qm.FieldCondition(key="day", range=qm.Range(lte=scope.day)))
         for field, values in (("roles", scope.roles), ("departments", scope.departments)):
@@ -152,6 +189,8 @@ class FilteredIndex:
         if scope.actor.projects:
             must.append(qm.FieldCondition(key="project", match=qm.MatchAny(any=list(scope.actor.projects))))
         must_not = []
+        if scope.blocked_live_documents:
+            must_not.append(qm.FieldCondition(key="doc_id", match=qm.MatchAny(any=list(scope.blocked_live_documents))))
         for kind, field in (("source", "source"), ("project", "project"),
                             ("department", "department"), ("document", "doc_id")):
             values = scope.denied.get(kind, [])
@@ -172,7 +211,11 @@ class FilteredIndex:
 
     def consistent(self, db, corpus):
         try:
-            pending = db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND state IN ('queued','running','failed') LIMIT 1",
+            columns = {row[1] for row in db.execute("PRAGMA table_info(cl_update_jobs)")}
+            # Only the trusted source queue has a resource-level publication fence.
+            # Ordinary administrator updates retain their existing corpus gate.
+            manual = " AND source_scope IS NULL" if "source_scope" in columns else ""
+            pending = db.execute("SELECT 1 FROM cl_update_jobs WHERE corpus=? AND state IN ('queued','running','failed')" + manual + " LIMIT 1",
                                  (corpus,)).fetchone()
         except sqlite3.OperationalError as error:
             if "no such table" not in str(error):
@@ -214,11 +257,12 @@ class FilteredIndex:
     def search(self, scope: Scope, query: str, mode="hybrid", limit=8, *, required_terms=None):
         if mode not in {"keyword", "vector", "hybrid"}:
             raise ValueError("unknown retrieval mode")
-        where, args = self.sql_filter(scope)
         if not scope.principals or any("*" in scope.denied.get(k, []) for k in ("source", "project", "department", "document")):
             return [], None
         with connect(self.db_path) as db:
             db.execute("BEGIN")
+            scope = self._source_scope(scope, db)
+            where, args = self.sql_filter(scope)
             state = self.consistent(db, scope.corpus)
             keyword = []
             # Only the server-side name search supplies validated literal names.
@@ -323,6 +367,7 @@ class FilteredIndex:
     def open(self, scope, doc_id):
         with connect(self.db_path) as db:
             db.execute("BEGIN")
+            scope = self._source_scope(scope, db)
             state = self.consistent(db, scope.corpus)
             hit = self._document(db, scope, doc_id)
             return hit, state["generation"]
@@ -331,9 +376,10 @@ class FilteredIndex:
         """Exact-ID expansion inside the existing SQL ACL filter; bounded scan."""
         from contextledger.radar.protocol import identifiers
         wanted = set(anchors)
-        where, args = self.sql_filter(scope)
         with connect(self.db_path) as db:
             db.execute("BEGIN")
+            scope = self._source_scope(scope, db)
+            where, args = self.sql_filter(scope)
             state = self.consistent(db, scope.corpus)
             deadline = time.monotonic() + 2
             db.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
@@ -361,9 +407,10 @@ class FilteredIndex:
         if len(anchors) != 1 or not scope.principals:
             return []
         term = anchors[0]
-        where, args = self.sql_filter(scope)
         with connect(self.db_path) as db:
             db.execute("BEGIN")
+            scope = self._source_scope(scope, db)
+            where, args = self.sql_filter(scope)
             self.consistent(db, scope.corpus)
             titles = db.execute(f"SELECT d.doc_id,d.title FROM documents d JOIN cl_metadata m ON m.corpus=d.corpus AND m.doc_id=d.doc_id WHERE {where} AND instr(lower(d.title),?)>0 LIMIT 200",
                                 (*args, term[:2].lower())).fetchall()
@@ -568,6 +615,7 @@ def payload_for(chunk, meta):
             "version": meta["version"], "content_hash": meta["content_hash"],
             "chunk_hash": hashlib.sha256(chunk["text"].encode()).hexdigest(),
             "acl": json.loads(meta["acl_snapshot"]), "source": meta["source"],
+            "live_source": live_source(meta["source"], meta["doc_id"]),
             "department": meta["department"], "project": meta["project"],
             "classification": meta["classification"], "day": meta["day"] if meta["day"] is not None else -1,
             "published": True, "roles": roles, "roles_unrestricted": not roles,
@@ -592,7 +640,7 @@ def _migrate(db_path: Path, client, *, batch_size=128, reuse_embeddings=False):
     db = connect(db_path)
     prepare_snapshot(db, collection, generation, MODEL, DIM)
     client.create_collection(collection, vectors_config=qm.VectorParams(size=DIM, distance=qm.Distance.COSINE, on_disk=True))
-    for key in ("corpus", "doc_id", "acl", "source", "department", "project", "roles", "departments"):
+    for key in ("corpus", "doc_id", "acl", "source", "live_source", "department", "project", "roles", "departments"):
         client.create_payload_index(collection, key, qm.PayloadSchemaType.KEYWORD, wait=True)
     for key in ("published", "roles_unrestricted", "departments_unrestricted"):
         client.create_payload_index(collection, key, qm.PayloadSchemaType.BOOL, wait=True)

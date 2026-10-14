@@ -2,7 +2,7 @@
 
 > 此文件由 `project/requirements.json` 自动生成，请勿手工修改。
 
-最后更新：2026-10-14
+最后更新：2026-10-15
 
 | ID | 需求 | 权威级别 | 状态 | 代码 | 测试 |
 |---|---|---|---|---|---|
@@ -112,18 +112,20 @@
 - 来源：user confirmed automatic source permission reads on 2026-10-14
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`in_progress`
-- 说明：本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。初次实现按用户要求不运行测试；随后 Codex 试用阶段离线回归通过，但四来源未做真实联调，状态不提升为 validated。
+- 说明：本轮读取平台可验证的授权信息并映射显式配置的稳定来源身份；未知、失败或不完整权限隔离，不能把采集账号权限授予全部员工。初次实现按用户要求不运行测试；随后 Codex 试用阶段离线回归通过，但四来源未做真实联调，状态不提升为 validated。2026-10-15 用户确认收窄来源门闩：刷新、失败或过期只隔离对应 live 来源数据，静态导入和其他已验证来源继续查询；同步发布路径及交付复核一并修复，真实平台验收仍另记。
 - 验收标准：
 
   - Jira/Confluence 使用来源有效权限检查，Slack 使用完整成员快照，Drive 保留权限条目并仅映射可验证的用户授权；来源身份映射显式配置，未映射或不支持的权限语义不猜测放行
   - 分页、限流和检查失败不生成宽松 ACL；原始记录和权限检查依据保存于私有存储，权限未知的新记录不入检索，既有记录重新检查时先阻断旧授权
   - 来源授权仅证明本次观察快照，不宣称实时原平台撤权或完整企业目录同步；系统内权限限制仍优先生效
+  - 来源刷新、失败、快照过期或缺少就绪依据时，仅 live:<source>: 资源及其待发布版本被检索前隔离；同 corpus 静态数据、其他有效来源和其他 corpus 不被来源门闩整体锁住，SQL 与 Qdrant 均前置过滤
+  - 来源队列在分块/向量发布期间和失败重试后仍隔离对应资料；模型前后、原文、Radar 与交付复核重新读取门闩；整库重建和非来源手工更新继续保留既有一致性保护，不把来源部分结果当作全库完整扫描
 
 - 影响范围：
 
-  - 代码：`contextledger/ingestion/source_adapters.py`, `contextledger/ingestion/source_sync.py`
-  - 测试：`tests/ingestion/test_source_adapters.py`
-  - 文档：`docs/architecture/source-and-agent-interfaces.md`, `config/sources.example.json`
+  - 代码：`contextledger/ingestion/source_adapters.py`, `contextledger/ingestion/source_sync.py`, `contextledger/retrieval/filtered_index.py`, `contextledger/storage/document_updates.py`
+  - 测试：`tests/ingestion/test_source_adapters.py`, `tests/ingestion/test_source_sync.py`
+  - 文档：`docs/architecture/source-and-agent-interfaces.md`, `config/sources.example.json`, `docs/decisions/ADR-0005-source-adapters-and-mcp.md`, `docs/architecture/index-and-freshness.md`
 
 ## REQ-004 · 新鲜度与来源状态
 
