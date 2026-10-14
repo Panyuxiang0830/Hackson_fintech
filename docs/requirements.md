@@ -17,7 +17,7 @@
 | REQ-009 | LLM 安全边界 | `handbook_mandatory` | `in_progress` | `src/answering.py`<br>`src/service.py`<br>`app.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_no_leakage.py`<br>`tests/test_end_to_end.py`<br>`tests/test_integration.py` |
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
 | REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/connectors.py`<br>`contextledger/models.py`<br>`contextledger/store.py`<br>`contextledger/pipeline.py`<br>`contextledger/filtered_index.py`<br>`contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/llm_workflows.py`<br>`src/answering.py`<br>`contextledger/radar_protocol.py`<br>`contextledger/radar_tool.py`<br>`contextledger/radar_data.py`<br>`contextledger/radar_store.py`<br>`scripts/radar_demo.py`<br>`contextledger/search.py`<br>`contextledger/radar_resolution.py` | `tests/test_integration.py`<br>`tests/test_llm_integration.py`<br>`tests/test_permission_freshness.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_answering.py`<br>`tests/test_radar.py`<br>`tests/test_radar_data.py`<br>`tests/test_radar_integration.py`<br>`tests/test_radar_resolution.py` |
-| REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
+| REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `in_progress` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/test_project_sync.py` |
 | REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `in_progress` | `contextledger/source_adapters.py`<br>`contextledger/source_sync.py` | `tests/test_source_adapters.py` |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py`<br>`contextledger/unified_service.py` | `tests/test_integration.py` |
@@ -396,7 +396,7 @@
 
 - 来源：team discussion
 - 权威级别：`team_decision`
-- 状态：`implemented`
+- 状态：`in_progress`
 - 说明：需求、文档、架构决定、代码和测试统一保存在当前项目文件夹，并通过远程 Git 仓库进行版本管理和多人协作。
 - 验收标准：
 
@@ -411,6 +411,27 @@
   - 代码：`scripts/project_sync.py`, `.github/workflows/ci.yml`
   - 测试：`tests/test_project_sync.py`
   - 文档：`AGENTS.md`, `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/README.md`, `docs/decisions/ADR-0001-repository-as-source-of-truth.md`
+
+### 功能扩展 · 按功能分包并统一测试目录
+
+- 扩展键：`functional_package_refactor`
+- 来源：user confirmed functional packages and small in-test fixtures on 2026-10-14
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：在独立重构分支保留最新 main 与四来源/MCP 功能，src 的共享核心归入 contextledger 功能包，scripts 保留 CLI 入口。删除 Git 中旧 JSON 数据及旧 Streamlit 专用链路/测试，共享核心测试改为小样本；不动未提交大数据、服务器状态，不自动合并 main。
+- 验收标准：
+
+  - 业务源码按 application/access/ingestion/storage/retrieval/answering/radar/audit/interfaces/evaluation 分包，scripts 只保留入口或独立运维工具
+  - 保留当前前端、四来源/MCP、问答规划/Radar、权限撤销、审计、增量发布、离线 Part A 与评测行为；不更改权限策略、模型默认、数据库或索引格式
+  - 删除跟踪的 data/documents.json、data/users.json 及旧 JSON/Streamlit 专用测试与服务；共享回答、审计、类型和解析测试使用构造的小样本继续覆盖，不通过删除核心测试掩盖回归
+  - 统一 tests 下的功能测试，保留 Part A 测试分词器的局部作用域；unittest 与 pytest 全量通过，无漏发现测试；CI 安装包括 MCP 在内的依赖
+  - 同步需求影响路径、CLI/资源路径、文档、生成视图和变更记录；保留必要 CLI 兼容入口，不删除本地未跟踪数据或服务器原文/权限/索引/审计
+
+- 影响范围：
+
+  - 代码：`contextledger/unified_service.py`, `contextledger/filtered_index.py`, `contextledger/web.py`, `src/answering.py`, `src/audit.py`, `src/audit_query.py`, `src/models.py`, `scripts/project_sync.py`, `.github/workflows/ci.yml`
+  - 测试：`tests/test_answering.py`, `tests/test_audit.py`, `tests/test_integration.py`, `tests/test_audit_time_parser.py`, `tests_part_a/test_supplemental.py`
+  - 文档：`docs/architecture/functional-packages.md`, `docs/decisions/ADR-0006-functional-packages.md`, `README.md`, `AGENTS.md`, `CHANGELOG.md`
 
 ## REQ-013 · 交付材料与格式待确认清单
 

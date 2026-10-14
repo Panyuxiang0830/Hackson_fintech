@@ -466,7 +466,7 @@
       "title": "项目内容统一入库与 Git 协作",
       "source": "team discussion",
       "authority": "team_decision",
-      "status": "implemented",
+      "status": "in_progress",
       "description": "需求、文档、架构决定、代码和测试统一保存在当前项目文件夹，并通过远程 Git 仓库进行版本管理和多人协作。",
       "acceptance_criteria": [
         "交付相关内容只能以当前项目文件夹中的版本作为事实依据",
@@ -474,6 +474,26 @@
         "变更通过 GitHub Pull Request 合并到 main",
         "密钥、虚拟环境和运行时日志不得提交到远程仓库",
         "基础需求下的团队功能扩展使用唯一 key、独立 authority 和 status；生成视图同时展示两者，不把团队 planned 扩展继承成官方硬性要求或已实现能力"
+      ],
+      "extensions": [
+        {
+          "key": "functional_package_refactor",
+          "title": "按功能分包并统一测试目录",
+          "source": "user confirmed functional packages and small in-test fixtures on 2026-10-14",
+          "authority": "team_decision",
+          "status": "in_progress",
+          "description": "在独立重构分支保留最新 main 与四来源/MCP 功能，src 的共享核心归入 contextledger 功能包，scripts 保留 CLI 入口。删除 Git 中旧 JSON 数据及旧 Streamlit 专用链路/测试，共享核心测试改为小样本；不动未提交大数据、服务器状态，不自动合并 main。",
+          "acceptance_criteria": [
+            "业务源码按 application/access/ingestion/storage/retrieval/answering/radar/audit/interfaces/evaluation 分包，scripts 只保留入口或独立运维工具",
+            "保留当前前端、四来源/MCP、问答规划/Radar、权限撤销、审计、增量发布、离线 Part A 与评测行为；不更改权限策略、模型默认、数据库或索引格式",
+            "删除跟踪的 data/documents.json、data/users.json 及旧 JSON/Streamlit 专用测试与服务；共享回答、审计、类型和解析测试使用构造的小样本继续覆盖，不通过删除核心测试掩盖回归",
+            "统一 tests 下的功能测试，保留 Part A 测试分词器的局部作用域；unittest 与 pytest 全量通过，无漏发现测试；CI 安装包括 MCP 在内的依赖",
+            "同步需求影响路径、CLI/资源路径、文档、生成视图和变更记录；保留必要 CLI 兼容入口，不删除本地未跟踪数据或服务器原文/权限/索引/审计"
+          ],
+          "code": ["contextledger/unified_service.py", "contextledger/filtered_index.py", "contextledger/web.py", "src/answering.py", "src/audit.py", "src/audit_query.py", "src/models.py", "scripts/project_sync.py", ".github/workflows/ci.yml"],
+          "tests": ["tests/test_answering.py", "tests/test_audit.py", "tests/test_integration.py", "tests/test_audit_time_parser.py", "tests_part_a/test_supplemental.py"],
+          "docs": ["docs/architecture/functional-packages.md", "docs/decisions/ADR-0006-functional-packages.md", "README.md", "AGENTS.md", "CHANGELOG.md"]
+        }
       ],
       "code": ["scripts/project_sync.py", ".github/workflows/ci.yml"],
       "tests": ["tests/test_project_sync.py"],
