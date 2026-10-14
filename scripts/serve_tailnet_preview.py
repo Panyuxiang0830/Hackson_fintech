@@ -25,8 +25,8 @@ def main():
     os.environ.update(QDRANT_URL=args.qdrant_url, CUDA_VISIBLE_DEVICES='', LLM_PLANNER_ENABLED='false')
     import torch
     torch.set_num_threads(4)
-    from contextledger.tailnet_preview import TailnetPreview
-    from contextledger.web import create_app
+    from contextledger.interfaces.tailnet_preview import TailnetPreview
+    from contextledger.interfaces.web import create_app
     from waitress import serve
     local = f'http://127.0.0.1:{args.port}'
     app = create_app(args.out / 'canonical.sqlite', args.security_dir,

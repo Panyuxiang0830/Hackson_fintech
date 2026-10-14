@@ -1,82 +1,69 @@
-# ContextLedger MVP
+# ContextLedger
 
 Permission-aware enterprise knowledge assistant for the Tencent Cloud AI CAN DO IT 2026 FinTech track.
 
-[Part A Quick Start](QUICKSTART.md)
+## Current capabilities
 
-## Unified integration
+The unified service connects source data, canonical SQLite storage and filtered Qdrant/FTS retrieval to persistent system permissions, cited answers and query audit. The frontend remains an acceptance/demo interface. Browser OIDC is deferred and disabled by default; identities and permission checks are not removed.
 
-The unified service connects Part A data to filtered Qdrant/FTS retrieval, persistent system permissions, grounded answer generation and query audit. The Part A-style frontend remains the current integration and manual acceptance interface. Browser OIDC is deferred and disabled by default; identity/permissions are not removed. An Agent tool is a **deferred future idea**, not a prerequisite for this release. An explicit, loopback-only isolated demo offers one independent administrator and six employees, reusing the real services; it is **not production authentication**. Ordinary unauthenticated APIs remain locked. See [demo acceptance](docs/product/demo-acceptance.md), [integration setup](docs/architecture/unified-integration.md), and [future tool scope](docs/product/tool-entry-scope.md).
+- Offline import, source-aware parsing, chunking and canonical storage.
+- ACL-first hybrid retrieval, optional bounded question planning and final-delivery rechecks.
+- Cited answers, optional internal Decision Radar, and safe zero-evidence responses.
+- Administrator revocation and persistent document updates, version history and checked index publication.
+- Transactional hash-chained audit, redacted compliance queries and optional model explanations.
+- Opt-in read-only Jira, Slack, Confluence and Google Drive adapters; private search/fetch MCP tools for host agents.
 
-The sections below describe the original Streamlit v0 reference, not the integration's live state. Integration, Part A evaluation and compatibility fixes are delivered together through [PR #6](https://github.com/Panyuxiang0830/Hackson_fintech/pull/6). On 2026-10-08 gpushare was rebuilt with 45,565 documents and 591,294 Qdrant points; the loopback preview on 17860 passed retrieval, revocation, real-model and audit checks. The original 7860 service and old snapshot are retained. Offline reranker experiments do not automatically change frontend ranking.
+Host-model answers are the tool default; internal GLM/OpenAI-compatible generation is separately opt-in. Generation defaults remain `glm-5.3-flash`, low reasoning for ordinary calls and high only for post-Radar synthesis. Citation-scope checks are not claim-by-claim factual verification. Failed/unsafe model output is not presented as a successful answer.
 
-## What v0 proves
-
-The MVP demonstrates one security-critical vertical slice:
-
-1. Select an employee identity.
-2. Ask a question about the SG Batch Payments v2.3 incident.
-3. Filter evidence before retrieval using deterministic access policies.
-4. Produce an answer with citations from authorised evidence only.
-5. Exclude known stale evidence before retrieval.
-6. Write a complete, hash-chained audit event.
-7. Apply live permission changes on the next query.
-8. Let compliance users query the audit trail.
-
-It uses synthetic data and runs in deterministic mock mode when no API key is configured. With a TokenHub API key it uses the benchmark-selected `glm-5.3-flash` model, validates every model citation against the authorised Top-K evidence, and falls back to deterministic synthesis when the endpoint or output is unsafe.
+An explicitly enabled, loopback-only demo provides one independent administrator and six employees. It is not production authentication; ordinary unauthenticated APIs remain locked. Source ACL mappings are verified subsets, not complete enterprise permission synchronization.
 
 ## Run
 
 ```bash
-cd /Users/panyuxiang/Desktop/hackson
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-cp .env.example .env
-# Put the TokenHub key in .env; leave it empty to use mock mode.
-.venv/bin/streamlit run app.py
+bash scripts/integration.sh --help
 ```
+
+Use [Part A Quick Start](QUICKSTART.md) for offline data/model setup, [unified setup](docs/architecture/unified-integration.md) for Qdrant publication, and [demo acceptance](docs/product/demo-acceptance.md) for isolated demo accounts. MCP/source configuration is in [source/Agent interfaces](docs/architecture/source-and-agent-interfaces.md). These commands do not provision production identities.
+
+The functional-package refactor preserves existing CLI arguments and database/index formats. It does not require an index rebuild. The retired Streamlit `app.py` and two old JSON sample files were removed; runtime datasets, identity/audit stores and server state are untouched.
+
+## Code map
+
+Business code lives in `contextledger/`, grouped into `application`, `access`, `ingestion`, `storage`, `retrieval`, `answering`, `radar`, `audit`, `interfaces` and `evaluation`. `scripts/` contains thin CLI entries and standalone operations/project tools; `tests/` mirrors functional areas; `fixtures/` retains fixed business cases. See [module map and migration](docs/architecture/functional-packages.md).
 
 ## Test
 
 ```bash
-cd /Users/panyuxiang/Desktop/hackson
-.venv/bin/python -m pip install -r requirements-integration.txt -r requirements-part-a-test.txt
+.venv/bin/python -m pip install -r requirements-integration.txt -r requirements-part-a-test.txt -r requirements-tools.txt
+.venv/bin/python scripts/project_sync.py --check
 .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -m pytest tests -q
+node --check contextledger/interfaces/static/unified.js
 ```
 
-The original core tests do not require Streamlit. The unified suite also needs the integration and lightweight Part A test dependencies. Part A's parser/ACL tests run separately with `python -m pytest tests_part_a -q` using a deterministic test tokenizer, without downloading models. Real-model snapshot checks are separate and require the Part A model environment; unit tests do not prove production model quality.
+All tests are under `tests/`. Shared core tests construct small records. Part A's test tokenizer is scoped to `tests/ingestion/part_a/`, without model downloads. Pytest includes the unittest cases plus eight parser/ACL tests; counts are not additive.
 
-Run the isolated tamper-evidence demo without touching the runtime audit log:
+Run the tamper demonstration against a temporary database (not runtime audit state):
 
 ```bash
-python3 scripts/demo_audit_tamper.py
+.venv/bin/python scripts/demo_audit_tamper.py
 ```
 
-## v0 reference limitations
+## Verification boundaries
 
-- Synthetic data only.
-- Fixed demo identities; this is not production authentication.
-- Lexical retrieval rather than embeddings.
-- Real model answers still use the small synthetic corpus and lexical Top-K retrieval.
-- No real Confluence/Slack/Jira/Google Drive connector yet.
-- No temporal-authority conflict engine yet.
-- The audit head checkpoint is local; production deployment would anchor it in external immutable storage.
+Local regressions include native in-memory Qdrant, permissions, updates, audit and actual stdio MCP handshake. They do not prove live four-platform ACL completeness, enterprise identity integration, real-source timing, unseen-case answer quality or production performance. Offline RaBitQ remains available for Part A; unified serving uses filtered Qdrant. Model citation review remains cancelled; the audit checkpoint is local, not externally immutable.
 
-See `docs/product/mvp-v0.md` for MVP scope, `docs/source/` for the
-Handbook baseline, and `docs/product/roadmap.md` for the implementation order.
+Historical v0 specifications remain in [mvp-v0](docs/product/mvp-v0.md); current status is recorded in `project/requirements.json`, not historical deployment notes. Official sources are under `docs/source/`.
 
 ## Project management
 
-The Git repository is the project's single source of truth. Start from
-`docs/README.md` for the document map and collaboration rules.
+The Git repository is the single source of truth. See [document map](docs/README.md) and [contribution workflow](CONTRIBUTING.md). Remote: <https://github.com/Panyuxiang0830/Hackson_fintech>.
 
-Remote repository: <https://github.com/Panyuxiang0830/Hackson_fintech>
-
-After changing requirements, regenerate and validate the traceability view:
+After changing requirements:
 
 ```bash
 python3 scripts/project_sync.py
 python3 scripts/project_sync.py --check
 ```
-
-See `CONTRIBUTING.md` for the branch and pull-request workflow.

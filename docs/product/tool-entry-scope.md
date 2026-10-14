@@ -1,4 +1,6 @@
-# ContextLedger 未来工具入口范围（规划中）
+# ContextLedger 工具入口范围与阶段演进
+
+> 2026-10-14 更新：用户已确认实现四来源只读适配、来源权限快照与宿主模型优先的 MCP stdio/私有工具 API；可选内部 GLM 路线共存。REQ-020 进入 in_progress，浏览器登录仍延期。当前实施和未测试边界以 [接口说明](../architecture/source-and-agent-interfaces.md) 与 [ADR-0005](../decisions/ADR-0005-source-adapters-and-mcp.md) 为准，以下为历史阶段设想，不再表示本轮未授权实现。
 
 日期：2026-10-06。关联 REQ-016、REQ-017、REQ-020；决策见 [ADR-0003](../decisions/ADR-0003-tool-first-and-deferred-browser-login.md)。
 

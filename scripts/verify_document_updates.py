@@ -23,11 +23,11 @@ import requests
 from qdrant_client import QdrantClient, models as qm
 from werkzeug.serving import WSGIRequestHandler, make_server
 
-from contextledger.filtered_index import migrate
-from contextledger.identity_store import IdentityStore
-from contextledger.models import CanonicalDoc, Chunk, Principal
-from contextledger.store import connect, content_hash, init_db, insert_documents, insert_principals
-from contextledger.web import create_app
+from contextledger.retrieval.filtered_index import migrate
+from contextledger.access.identity_store import IdentityStore
+from contextledger.storage.models import CanonicalDoc, Chunk, Principal
+from contextledger.storage.store import connect, content_hash, init_db, insert_documents, insert_principals
+from contextledger.interfaces.web import create_app
 
 
 class QuietHandler(WSGIRequestHandler):
@@ -50,7 +50,7 @@ def main():
         "real_model_validation": "skipped_by_user", "answer_provider": "mock", "steps": [],
         "qdrant_version": requests.get(args.qdrant_url + "/", timeout=5).json()["version"],
         "implementation_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in
-            ("contextledger/document_updates.py", "contextledger/index_lock.py", "contextledger/filtered_index.py", "contextledger/web.py", "contextledger/integration.py", "contextledger/vectors.py")}}
+            ("contextledger/storage/document_updates.py", "contextledger/storage/index_lock.py", "contextledger/retrieval/filtered_index.py", "contextledger/interfaces/web.py", "contextledger/interfaces/integration.py", "contextledger/retrieval/vectors.py")}}
     try:
         with tempfile.TemporaryDirectory(prefix="contextledger-updates-http-") as temporary:
             directory = Path(temporary)
@@ -111,7 +111,7 @@ def main():
                 if operation == "CLI modify":
                     path = directory / "update.json"
                     path.write_text(json.dumps(document))
-                    command = [sys.executable, "-m", "contextledger.integration", "--out", str(db_path.parent),
+                    command = [sys.executable, "-m", "contextledger.interfaces.integration", "--out", str(db_path.parent),
                         "--security-dir", str(security), "upsert", "--file", str(path), "--admin-id", admin.id]
                     result = subprocess.run(command, cwd=ROOT, env=os.environ.copy(), capture_output=True, text=True, timeout=90)
                     assert result.returncode == 0, "CLI update failed"
@@ -124,7 +124,7 @@ def main():
                     assert response.status_code == 202, response.text
                     job = response.json()["job"]
                     if operation == "process recovery":
-                        result = subprocess.run([sys.executable, "-m", "contextledger.integration", "--out", str(db_path.parent),
+                        result = subprocess.run([sys.executable, "-m", "contextledger.interfaces.integration", "--out", str(db_path.parent),
                             "--security-dir", str(security), "updates-worker", "--once"], cwd=ROOT, env=os.environ.copy(),
                             capture_output=True, text=True, timeout=90)
                         assert result.returncode == 0, "worker recovery failed"

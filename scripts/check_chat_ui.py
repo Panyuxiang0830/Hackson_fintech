@@ -4,14 +4,13 @@ import asyncio
 import json
 from pathlib import Path
 
-from playwright.async_api import async_playwright, expect
-
 
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url', default='http://127.0.0.1:17861')
     parser.add_argument('--out', type=Path, default=Path('runtime/chat/ui'))
     args = parser.parse_args()
+    from playwright.async_api import async_playwright, expect
     base = args.url.rstrip('/')
     args.out.mkdir(parents=True, exist_ok=True)
     checks, errors = [], []
