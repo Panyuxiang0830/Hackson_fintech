@@ -74,6 +74,16 @@ class FilteredIndex:
     def scope(self, actor: Actor, corpus: str, day=None) -> Scope:
         if not actor.enabled:
             raise PermissionError("account disabled")
+        # Opt-in live sources keep their ACL readiness in persistent IAM state,
+        # not rebuildable content. Block an expired/failed corpus rather than
+        # turn a source outage into a misleading zero-evidence answer.
+        with self.identity.db() as security:
+            if security.execute("SELECT 1 FROM sqlite_master WHERE name='live_source_guards'").fetchone():
+                import time
+                blocked = security.execute("SELECT 1 FROM live_source_guards WHERE corpus=? AND (state!='ready' OR expires_at<=?) LIMIT 1",
+                                           (corpus, time.time())).fetchone()
+                if blocked:
+                    raise IndexUnavailable("Live source permission snapshot is unavailable or expired; refresh the configured source.")
         if day is not None and (type(day) is not int or not 0 <= day <= 60):
             raise ValueError("as_of must be a day between 0 and 60")
         ids, denied = self.identity.scope(actor, corpus)

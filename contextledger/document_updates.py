@@ -80,7 +80,7 @@ class DocumentUpdates:
     def _document(self, db, body, version):
         allowed = {"corpus", "doc_id", "source", "title", "text", "expected_version", "acl",
                    "department", "project", "classification", "allowed_roles", "allowed_departments",
-                   "source_updated_at"}
+                   "source_updated_at", "source_metadata"}
         if not isinstance(body, dict) or set(body) - allowed or "expected_version" not in body:
             raise ValueError("document fields and expected_version are required")
         corpus = self._text(body.get("corpus"), "corpus")
@@ -127,12 +127,18 @@ class DocumentUpdates:
             extra["updated_at"] = source_time
         extra["observed_at"] = now()
         extra["update_origin"] = "trusted_administrator"
+        metadata = body.get("source_metadata", {})
+        allowed_metadata = {"source_resource_id", "source_url", "source_revision", "source_acl_observed_at", "source_acl_basis"}
+        if not isinstance(metadata, dict) or set(metadata) - allowed_metadata:
+            raise ValueError("invalid source metadata")
+        for key, value in metadata.items():
+            extra[key] = self._text(value, key, 2000 if key == "source_url" else 256)
         department = body.get("department", old["dept"] if old else "")
         if not isinstance(department, str) or len(department) > 256 or "\x00" in department:
             raise ValueError("invalid department")
         return CanonicalDoc(corpus, doc_id, source, title, text, old["day"] if old else None,
             source_time, department, json.loads(old["actors_json"]) if old else [], acl,
-            "trusted administrator supplied source ACL snapshot", version, content_hash(text), extra, [])
+            extra.get("source_acl_basis", "trusted administrator supplied source ACL snapshot"), version, content_hash(text), extra, [])
 
     def submit(self, actor_id, body):
         self._admin(actor_id)

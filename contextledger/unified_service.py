@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 import uuid
@@ -28,6 +29,11 @@ class PermissionChanged(RuntimeError):
     pass
 
 
+# The tool gateway installs an immutable request-local credential guard. It is
+# never stored on the shared service instance or supplied by model arguments.
+ACCESS_GUARD = ContextVar("contextledger_access_guard", default=None)
+
+
 def timestamp():
     return datetime.now(timezone.utc).isoformat()
 
@@ -49,6 +55,9 @@ class UnifiedService:
         return actor
 
     def fence(self, actor: Actor, corpus=None, generation=None, hits=()):
+        guard = ACCESS_GUARD.get()
+        if guard is not None:
+            guard()
         current = self.current(actor.id)
         if current.epoch != actor.epoch:
             raise PermissionChanged("Permissions changed; discard this response and retry.")
@@ -253,10 +262,10 @@ class UnifiedService:
         scope = self.index.scope(actor, corpus, day)
         hit, generation = self.index.open(scope, doc_id)
         self.fence(actor, corpus, generation, [hit] if hit else [])
-        self.record(actor, "document_open", hits=[hit] if hit else [], corpus=corpus,
+        event = self.record(actor, "document_open", hits=[hit] if hit else [], corpus=corpus,
                     decision="allowed" if hit else "unavailable", index_generation=generation)
         return ({"available": True, "doc": self.public_hit(hit, full=True),
-                 "index_generation": generation} if hit else {"available": False}), hit
+                 "index_generation": generation, "request_id": event["request_id"]} if hit else {"available": False}), hit
 
     def fence_audit(self, actor, guards):
         self.fence(actor)
