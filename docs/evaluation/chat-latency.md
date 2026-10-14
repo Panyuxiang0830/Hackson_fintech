@@ -14,6 +14,10 @@
 
 只允许固定的17份合成聊天 fixture。内容库和身份通过 SQLite backup 冻结到新目录，审计另建；原生 Qdrant collection 只读复用。MiniLM CPU，规划关闭，固定同一模型、temperature和当前引用／版本门闩。完整请求通过隔离回环 HTTP 执行，逐次计时检索、每个模型请求与工具展开；服务端格式修复、失败、拒答都保留。第一轮 A/B/C、第二轮 C/B/A，避免将先后服务波动直接当作参数收益。
 
+合并前补充保护：副本必须是 ready 且没有 queued/running/failed 更新任务，更新 worker 固定不启动，客户端只允许 Qdrant 读取，管理写入API拒绝访问。评测不能重放源库任务或改动共用 collection；原服务在实验期间也应保持快照不变，否则版本门闩拒绝交付并记失败。
+
+HTTP请求超时、断连、非JSON/非对象响应和身份准备失败也保存为失败观测，不中止后续案例，不计作正常零证据。只记录固定失败类型，不保留异常正文或凭据。正常请求计时仍为问答HTTP墙钟；身份准备失败单独保留其等待时间。此修复有离线注入回归，未重新运行付费模型或重写下方历史测量。
+
 三组为当前提示+high、增加简单事实直接回答提示+high、相同候选提示+low。6个案例、2轮，共36个观测：实名事实、无名称追问、双来源冲突、待审批、未知实体和越权。输出 `protocol.json`、原始 `results.jsonl` 和按案例/配置分组的 `summary.json`。每个模型请求记录输入hash、请求档位、实际模型、用量和耗时，不记录Key或隐藏推理正文。
 
 `low`不是固定推理token数。实际效果取决于模型/提供方；OpenRouter公开目录对DeepSeek V3.2列出reasoning支持，但不列具体支持的effort档位。不能把通用文档中的百分比分配直接当作该模型保证。[OpenRouter reasoning文档](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。`exclude=true`只是隐藏推理正文，仍可能执行推理，并不能用于提速。

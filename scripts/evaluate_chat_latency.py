@@ -8,7 +8,6 @@ import json
 import os
 from pathlib import Path
 import secrets
-import shutil
 import sqlite3
 import statistics
 import subprocess
@@ -60,6 +59,94 @@ def backup(source, target):
         src.backup(dst)
 
 
+def validate_frozen_snapshot(db_path):
+    """A copied queue is not safe to replay against the source collection."""
+    with sqlite3.connect(f'file:{Path(db_path).resolve()}?mode=ro', uri=True) as db:
+        state = db.execute('SELECT state FROM cl_index_state WHERE id=1').fetchone()
+        if not state or state[0] != 'ready':
+            raise ValueError('Source snapshot must already be published')
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='cl_update_jobs'").fetchone():
+            if db.execute("SELECT 1 FROM cl_update_jobs WHERE state IN ('queued','running','failed') LIMIT 1").fetchone():
+                raise ValueError('Source snapshot has pending updates; finish publication before benchmarking')
+
+
+class ReadOnlyQdrant:
+    """Allow serving reads only, even if an update is accidentally submitted."""
+    READS = frozenset({'get_collection', 'get_collections', 'scroll', 'query_points',
+                      'count', 'retrieve', 'close'})
+
+    def __init__(self, client):
+        self._client = client
+
+    def __getattr__(self, name):
+        if name not in self.READS:
+            raise PermissionError('Benchmark cannot modify the shared vector collection')
+        return getattr(self._client, name)
+
+
+def frozen_application(db_path, security, base, *, client=None):
+    validate_frozen_snapshot(db_path)
+    from contextledger.audit_store import AuditStore
+    from contextledger.document_updates import DocumentUpdates
+    from contextledger.filtered_index import FilteredIndex
+    from contextledger.identity_store import IdentityStore
+    from contextledger.unified_service import UnifiedService
+    from contextledger.web import create_app
+    from flask import jsonify, request
+    from qdrant_client import QdrantClient
+    if client is None:
+        client = QdrantClient(url=os.environ['QDRANT_URL'],
+                              api_key=os.getenv('QDRANT_API_KEY') or None, timeout=60)
+    readonly = ReadOnlyQdrant(client)
+    try:
+        identities = IdentityStore(security / 'identities.sqlite')
+        audit = AuditStore(security / 'audit.sqlite')
+        index = FilteredIndex(db_path, readonly, identities)
+        index.install_snapshot_guard()
+        service = UnifiedService(index, identities, audit)
+        updates = DocumentUpdates(index, identities, audit, autostart=False)
+        app = create_app(db_path, security, service=service, updates=updates,
+            config={'DEMO_MODE': True, 'BROWSER_LOGIN_ENABLED': False,
+                    'PUBLIC_URL': base, 'SECRET_KEY': secrets.token_hex(32)})
+        @app.before_request
+        def block_management_writes():
+            if request.method not in {'GET', 'HEAD', 'OPTIONS'} and request.path.startswith('/api/admin/'):
+                return jsonify(error='benchmark_is_read_only'), 403
+        return app
+    except Exception:
+        readonly.close()
+        raise
+
+
+def failure_result(failure, state):
+    return {'decision': 'request_failed', 'evidence': [], 'answer': '',
+            'llm_diagnostics': {'attempts': None, 'model_calls': len(state['trace']), 'failures': [failure]}}
+
+
+def measured_question(session, base, headers, case, corpus, state):
+    """Transport/JSON failures are observations, not reasons to truncate the run."""
+    import requests
+    started, status = time.perf_counter(), None
+    try:
+        response = session.post(base + '/api/ask', json={'corpus': corpus,
+            'q': case['question'], 'mode': 'hybrid', 'planning': False}, headers=headers, timeout=240)
+        status = response.status_code
+    except requests.Timeout:
+        result = failure_result('http_timeout', state)
+    except requests.RequestException:
+        result = failure_result('http_connection_failed', state)
+    else:
+        try:
+            result = response.json()
+            if not isinstance(result, dict):
+                raise ValueError('Expected an object')
+        except ValueError:
+            result = failure_result('invalid_http_json', state)
+        if status >= 400:
+            result.setdefault('llm_diagnostics', {}).setdefault('failures', [f'http_status_{status}'])
+    return result, status, (time.perf_counter() - started) * 1000
+
+
 def cases():
     return [
         {'id': 'named_deadline', 'question': 'OakRunbook 退款复核负责人、截止日期分别是什么？',
@@ -92,7 +179,6 @@ def run(args):
     from contextledger.audit_store import AuditStore
     from contextledger.demo_identity import MARKER
     from contextledger.radar_tool import DecisionRadarTool
-    from contextledger.web import create_app
     from scripts.evaluate_chat import score
     from src.answering import AnswerService
     from werkzeug.serving import make_server, WSGIRequestHandler
@@ -144,8 +230,7 @@ def run(args):
             state['radar'].append(round((time.perf_counter() - started) * 1000, 2))
 
     base = f'http://127.0.0.1:{args.port}'
-    app = create_app(db_path, security, config={'DEMO_MODE': True, 'BROWSER_LOGIN_ENABLED': False,
-        'PUBLIC_URL': base, 'SECRET_KEY': secrets.token_hex(32)})
+    app = frozen_application(db_path, security, base)
     service = app.extensions['unified_service']
     original_retrieve = service.retrieve
     def retrieve(*pos, **kw):
@@ -170,6 +255,7 @@ def run(args):
         'profiles': PROFILES, 'repeats': args.repeats, 'corpus': corpora[0],
         'content_hashes': expected, 'cases': cases(), 'tool_prompt_sha256': digest(original_prompt),
         'scalar_hint': SCALAR_HINT, 'scope': 'synthetic development cases, native Qdrant and MiniLM; production unchanged',
+        'index_access': 'read-only shared collection; update worker disabled; pending snapshots rejected',
         'timer_scope': 'HTTP wall time; completion includes network/provider and JSON decoding; tool and retrieval separately timed'}
     (args.out / 'protocol.json').write_text(json.dumps(protocol, ensure_ascii=False, indent=2))
     try:
@@ -181,26 +267,30 @@ def run(args):
                         radar_protocol.TOOL_PROMPT = original_prompt + (SCALAR_HINT if hint else '')
                         service.answer.radar_reasoning = effort
                         actor = actors['employee-06' if case.get('actor') == 'outside' else 'employee-01']
-                        if actor not in sessions:
-                            session = requests.Session()
-                            csrf = session.get(base+'/api/session', timeout=10).json()['csrf']
-                            selected = session.post(base+'/api/demo/select', json={'user_id': actor},
-                                headers={'Origin': base, 'X-CSRF-Token': csrf}, timeout=10)
-                            selected.raise_for_status()
-                            csrf = session.get(base+'/api/session', timeout=10).json()['csrf']
-                            sessions[actor] = (session, {'Origin': base, 'X-CSRF-Token': csrf})
-                        session, headers = sessions[actor]
                         state.update(trace=[], retrieval=[], radar=[])
-                        started = time.perf_counter()
-                        response = session.post(base+'/api/ask', json={'corpus': corpora[0], 'q': case['question'],
-                            'mode': 'hybrid', 'planning': False}, headers=headers, timeout=240)
-                        elapsed = (time.perf_counter() - started) * 1000
-                        result = response.json()
-                        graded = score(case, result, response.status_code, expected)
+                        started, created = time.perf_counter(), None
+                        try:
+                            if actor not in sessions:
+                                created = requests.Session()
+                                csrf = created.get(base+'/api/session', timeout=10).json()['csrf']
+                                selected = created.post(base+'/api/demo/select', json={'user_id': actor},
+                                    headers={'Origin': base, 'X-CSRF-Token': csrf}, timeout=10)
+                                selected.raise_for_status()
+                                csrf = created.get(base+'/api/session', timeout=10).json()['csrf']
+                                sessions[actor] = (created, {'Origin': base, 'X-CSRF-Token': csrf})
+                            session, headers = sessions[actor]
+                        except (requests.RequestException, ValueError, KeyError, TypeError):
+                            if created is not None:
+                                created.close()
+                            result, status = failure_result('identity_setup_failed', state), None
+                            elapsed = (time.perf_counter() - started) * 1000
+                        else:
+                            result, status, elapsed = measured_question(session, base, headers, case, corpora[0], state)
+                        graded = score(case, result, status, expected)
                         if case.get('require_radar'):
                             graded['checks']['radar_retained'] = bool(result.get('radar'))
                             graded['passed'] = all(graded['checks'].values())
-                        row = {'case': case, 'profile': profile, 'repeat': repeat, 'http_status': response.status_code,
+                        row = {'case': case, 'profile': profile, 'repeat': repeat, 'http_status': status,
                                'latency_ms': round(elapsed, 2), 'model_calls': state['trace'],
                                'retrieval_ms': state['retrieval'], 'radar_ms': state['radar'], 'result': result, **graded}
                         rows.append(row)
@@ -215,6 +305,7 @@ def run(args):
         server.shutdown()
         thread.join(timeout=5)
         app.extensions['document_updates'].close()
+        service.index.client.close()
         for session, _ in sessions.values():
             session.close()
     print(json.dumps({'observations': len(rows), 'passed': sum(r['passed'] for r in rows), 'audit_valid': service.audit.verify().valid}), flush=True)
