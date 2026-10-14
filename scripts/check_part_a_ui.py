@@ -6,14 +6,13 @@ import json
 import sqlite3
 from pathlib import Path
 
-from playwright.async_api import async_playwright
-
 
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:7860")
     parser.add_argument("--out", type=Path, default=Path("runtime/part_a"))
     args = parser.parse_args()
+    from playwright.async_api import async_playwright
     base = args.url.rstrip("/")
     evidence = args.out / "ui-evidence"
     evidence.mkdir(parents=True, exist_ok=True)

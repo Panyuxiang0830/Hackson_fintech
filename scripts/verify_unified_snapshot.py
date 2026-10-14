@@ -14,11 +14,11 @@ import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from qdrant_client import QdrantClient
-from contextledger.audit_store import AuditStore
-from contextledger.filtered_index import FilteredIndex
-from contextledger.identity_store import IdentityStore
-from contextledger.unified_service import UnifiedService
-from src.answering import AnswerService
+from contextledger.audit.store import AuditStore
+from contextledger.retrieval.filtered_index import FilteredIndex
+from contextledger.access.identity_store import IdentityStore
+from contextledger.application.service import UnifiedService
+from contextledger.answering.service import AnswerService
 
 
 def main():
