@@ -82,7 +82,7 @@ class DocumentUpdates:
     def _document(self, db, body, version, *, source_refresh=False):
         allowed = {"corpus", "doc_id", "source", "title", "text", "expected_version", "acl",
                    "department", "project", "classification", "allowed_roles", "allowed_departments",
-                   "source_updated_at", "source_metadata"}
+                   "source_updated_at", "source_metadata", "permission_annotation"}
         if not isinstance(body, dict) or set(body) - allowed or "expected_version" not in body:
             raise ValueError("document fields and expected_version are required")
         corpus = self._text(body.get("corpus"), "corpus")
@@ -109,6 +109,16 @@ class DocumentUpdates:
             if not db.execute("SELECT 1 FROM principals WHERE corpus=? AND principal_id=?", (corpus, principal)).fetchone():
                 raise ValueError("ACL principal does not belong to this corpus")
         extra = json.loads(old["extra_json"]) if old else {"classification": "internal"}
+        if "permission_annotation" in body:
+            annotation = body["permission_annotation"]
+            if (not isinstance(annotation, dict)
+                    or set(annotation) != {"kind", "scenario_id", "authority"}
+                    or annotation.get("kind") != "manual_demo"
+                    or annotation.get("authority") != "team_decision"
+                    or not isinstance(annotation.get("scenario_id"), str)
+                    or not 1 <= len(annotation["scenario_id"]) <= 120):
+                raise ValueError("invalid manual permission annotation")
+            extra["permission_annotation"] = annotation
         for name in ("project", "classification", "allowed_roles", "allowed_departments"):
             if name in body:
                 value = body[name]

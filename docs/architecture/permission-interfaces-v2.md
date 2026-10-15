@@ -39,7 +39,7 @@ flowchart TD
 |---|---|---|---|
 | `snapshot_acl` | 导入时保存的每文档允许名单、来源身份映射 | 既有 `acl_json` / `cl_acl`；未来可信 ACL 导出文件 | 现有数据集已经使用；本次原样保留。统一 v2 包装为设计 |
 | `native_acl` | 平台当前可观察的资源权限、成员、继承关系 | Slack、Jira Cloud、Confluence Cloud、Drive 只读权限 API | 已有四来源受限适配器及受控测试；真实企业租户全链路待验证，不称为完整平台支持 |
-| `attribute_policy` | 企业确认的项目成员、允许部门、角色、密级策略 | 企业目录/API、版本化策略文件、可信导出或管理员配置 | 已有部分字段和过滤条件；统一目录同步、策略编译和管理流程为新设计，当前 OrgForge 无实际项目/密级分层 |
+| `attribute_policy` | 企业确认的项目成员、允许部门、角色、密级策略 | 企业目录/API、版本化策略文件、可信导出或管理员配置 | 已有部分字段和过滤条件；统一目录同步、策略编译和管理流程为新设计，原 OrgForge 未填项目/密级分层；随后获准的四份人工演示资料配置单独记录，未推广全库 |
 | `posix_acl` | 源服务器的 UID/GID、权限位和访问 ACL | 源端可信采集器读取 stat、路径和 access ACL | 新设计；本次不实现系统调用适配器、不修改服务器文件权限 |
 | `external_pdp` | 企业已有权限决策服务的决定 | 固定受信地址的 check + 可过滤资源范围接口 | 新设计；不安装或配置 OPA 等引擎，不声称已集成 |
 
@@ -267,3 +267,5 @@ Permission parsing in ContextLedger does not require an LLM. The current prototy
 ## 9. 本轮交付核验
 
 本轮仅变更架构方案、Proposed ADR、文档入口、需求台账及Changelog。两段JSON示例和本地文档链接检查通过，需求同步与JS语法检查通过；既有unittest 373项、pytest 381项及149个subtests通过。以上是现有功能回归，不是新权限提供方的实现或验收证明。
+
+2026-10-15后续范围更新：用户另行授权仅为ENG-195/PR-135的四份资源配置人工项目/部门/密级，见[演示白名单](../product/curated-demo-permissions.md)。该有限配置不代表统一PermissionProvider或企业属性目录已实现。

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "authority": "team_decision",
+  "scenario_id": "swiftui-telemetry-20261015",
+  "corpus": "orgforge",
+  "project": "demo:swiftui-telemetry",
+  "department": "Engineering_Mobile",
+  "allowed_departments": [
+    "Engineering_Backend",
+    "Engineering_Mobile",
+    "Product"
+  ],
+  "classification": "confidential",
+  "employee_source_principal": "orgforge:Jax",
+  "employee_clearance": 2,
+  "questions": [
+    "What can I monitor in the ENG-195 SwiftUI telemetry health dashboard?",
+    "What changed during the ENG-195 / PR-135 SwiftUI telemetry dashboard review, and has it been released yet?",
+    "Which parts of the ENG-195 / PR-135 outcome remain unconfirmed?"
+  ],
+  "documents": [
+    {
+      "doc_id": "ENG-195",
+      "expected_content_hash": "e74876d43b5bd6460f6e3ae37ce4b49cac50834079fef31601d022d71fe69d78",
+      "grant_employee": true,
+      "purpose": "Monitoring / review / merge evidence for the demo"
+    },
+    {
+      "doc_id": "slack_engineering_2026-02-17T09:37:07",
+      "expected_content_hash": "1db4543ee52ce044ba1bba388b148df58915aa6ed02ed10a4899e534f869d11d",
+      "grant_employee": false,
+      "purpose": "Monitoring / review / merge evidence for the demo"
+    },
+    {
+      "doc_id": "slack_engineering_2026-02-18T09:38:43",
+      "expected_content_hash": "d7db8fbb45ec7579e3ddb04701af08ced547bd91eddd0d70de49646718723629",
+      "grant_employee": false,
+      "purpose": "Monitoring / review / merge evidence for the demo"
+    },
+    {
+      "doc_id": "slack_dm_miki_raj_2026-02-17T15:09:55.860671",
+      "expected_content_hash": "97d86d69809ac5fb0e7e7f02a008633b7eb177a21c3884ed5318075ecf4e7489",
+      "grant_employee": false,
+      "purpose": "Private discussion; retain original participant ACL"
+    }
+  ]
+}

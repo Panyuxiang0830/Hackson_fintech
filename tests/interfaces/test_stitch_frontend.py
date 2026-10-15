@@ -67,7 +67,7 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertIn('data-slot="needs"', self.html)
 
     def test_security_lens_controls_resources_instead_of_arbitrary_identity_binding(self):
-        for slot in ('content-corpus', 'dataset-access', 'source-controls', 'document-id', 'document-rules'):
+        for slot in ('content-corpus', 'dataset-access', 'source-controls', 'document-id', 'document-rules', 'attribute-controls', 'project-controls', 'clearance-select', 'department-policy', 'doc-policy'):
             self.assertIn('data-slot="' + slot + '"', self.html)
         self.assertIn('allowed source categories', self.html)
         self.assertNotIn('active source bindings', self.html)

@@ -356,7 +356,22 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
             for corpus, source in rows:
                 if corpus in associated:
                     catalog.setdefault(corpus, []).append(source)
-        return jsonify([{"id": corpus, "sources": sources} for corpus, sources in catalog.items()])
+            result = []
+            for corpus, sources in catalog.items():
+                item = {"id": corpus, "sources": sources}
+                annotated = db.execute("""SELECT DISTINCT m.project,m.department,m.classification,m.departments_json
+                    FROM cl_metadata m JOIN documents d ON d.corpus=m.corpus AND d.doc_id=m.doc_id
+                    WHERE m.corpus=? AND json_extract(d.extra_json,'$.permission_annotation.kind')='manual_demo'
+                    ORDER BY m.project,m.department,m.classification""", (corpus,)).fetchall()
+                if annotated:
+                    import json
+                    item["attribute_controls"] = {
+                        "projects": sorted({row[0] for row in annotated if row[0]}),
+                        "allowed_departments": sorted({dept for row in annotated for dept in json.loads(row[3])}),
+                        "classifications": sorted({row[2] for row in annotated}),
+                    }
+                result.append(item)
+        return jsonify(result)
 
     @app.get("/api/search")
     def search():

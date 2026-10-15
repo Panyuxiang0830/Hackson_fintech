@@ -22,6 +22,7 @@ function displayName(value,id) {
   const name=String(value||'').replace(/（演示员工）/g,'').trim().replace('ContextLedger 管理员','ContextLedger Administrator');
   return /\p{Script=Han}/u.test(name)?`Account ${shortId(id)}`:name||shortId(id);
 }
+function projectLabel(value){return value==='demo:swiftui-telemetry'?'SwiftUI telemetry dashboard (demo)':value;}
 state.planningChoice=null;
 try{const saved=localStorage.getItem('contextledger.stitch.planning');if(saved==='on'||saved==='off')state.planningChoice=saved==='on';}catch(error){/* Storage is optional. */}
 function renderPlanning() {
@@ -162,7 +163,7 @@ function clearProtected() {
     if(one(page,'timeline-toggle'))one(page,'timeline-toggle').hidden=true;
     if(one(page,'needs'))one(page,'needs').hidden=true;
   }
-  for(const name of ['claim','claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-access-status','doc-source-status'])put('passport',name,'—');
+  for(const name of ['claim','claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-access-status','doc-source-status','doc-policy'])put('passport',name,'—');
   technical(false);
   for(const name of ['events','audit-facts','audit-evidence','audit-authorisations'])one('audit',name)?.replaceChildren();
   put('audit','audit-question','No event selected.');pages.passport.querySelector('[data-action="original"]').hidden=true;
@@ -187,7 +188,7 @@ async function refreshSession() {
   if(!permitted(document.body.dataset.activePage))show('home');
   if(!state.user||state.user.role!=='admin'){
     state.people=[];state.principals=[];state.baseline=null;state.selectedUser=null;state.contentScopes=[];state.controlCorpus='';
-    one('security','source-controls').replaceChildren();one('security','document-rules').replaceChildren();one('security','content-corpus').replaceChildren();
+    one('security','source-controls').replaceChildren();one('security','project-controls').replaceChildren();one('security','attribute-controls').hidden=true;one('security','document-rules').replaceChildren();one('security','content-corpus').replaceChildren();
     for(const name of ['employee-select','binding-select','before-bindings','after-bindings'])one('security',name)?.replaceChildren();
     put('security','before-count','—');put('security','after-count','—');put('security','permission-feedback','Administrator access required.');
   }
@@ -305,7 +306,7 @@ async function openPassport(hit) {
   if(!hit||!state.result)return;
   state.passportOpener=document.activeElement;state.timelineExpanded.passport=false;
   const generation=state.generation,docRequest=++state.docGeneration;state.doc=null;
-  for(const name of ['claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-source-status'])put('passport',name,'—');
+  for(const name of ['claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-source-status','doc-policy'])put('passport',name,'—');
   technical(false);
   pages.passport.querySelector('[data-action="original"]').hidden=true;
   renderJudgment('passport',state.result);put('passport','claim','Loading source…');put('passport','doc-access-status','Checking access');show('passport');notice('Checking current source access…');
@@ -321,6 +322,7 @@ async function openPassport(hit) {
     put('passport','citation-source',`[${hit.citation_id}] ${data.doc.source||hit.source||'Source'} · Original text`);
     put('passport','quote',data.doc.text||'No source text was returned.');put('passport','doc-version',data.doc.version);put('passport','doc-time',data.doc.ts||'Unknown');put('passport','doc-indexed',data.doc.indexed_at||'Unknown');put('passport','doc-access',data.doc.acl_basis||'Current session access');
     const metadata=data.doc.metadata||{};
+    put('passport','doc-policy',metadata.permission_annotation?.kind==='manual_demo'?`Manually configured demo policy · ${projectLabel(metadata.project)} · ${metadata.classification} · Eligible departments: ${(metadata.allowed_departments||[]).join(', ')}`:'');
     put('passport','technical',JSON.stringify({request_id:state.result.request_id,document_id:hit.doc_id,version:data.doc.version,content_hash:data.doc.content_hash||null,source_check:data.doc.source_check||'Unknown',freshness:data.doc.freshness||'Unknown',current_acl_basis:data.doc.acl_basis||null,acl_provenance:metadata.acl_provenance||null,current_source_acl_basis:metadata.source_acl_basis||null,current_source_acl_observed_at:metadata.source_acl_observed_at||null,unverified_source_acl_reference:metadata.source_acl_reference||null,source_revision:metadata.source_revision||null},null,2));
     notice('');
   } catch(error){if(docRequest!==state.docGeneration&&!error.accessChanged)return;if(error.status===404){clearProtected();notice(error.message,'error');}else if(generation===state.generation){put('passport','claim','Source unavailable');put('passport','quote','The source cannot be opened under the current access scope.');put('passport','doc-access-status','Unavailable');state.doc=null;notice(error.message,'error');}else if(error.accessChanged)notice(error.message,'error');}
@@ -384,6 +386,14 @@ function renderContentAccess() {
     const name=({slack:'Slack',jira:'Jira',confluence:'Confluence',google_drive:'Google Drive'})[source]||source;
     label.append(input,element('span','',name));controls.append(label);
   }
+  const attributes=state.contentScopes.find(c=>c.id===state.controlCorpus)?.attribute_controls;
+  one('security','attribute-controls').hidden=!attributes;
+  const projects=one('security','project-controls');projects.replaceChildren();
+  if(attributes){
+    for(const project of attributes.projects){const label=element('label','stitch-access-row');const input=element('input');input.type='checkbox';input.dataset.projectPermission=project;input.checked=current.bound&&!current.blocked&&!current.rules.some(r=>r.kind==='project'&&(r.value===project||r.value==='*'));input.disabled=!current.bound||current.blocked||current.globalRule;label.append(input,element('span','',`Read project: ${projectLabel(project)}`));projects.append(label);}
+    one('security','clearance-select').value=String(person.clearance);
+    put('security','department-policy',`Employee department: ${person.department||'Unassigned'}. Demo evidence allows: ${attributes.allowed_departments.join(', ')}.`);
+  }
   const documents=one('security','document-rules');documents.replaceChildren();
   for(const rule of current.rules.filter(r=>r.kind==='document')){
     const row=element('div','stitch-access-row');row.append(element('span','stitch-wrap',rule.value));
@@ -394,6 +404,7 @@ function renderContentAccess() {
   for(const [prefix,user] of [['before',state.baseline],['after',person]]){
     const access=contentState(user);const list=one('security',prefix+'-bindings');list.replaceChildren();put('security',prefix+'-count',access.allowed.length);
     for(const source of access.sources){const row=element('div','stitch-access-row');row.append(element('span','',source),element('span',access.allowed.includes(source)?'text-status-success':'text-text-muted',access.allowed.includes(source)?'Allowed':'Blocked'));list.append(row);}
+    if(attributes)list.append(element('p','font-body-sm text-text-muted',`Clearance: ${['Public','Internal','Confidential','Restricted'][user.clearance]}. ${attributes.projects.map(project=>projectLabel(project)+': '+(access.rules.some(r=>r.kind==='project'&&(r.value===project||r.value==='*'))?'Blocked':'Allowed')).join('; ')}`));
     if(access.rules.some(r=>r.kind==='document'))list.append(element('p','font-body-sm text-text-muted',`${access.rules.filter(r=>r.kind==='document').length} document restriction(s).`));
     if(!access.bound)list.append(element('p','font-body-sm text-text-muted','Mapped source identity is disabled.'));
   }
@@ -420,7 +431,7 @@ async function changeBinding() {
 
 async function runEmployeeQuery() {
   const userId=state.selectedUser;if(!userId||!state.demo)return;
-  const question=state.question||pages.home.querySelector('[data-action="example"]')?.dataset.question||'What is TitanDB used for?';
+  const question=state.question||pages.home.querySelector('[data-action="example"]')?.dataset.question||'What can I monitor in the ENG-195 SwiftUI telemetry health dashboard?';
   const corpus=state.controlCorpus;await switchIdentity(userId);if(state.corpora.some(c=>c.id===corpus)){state.corpus=corpus;one('home','corpus').value=corpus;}one('home','question').value=question;await ask();
 }
 
@@ -500,6 +511,8 @@ one('security','employee-select').addEventListener('change',event=>selectEmploye
 one('security','content-corpus').addEventListener('change',event=>{state.controlCorpus=event.target.value;renderContentAccess();});
 one('security','dataset-access').addEventListener('change',event=>saveContentPermission({action:'restriction',kind:'corpus',value:state.controlCorpus,denied:!event.target.checked}));
 one('security','source-controls').addEventListener('change',event=>{if(event.target.dataset.sourcePermission)saveContentPermission({action:'restriction',kind:'source',value:event.target.dataset.sourcePermission,denied:!event.target.checked});});
+one('security','project-controls').addEventListener('change',event=>{if(event.target.dataset.projectPermission)saveContentPermission({action:'restriction',kind:'project',value:event.target.dataset.projectPermission,denied:!event.target.checked});});
+one('security','clearance-select').addEventListener('change',event=>saveContentPermission({action:'account',clearance:Number(event.target.value)}));
 one('security','document-rules').addEventListener('click',event=>{const button=event.target.closest('[data-restore-document]');if(button)saveContentPermission({action:'restriction',kind:'document',value:button.dataset.restoreDocument,denied:false});});
 pages.security.querySelector('[data-action="deny-document"]').addEventListener('click',()=>{const id=one('security','document-id').value.trim();if(id)saveContentPermission({action:'restriction',kind:'document',value:id,denied:true});else notice('Enter a document ID from Evidence Passport.','error');});
 one('home','corpus').addEventListener('change',()=>{state.corpus=one('home','corpus').value;clearProtected();});

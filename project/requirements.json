@@ -1097,13 +1097,16 @@
           "title": "所属数据集保持可选与资料范围授权",
           "source": "user confirmed on 2026-10-15 for submission demo; preserve imported ACL and focus OrgForge",
           "authority": "team_decision",
-          "status": "implemented",
-          "description": "已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。",
+          "status": "in_progress",
+          "description": "已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。 2026-10-15用户授权只对实际演示问题相关资源人工标注项目、部门和密级，并接通相应管理与追溯；不推广到其他数据。",
           "acceptance_criteria": [
             "撤销数据集或全部来源读取权后，员工仍能选择已有映射的数据集；无证据时不调用模型并返回安全提示",
             "管理员按数据集、来源和文档调整本地限制，恢复不能绕过原始来源 ACL；普通员工无法调用管理接口",
             "同一员工部分撤权后仅返回剩余授权来源，全部撤权后旧原文不可读，权限版本与审计记录同步更新",
-            "历史撤销的身份绑定不自动恢复；页面仅提供员工已绑定来源身份的明确恢复入口，不展示其他员工身份作为授权选项"
+            "历史撤销的身份绑定不自动恢复；页面仅提供员工已绑定来源身份的明确恢复入口，不展示其他员工身份作为授权选项",
+            "演示权限按显式文档ID和原内容哈希白名单应用，保留正文与其他全部文档；人工标注带独立来源说明，私聊不额外授予Jax权限",
+            "只对ENG-195/PR-135演示资源标注项目、允许部门及confidential级别；项目拒绝和密级变化在实际关键词/向量检索、原文及回答交付生效，恢复后正常回答",
+            "Security Lens展示已标注的演示项目、允许部门和员工密级，Evidence Passport展示人工权限标注；原始来源ACL与本地限制继续生效"
           ],
           "code": [
             "contextledger/interfaces/web.py",
@@ -1111,16 +1114,23 @@
             "contextledger/interfaces/static/stitch/app.js",
             "contextledger/interfaces/static/stitch/index.html",
             "contextledger/interfaces/static/stitch/responsive.css",
-            "contextledger/answering/service.py"
+            "contextledger/answering/service.py",
+            "contextledger/access/demo_permissions.py",
+            "contextledger/storage/document_updates.py",
+            "config/demo-permissions.example.json",
+            "scripts/apply_demo_permissions.py"
           ],
           "tests": [
             "tests/interfaces/test_stitch_api.py",
             "tests/interfaces/test_stitch_frontend.py",
-            "tests/answering/test_answering.py"
+            "tests/answering/test_answering.py",
+            "tests/access/test_demo_permissions.py",
+            "tests/application/test_document_updates.py"
           ],
           "docs": [
             "docs/product/resource-permissions.md",
-            "docs/README.md"
+            "docs/README.md",
+            "docs/product/curated-demo-permissions.md"
           ]
         }
       ]
