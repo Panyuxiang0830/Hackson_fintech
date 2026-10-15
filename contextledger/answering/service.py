@@ -17,7 +17,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v14-2026-10-16"
+PROMPT_VERSION = "answer-v15-2026-10-16"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 _RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
@@ -46,9 +46,10 @@ SYSTEM_PROMPT = (
     "The first sentence of an answered response is shown alone as the headline: make it "
     "one complete, self-contained direct conclusion of at most 25 words (at most 50 "
     "characters for Chinese, Japanese or Korean), carrying the key fact the question asks "
-    "for, such as the value, status or the main items named briefly. Do not open with "
-    "filler such as 'Based on the evidence'; put lists, breakdowns and explanations in "
-    "later sentences. "
+    "for, such as the value or status. Summarise instead of enumerating: no lists, "
+    "semicolons or parenthetical detail in the first sentence; when there are several "
+    "items, give their number or category and name them in the following sentences. "
+    "Do not open with filler such as 'Based on the evidence'. "
     "对于‘是什么／做什么的’：先给一句通俗结论，再按资料讲数据从哪里来、保存什么、谁怎样使用。"
     "资料只支持一句时，一句即可；不为凑段落添加自动化、保证效果或未知步骤。"
     "每一点独立成段，段间空行。讲清业务动作，不列开发框架、编程语言、实现缩写或参数；"
@@ -84,6 +85,43 @@ def _needs_paragraphs(answer: str) -> bool:
     if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", answer):
         return len(answer.strip()) > 200
     return len(re.findall(r"\b\w+(?:['’-]\w+)*\b", _CITATION_PATTERN.sub("", answer))) > 80
+
+
+_HEADLINE_CITATIONS = re.compile(r"\[\d+(?:\s*[,，]\s*\d+)*\]")
+_HEADLINE_ABBREVIATIONS = re.compile(r"(?:^|\s)(?:e\.g|i\.e|etc|vs|approx|Mr|Ms|Dr|No|Inc|Ltd|U\.S)$", re.I)
+HEADLINE_RETRY_WORDS = 30
+HEADLINE_RETRY_CJK_CHARACTERS = 60
+
+
+def headline_sentence(answer: str) -> str:
+    """First sentence as the Stitch frontend shows it (answerSummary in app.js)."""
+    text = answer.strip()
+    end = len(text)
+    for match in re.finditer(r"[.!?。！？]", text):
+        stop = match.end()
+        cited = re.match(r"(?:\s*" + _HEADLINE_CITATIONS.pattern + r")+", text[stop:])
+        if cited:
+            stop += cited.end()
+        rest = text[stop:]
+        if match.group() in "。！？" or not rest.strip():
+            end = stop
+            break
+        if match.group() == "." and _HEADLINE_ABBREVIATIONS.search(text[:match.start()]):
+            continue
+        if re.match(r"\s+[^a-z\s]", rest) or re.match(r"\s*\n", rest):
+            end = stop
+            break
+    line_break = text.find("\n")
+    if 0 < line_break < end:
+        end = line_break
+    return re.sub(r"\s*" + _HEADLINE_CITATIONS.pattern, "", text[:end]).strip()
+
+
+def _headline_too_long(answer: str) -> bool:
+    sentence = headline_sentence(answer)
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", sentence):
+        return len(re.sub(r"\s", "", sentence)) > HEADLINE_RETRY_CJK_CHARACTERS
+    return len(re.findall(r"\b\w+(?:['’-]\w+)*\b", sentence)) > HEADLINE_RETRY_WORDS
 
 
 def empty_evidence_answer(question: str, output_language=None) -> str:
@@ -322,6 +360,7 @@ class AnswerService:
 
         tool_state = {"called": False, "result": None}
         if self.provider == "openai_compatible":
+            accepted = None  # A valid answer kept when only its headline was too long.
             for attempt in range(2):
                 if before_call is not None:
                     before_call()  # Recheck permissions before a bounded format retry.
@@ -335,7 +374,16 @@ class AnswerService:
                     else:
                         answer, decision = self._openai_compatible(user, question, evidence,
                             tool_handler=tool_handler, tool_state=tool_state, before_call=before_call)
-                    return answer, decision, f"openai_compatible/{self.last_diagnostics.get('actual_model') or self.model}"
+                    result = answer, decision, f"openai_compatible/{self.last_diagnostics.get('actual_model') or self.model}"
+                    if (accepted is None and decision == "answered" and self.last_radar_presentation is None
+                            and _headline_too_long(answer)):
+                        # The first sentence is the page headline: ask once for a shorter one.
+                        accepted = result
+                        details = self.last_diagnostics
+                        details["failures"].append("headline_too_long")
+                        _DIAGNOSTICS.set(details)
+                        continue
+                    return result
                 except (urllib.error.URLError, TimeoutError) as error:
                     details = self.last_diagnostics
                     details["failures"].append("api_unavailable")
@@ -355,6 +403,8 @@ class AnswerService:
                     details = self.last_diagnostics
                     details.setdefault("attempt_latencies_ms", []).append(round((time.monotonic() - attempt_started) * 1000, 1))
                     _DIAGNOSTICS.set(details)
+            if accepted is not None:
+                return accepted
             reason = self.last_diagnostics["failures"][-1]
             if chinese:
                 message = "模型服务暂不可用" if reason == "api_unavailable" else "模型回答未通过格式或引用校验"
@@ -421,6 +471,10 @@ class AnswerService:
             details["radar_prompt_hash"] = hashlib.sha256((TOOL_PROMPT + (SYNTHESIS_PROMPT if tool_state["called"] else "")).encode()).hexdigest()
             _DIAGNOSTICS.set(details)
         if self.last_diagnostics.get("attempts", 0) > 1:
+            if self.last_diagnostics["failures"][-1] == "headline_too_long":
+                system += (" The previous answer's first sentence was too long for the headline. Rewrite the answer so "
+                           "its first sentence is one short direct conclusion of at most 25 words (50 CJK characters), "
+                           "with no list or semicolon; keep every other fact, citation and paragraph rule.")
             if self.last_diagnostics["failures"][-1] == "language_validation_failed":
                 system += " The previous response used the wrong language. Answer this English question in English; preserve names and citation IDs."
             if tool_handler is not None and not tool_state["called"]:

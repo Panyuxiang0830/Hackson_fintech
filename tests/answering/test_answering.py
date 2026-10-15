@@ -141,6 +141,54 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertIn('previous response used the wrong language', calls[1]['messages'][0]['content'])
         self.assertNotIn('这是一个财务台账', calls[1]['messages'][1]['content'])
 
+    def _ask_with_replies(self, replies):
+        calls, guards = [], []
+        def transport(request, **kwargs):
+            calls.append(json.loads(request.data))
+            reply = replies.pop(0)
+            return self._response(reply if isinstance(reply, dict) else {
+                'status': 'answered', 'answer': reply, 'citation_ids': [1], 'uncertainty': 'low'})
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            service = AnswerService()
+            with patch('urllib.request.urlopen', side_effect=transport):
+                result = service.answer(self.user, 'What can I monitor in the dashboard?', self.evidence,
+                    before_call=lambda: guards.append(True), output_language='en')
+        return result, service, calls, guards
+
+    LONG_HEADLINE = ("The dashboard has three sections: a header bar with athlete selector, metric toggle and "
+                     "live indicator; a live auto-scrolling line chart; and a summary panel with current, average "
+                     "and peak values [1].")
+
+    def test_overlong_first_sentence_gets_one_guarded_rewrite(self):
+        short = "The dashboard shows live athlete telemetry in three areas [1]. It has a header bar, a live chart and a summary panel [1]."
+        (answer, status, provider), service, calls, guards = self._ask_with_replies([self.LONG_HEADLINE, short])
+        self.assertEqual((answer, status), (short, 'answered'))
+        self.assertTrue(provider.startswith('openai_compatible/'))
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(guards), 2)  # Permissions are rechecked before the rewrite.
+        self.assertEqual(service.last_diagnostics['failures'], ['headline_too_long'])
+        self.assertIn("first sentence was too long for the headline", calls[1]['messages'][0]['content'])
+
+    def test_rewrite_is_bounded_and_never_turns_a_valid_answer_into_a_failure(self):
+        still_long = self.LONG_HEADLINE + " Still long."
+        cases = ((still_long, still_long),  # Valid but long: accepted, no third call.
+                 ({'status': 'answered', 'answer': 'bad [9]', 'citation_ids': [9], 'uncertainty': 'low'}, self.LONG_HEADLINE))
+        for second, expected in cases:
+            with self.subTest(second=str(second)[:20]):
+                (answer, status, provider), service, calls, _ = self._ask_with_replies([self.LONG_HEADLINE, second])
+                self.assertEqual((answer, status), (expected, 'answered'))
+                self.assertNotEqual(provider, 'mock_fallback')
+                self.assertEqual(len(calls), 2)
+
+    def test_headline_sentence_matches_frontend_rules(self):
+        from contextledger.answering.service import headline_sentence, _headline_too_long
+        self.assertEqual(headline_sentence("TitanDB stores snapshots, e.g. balances [1]. More [2]."),
+                         "TitanDB stores snapshots, e.g. balances.")
+        self.assertEqual(headline_sentence("限额为每日五万元[1]。其余条款仍待确认[2]。"), "限额为每日五万元。")
+        self.assertEqual(headline_sentence("Version 1.2 shipped on time [3]"), "Version 1.2 shipped on time")
+        self.assertTrue(_headline_too_long(self.LONG_HEADLINE))
+        self.assertFalse(_headline_too_long("The limit is CNY 100,000 per customer [1]."))
+
     def test_requested_chinese_translation_is_not_rejected_as_wrong_language(self):
         from contextledger.answering.service import _check_answer_language
         _check_answer_language('Please translate this explanation into Chinese.',
