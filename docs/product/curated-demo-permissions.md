@@ -56,3 +56,9 @@
 - 服务器完整测试（独立测试解释器，`ca0886b2`）：385 pytest + 156 subtests 通过，377 unittest 通过；日志 `previews/aspire-ui-20261015/curated-demo-pytest.log`、`curated-demo-unittest.log`。
 
 以上为技术验收，不代表用户人工验收；未合并main。
+
+### 2026-10-16 再次逐题复测
+
+3道带ENG-195/PR-135的问题在默认hybrid均有证据，所有检索命中和真实GLM引用均为已标注资料。分别项目撤权/降低密级后，3题×3模式均零证据，回答模型attempts为0，4份原文404、orgforge仍可选、无关TitanDB结果不变；同密级Alex部门拒绝。结束恢复Jax项目允许/密级2，版本25，审计链有效。
+
+第三题纯vector未命中，keyword/hybrid正常；旧宽泛问题会召回其他保留原ACL的资料，不应拿它演示定向项目全部拒绝。录制操作与请求ID见 [3D流程](security-lens-demo-3d.md)。本轮无业务代码或数据标注修改。
