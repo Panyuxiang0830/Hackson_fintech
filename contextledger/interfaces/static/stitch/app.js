@@ -157,7 +157,7 @@ function clearProtected() {
   for(const page of ['radar','passport']){
     put(page,'headline','Submit a question to see the current judgment.');put(page,'explanation','');put(page,'query','Current query');
     put(page,'answer','');one(page,'answer-details').hidden=true;one(page,'answer-details').open=false;
-    put(page,'verdict','Waiting for query');one(page,'timeline')?.replaceChildren();one(page,'evidence-list')?.replaceChildren();
+    put(page,'verdict','Waiting for query');put(page,'timeline-note','');one(page,'timeline')?.replaceChildren();one(page,'evidence-list')?.replaceChildren();
     put(page,'event-count','0 source events');put(page,'evidence-caption','Current request evidence');
     if(one(page,'timeline-toggle'))one(page,'timeline-toggle').hidden=true;
     if(one(page,'needs'))one(page,'needs').hidden=true;
@@ -225,6 +225,7 @@ function renderTimeline(page,data) {
   const list=one(page,'timeline');if(!list)return;list.replaceChildren();
   const evidence=data.evidence||[];
   const events=data.radar?.event_candidates||[];
+  put(page,'timeline-note',events.length?'Ordered by source record time within comparable groups. A Slack record time does not verify the time of a GitHub operation. '+(data.radar?.timeline_order?.groups?.length>1?'Different time bases and unknown times are grouped separately; there is no single verified chronology.':''): '');
   put(page,'event-count',`${events.length} source event${events.length===1?'':'s'}`);
   const toggle=one(page,'timeline-toggle');toggle.hidden=events.length<=4;toggle.setAttribute('aria-expanded',String(state.timelineExpanded[page]));
   toggle.setAttribute('aria-controls',list.id||(list.id='stitch-'+page+'-events'));
@@ -234,12 +235,18 @@ function renderTimeline(page,data) {
     const template=document.querySelector('template[data-template="timeline"]');
     const node=template.content.firstElementChild.cloneNode(true);
     const hit=evidence.find(item=>item.citation_id===event.citation_id);
-    const time=formattedTime(event.event_time);const meta=node.querySelector('[data-slot="event-meta"]');
-    meta.textContent=`${time.date?time.date+' · ':''}${time.time}${time.zone?' SGT':''} · ${hit?.source||event.type||'Source record'}${event.historical?' · Historical revision':''}`;meta.title=time.raw;
+    const sourceTime=event.source_record_time??event.event_time;
+    const time=formattedTime(sourceTime);const meta=node.querySelector('[data-slot="event-meta"]');
+    const zone=event.time_group==='local_timestamp'?' · Timezone unspecified':time.zone?' SGT':'';
+    meta.textContent=`Source record time: ${time.date?time.date+' · ':''}${time.time}${zone}${event.time_precision==='day'?' · Day precision':''} · ${hit?.source||event.type||'Source record'}${event.historical?' · Historical revision':''}`;meta.title=`${event.time_basis||'Source time'}: ${time.raw}`;
     const title=node.querySelector('[data-slot="event-title"]');title.classList.add('stitch-event-title');title.replaceChildren();
     const name=element('span','stitch-event-name',hit?.title||'Source record');name.title=name.textContent;
     const citation=element('button','stitch-citation text-primary font-bold',`[${event.citation_id}]`);citation.type='button';citation.setAttribute('aria-label',`Open source ${event.citation_id}`);citation.addEventListener('click',()=>openPassport(hit));title.append(name,citation);
     const quote=node.querySelector('[data-slot="event-quote"]');quote.textContent=event.quote||'';quote.title=quote.textContent;quote.classList.add('stitch-event-quote');
+    for(const warning of event.time_warnings||[]){
+      if(warning.startsWith('Timezone unspecified;'))continue; // Already beside the time.
+      const note=element('p','font-body-sm text-body-sm text-text-muted',warning);note.dataset.timeWarning='true';quote.after(note);
+    }
     node.hidden=index>=4&&!state.timelineExpanded[page];list.append(node);
   }
 }

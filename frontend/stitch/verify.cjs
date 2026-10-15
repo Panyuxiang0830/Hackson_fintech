@@ -14,7 +14,7 @@ const evidence=[{citation_id:1,corpus:'orgforge',doc_id:'slack-1',title:'Recover
 const visibleRequestId='req-visible-20261014-aaaaaaaa-1234567890abcdef';
 const viewportWidths=[1600,1440,1280,1199,1024,1023,900,820,768,767,390,360,320];
 const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',answer:'Recovery requires monitoring validation. [1] [2]',evidence,
-  radar:{coverage:{documents:12,truncation_reasons:[]},event_candidates:evidence.slice(0,8).map((hit,i)=>({citation_id:hit.citation_id,event_time:i===1?null:'2026-10-14T09:40:00Z',type:'source_report',quote:'Operations reported recovery. '+('Formal monitoring and incident review remain necessary. '.repeat(4))}))},
+  radar:{coverage:{documents:12,truncation_reasons:[]},event_candidates:evidence.slice(0,8).map((hit,i)=>({citation_id:hit.citation_id,event_time:i===1?null:'2026-10-14T09:40:00Z',...(i<2?{source_record_time:i===0?'2026-02-17T09:37:07':'2026-02-18T09:38:43',time_basis:'ts',time_group:'local_timestamp',time_precision:'timestamp',time_warnings:i===1?['Source date differs: date=2026-02-17; ts=2026-02-18T09:38:43. Neither field was rewritten.']:[]}:{}),type:'source_report',quote:'Operations reported recovery. '+('Formal monitoring and incident review remain necessary. '.repeat(4))}))},
   radar_presentation:{status:confirmed?'confirmed':'pending_confirmation',headline:confirmed?'Service recovery confirmed.':'Full recovery is not yet confirmed.',explanation:'A report exists. Review the formal monitoring criteria.',citation_ids:[1,2],needs_confirmation:confirmed?[]:[{item:'Confirm monitoring validation.',citation_ids:[2]}]}});
 
 (async()=>{
@@ -73,6 +73,11 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     await fullAnswer.locator('summary').focus();await page.keyboard.press('Enter');
     assert.equal(await page.locator('[data-page=radar] [data-slot=answer]').innerText(),response().answer);
     await fullAnswer.locator('summary').click();
+    const timelineText=await page.locator('[data-page=radar] [data-slot=timeline]').textContent();
+    assert.match(timelineText,/Source record time: 2026-02-17T09:37:07 · Timezone unspecified/);
+    assert.match(timelineText,/Source date differs: date=2026-02-17; ts=2026-02-18T09:38:43/);
+    assert.doesNotMatch(await page.locator('[data-page=radar] [data-slot=event-meta]').first().textContent(),/SGT/);
+    assert.match(await page.locator('[data-page=radar] [data-slot=timeline-note]').textContent(),/does not verify the time of a GitHub operation/);
     askDelay=0;
     assert.equal(await page.locator('[data-page=radar] [data-slot=evidence-list] button').count(),12);
     assert.equal(await page.locator('[data-page=radar] [data-slot=timeline] > :visible').count(),4);

@@ -73,6 +73,27 @@ class RadarIntegrationTests(unittest.TestCase):
         self.assertTrue(hits)
         self.assertFalse(any('PRIVATE' in h['full_text'] for h in hits))
 
+    def test_source_times_and_mismatch_reach_synthesis_without_hidden_records(self):
+        self.configure()
+        with connect(self.db_path) as db:
+            for doc_id, ts in [('doc-0','2026-02-18T09:38:43'),('doc-1','2026-02-17T09:37:07')]:
+                db.execute('UPDATE documents SET ts=?,extra_json=? WHERE doc_id=?',
+                    (ts,json.dumps({'date':'2026-02-17'}),doc_id))
+            db.commit();prepare_snapshot(db,'fixture','radar-times','test-embedding',2)
+            db.execute("UPDATE cl_index_state SET state='ready'");db.commit()
+        response=self.ask()
+        self.assertEqual(response.status_code,200,response.json)
+        report=self.calls[-1]['decision_radar_result']
+        events=report['event_candidates']
+        self.assertEqual([e['source_record_time'] for e in events],
+                         ['2026-02-17T09:37:07','2026-02-18T09:38:43'])
+        self.assertIsNone(events[1].get('event_time'))
+        self.assertEqual(events[1]['time_basis'],'ts')
+        self.assertEqual(events[1]['source_time_fields']['date'],'2026-02-17')
+        self.assertEqual(events[1]['time_warnings'],['source_date_mismatch'])
+        self.assertEqual(report['timeline_order']['groups'],['local_timestamp'])
+        self.assertNotIn('PRIVATE',json.dumps(self.calls))
+
     def test_invalid_radar_summary_falls_back_to_pending_not_confirmed(self):
         self.configure()
         def missing_summary(request, **kwargs):

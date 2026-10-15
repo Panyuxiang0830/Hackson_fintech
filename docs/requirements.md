@@ -420,6 +420,25 @@
   - 测试：`tests/answering/test_radar_synthesis.py`, `tests/radar/test_radar_integration.py`, `tests/application/test_llm_integration.py`, `tests/access/test_demo_identity.py`
   - 文档：`docs/architecture/decision-radar-v1.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`
 
+### 功能扩展 · Radar 来源记录时间映射与排序修复
+
+- 扩展键：`radar_source_record_time`
+- 来源：user requested deployed Radar timestamp fix, PR and merge on 2026-10-15
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：2026-10-15 用户授权修复、PR并合并：读取授权检索结果 ts，区分来源记录时间与实际操作时间；保留无时区及 date/day/timestamp 差异，修正可比较记录的时间排序并把时间依据传递给同次综合模型。
+- 验收标准：
+
+  - ENG-195/PR-135 两条 Slack 记录按来源 ts 排序，原始无时区时间不转换为 SGT
+  - 来源 date 与 ts 日期差异可见且传入模型；不将 Slack 通知时间当作 GitHub 操作时间
+  - 原生快照状态不借用创建或观察时间冒充状态变更时间；未知及不同时间基准不强行排序
+
+- 影响范围：
+
+  - 代码：`contextledger/radar/timing.py`, `contextledger/radar/tool.py`, `contextledger/radar/protocol.py`, `contextledger/application/service.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/unified.js`, `frontend/stitch/build.cjs`
+  - 测试：`tests/radar/test_radar_timing.py`, `tests/radar/test_radar_integration.py`, `frontend/stitch/verify.cjs`
+  - 文档：`docs/architecture/decision-radar-v1.md`, `docs/architecture/decision-radar-validation.md`
+
 ## REQ-012 · 项目内容统一入库与 Git 协作
 
 - 来源：team discussion

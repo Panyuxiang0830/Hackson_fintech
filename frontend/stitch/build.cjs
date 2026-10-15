@@ -45,6 +45,7 @@ function timelineControls(main) {
   if(count)slot(count,'event-count','0 source events');
   const toggle=document.createElement('button');toggle.type='button';toggle.className='stitch-text-action';
   toggle.hidden=true;toggle.setAttribute('aria-expanded','false');action(toggle,'toggle-timeline');slot(toggle,'timeline-toggle','Show all');heading.append(toggle);
+  const note=document.createElement('p');note.className='font-body-sm text-body-sm text-text-muted';slot(note,'timeline-note','');heading.after(note);
 }
 function fullAnswer(main) {
   const details=document.createElement('details');details.className='stitch-full-answer';details.hidden=true;slot(details,'answer-details');
@@ -299,7 +300,7 @@ for(const node of document.querySelectorAll('*')){
 for(const script of [...document.querySelectorAll('script')])script.remove();
 for(const style of [...document.querySelectorAll('style')]){styles.push(style.textContent);style.remove();}
 const notice=document.createElement('div');notice.id='stitch-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
-const app=document.createElement('script');app.src='/static/stitch/app.js?v=6';app.defer=true;document.head.append(app);
+const app=document.createElement('script');app.src='/static/stitch/app.js?v=7';app.defer=true;document.head.append(app);
 for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=5';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
 

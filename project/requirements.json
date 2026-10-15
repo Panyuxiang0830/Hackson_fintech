@@ -716,6 +716,37 @@
             "docs/architecture/unified-integration.md",
             "docs/product/prompt-and-login-walkthrough.md"
           ]
+        },
+        {
+          "title": "Radar 来源记录时间映射与排序修复",
+          "authority": "team_decision",
+          "status": "in_progress",
+          "description": "2026-10-15 用户授权修复、PR并合并：读取授权检索结果 ts，区分来源记录时间与实际操作时间；保留无时区及 date/day/timestamp 差异，修正可比较记录的时间排序并把时间依据传递给同次综合模型。",
+          "acceptance_criteria": [
+            "ENG-195/PR-135 两条 Slack 记录按来源 ts 排序，原始无时区时间不转换为 SGT",
+            "来源 date 与 ts 日期差异可见且传入模型；不将 Slack 通知时间当作 GitHub 操作时间",
+            "原生快照状态不借用创建或观察时间冒充状态变更时间；未知及不同时间基准不强行排序"
+          ],
+          "code": [
+            "contextledger/radar/timing.py",
+            "contextledger/radar/tool.py",
+            "contextledger/radar/protocol.py",
+            "contextledger/application/service.py",
+            "contextledger/interfaces/static/stitch/app.js",
+            "contextledger/interfaces/static/unified.js",
+            "frontend/stitch/build.cjs"
+          ],
+          "tests": [
+            "tests/radar/test_radar_timing.py",
+            "tests/radar/test_radar_integration.py",
+            "frontend/stitch/verify.cjs"
+          ],
+          "docs": [
+            "docs/architecture/decision-radar-v1.md",
+            "docs/architecture/decision-radar-validation.md"
+          ],
+          "key": "radar_source_record_time",
+          "source": "user requested deployed Radar timestamp fix, PR and merge on 2026-10-15"
         }
       ]
     },

@@ -115,11 +115,16 @@ class RadarAnswerTests(unittest.TestCase):
         def handler(arguments):
             self.evidence[:] = [Evidence(Document(str(i),'jira','Topic ' + str(i),'x' * 4000,
                 'eng','t','t','t','internal'),1.,'acl','snapshot','unknown') for i in range(120)]
-            return {'coverage':{'documents':120}}
+            from contextledger.radar.timing import source_timing, model_event
+            return {'coverage':{'documents':120}, 'event_candidates': [model_event({
+                'citation_id':i+1,'type':'artifact','event_time':None,'historical':False,
+                **source_timing({'ts':'2026-02-18T09:38:43','day':0,'metadata':{'date':'2026-02-17'}})})
+                for i in range(120)]}
         with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.radar_good)]) as transport:
             result = self.answerer.answer(self.user,'ENG-123',self.evidence,tool_handler=handler)
         self.assertEqual(result[1],'answered')
         final=json.loads(json.loads(transport.call_args_list[1].args[0].data)['messages'][1]['content'])
         self.assertLess(len(json.dumps(final,ensure_ascii=False)),60000)
         self.assertEqual(len(final['authorised_evidence']),120)
+        self.assertEqual(len(final['decision_radar_result']['event_candidates']),120)
         self.assertTrue(final['decision_radar_result']['coverage']['model_input_truncated'])

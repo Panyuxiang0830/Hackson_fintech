@@ -216,9 +216,9 @@ class UnifiedService:
             radar = report
             # Quotes are already in the unified evidence registry. Avoid duplicating
             # them in the model tool payload; the public timeline retains its spans.
+            from contextledger.radar.timing import model_event
             model_report = {**report,
-                "event_candidates": [{k: v for k, v in event.items() if k in {"citation_id", "type", "event_time", "historical"}}
-                                     for event in report["event_candidates"]],
+                "event_candidates": [model_event(event) for event in report["event_candidates"]],
                 "source_statuses": [{k: v for k, v in item.items() if k in {"citation_id", "native_status", "historical", "supported_fact"}}
                                     for item in report["source_statuses"] if item["record_type"] == "native_state"]}
             return model_report
