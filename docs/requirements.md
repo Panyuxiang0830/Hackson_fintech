@@ -675,7 +675,7 @@
 
   - 代码：`contextledger/interfaces/web.py`, `contextledger/access/identity_store.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/answering/service.py`, `contextledger/access/demo_permissions.py`, `contextledger/storage/document_updates.py`, `config/demo-permissions.example.json`, `scripts/apply_demo_permissions.py`
   - 测试：`tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_answering.py`, `tests/access/test_demo_permissions.py`, `tests/application/test_document_updates.py`
-  - 文档：`docs/product/resource-permissions.md`, `docs/README.md`, `docs/product/curated-demo-permissions.md`
+  - 文档：`docs/product/resource-permissions.md`, `docs/README.md`, `docs/product/curated-demo-permissions.md`, `docs/product/permission-demo-handoff-2026-10-15.md`
 
 ## REQ-017 · Part A 与安全问答服务统一集成
 

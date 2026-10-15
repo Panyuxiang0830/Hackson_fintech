@@ -41,6 +41,7 @@
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
 - `docs/product/curated-demo-permissions.md`：ENG-195/PR-135四份白名单资料的人工演示权限、执行预检和录制步骤；
+- `docs/product/permission-demo-handoff-2026-10-15.md`：权限改进交接，包含代码、分支、真实线上状态、部署待办及报告边界；
 - `docs/product/resource-permissions.md`：数据集目录保留、来源／文档读取控制及2026-10-15服务器演示重试步骤；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
