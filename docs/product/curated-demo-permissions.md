@@ -41,4 +41,18 @@
 
 ## 验证状态
 
-本轮新增隔离回归覆盖：原内容哈希变动/未知ID/重复ID拒绝，Slack身份范围不得扩大，标注来源不能冒充已验证源权限，密级/项目/部门在SQL与Qdrant中生效，原文拒绝、幂等与白名单外文档保持不变。服务器应用和真实模型结果在完成后补充。
+本轮新增隔离回归覆盖：原内容哈希变动/未知ID/重复ID拒绝，Slack身份范围不得扩大，标注来源不能冒充已验证源权限，密级/项目/部门在SQL与Qdrant中生效，原文拒绝、幂等与白名单外文档保持不变。
+
+### 2026-10-16 服务器部署与真实验收（技术验收）
+
+- 部署：gpushare 17866 切换至 `releases/curated-demo-permissions-20261015`，提交 `ca0886b2`（f9690202 之后只增加交接文档与侧栏 logo），PID 775226。切换前备份 `backups/before-curated-demo-20261015T160124Z`；切换前后身份、绑定、拒绝规则一致。
+- 最终配置重新预检通过后执行 `--apply`：4个队列任务均为 ready，`applied.json` 记录 `other_documents_unchanged: true`，标注前备份在 `demo-permission-annotations/backup-1792080117613224150`。数据库只读核对：只有这4份 `project=demo:swiftui-telemetry`、classification=2；私聊ACL仍仅Miki/Raj，两份公开Slack ACL未扩大；ENG-195 当前依据为管理员调整、旧版本可追溯。Jax：Backend、密级2、自身绑定启用；Alex：Mobile、密级2。
+- 真实验收（`verification.json`，`openai_compatible/glm-5.3-flash`）：3题均为 answered，引用只来自白名单资料；第2题明确说明已合并不等于已发布，发布状态未知。私聊原文对Jax返回404。
+- 撤销项目、密级降为Internal：keyword/vector/hybrid 均无证据，零证据不调用模型（attempts=0），ENG-195原文404，orgforge仍可选，无关TitanDB检索不变。Alex同为Confidential，部门不匹配检索为空。结束时Jax恢复项目允许、密级2，审计哈希链校验通过，权限版本19。
+- 浏览器（经本地SSH转发）：Security Lens 显示Jax的项目开关、员工密级、部门与允许部门；Passport 显示 `Manually configured demo policy · SwiftUI telemetry dashboard (demo) · confidential · Eligible departments: Engineering_Backend`。
+
+已知限制：3题证据均为两条PR-135 Slack记录，Jira ENG-195本身未被引用。原因是既有检索在问题点名编号时只保留标题或正文含该编号的文档，而该Jira正文只有标题、未写自身编号；用标题文字检索时Jax可以命中，说明不是权限问题。因此第1题只能看到被截断的"latency and p..."并如实说明无法确认后续指标。本轮未修改检索规则。
+
+- 服务器完整测试（独立测试解释器，`ca0886b2`）：385 pytest + 156 subtests 通过，377 unittest 通过；日志 `previews/aspire-ui-20261015/curated-demo-pytest.log`、`curated-demo-unittest.log`。
+
+以上为技术验收，不代表用户人工验收；未合并main。

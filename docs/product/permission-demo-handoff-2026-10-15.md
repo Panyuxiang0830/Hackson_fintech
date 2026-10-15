@@ -2,6 +2,8 @@
 
 本记录对应用户因五小时额度将尽而要求暂停并总结的时点。恢复工作时先核对 Git、服务进程和数据库；以下是交接时的实测状态，不是后续部署保证。
 
+> **2026-10-16 更新：第8节步骤1–8的技术部分已完成。** 线上已切换至 `curated-demo-permissions-20261015`（提交 `ca0886b2`，PID 775226），4份标注已应用，真实GLM验收、撤权/密级/部门对照、浏览器 Security Lens/Passport 及服务器完整测试均通过；详见 [curated-demo-permissions.md](curated-demo-permissions.md) 的"服务器部署与真实验收"。下文第1节及之后保留交接时的原状态描述。仍待：用户人工验收；是否修复"点名编号时Jira正文无自身编号而不被检索"的既有检索问题；未经同意不合并main。部署使用复制的 `BASE/contextledger_curated_logo_deploy.py`（仅改预期提交号与备份目录名）。
+
 ## 1. 最重要的当前状态
 
 - **线上仍是基础权限修复版**：`resource-permissions-20261015`，提交 `be69fa23`，PID `754260`。撤权后数据库保持可选、后端控制读取等已部署。
