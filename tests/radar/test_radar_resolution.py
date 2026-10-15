@@ -87,7 +87,10 @@ class NameDiscoveryIntegrationTests(unittest.TestCase):
             return completion({'search_phrases':['telemetry dashboard review'], 'required_names':[]})
         if 'decision_radar_result' not in payload:
             return completion({'action':'call_tool','tool_name':'decision_radar','arguments':{'anchor_ids':['ENG-195'],'focus':['history']}})
-        return completion({'status':'answered','answer':'评审过程涉及主线程整改 [2]。','citation_ids':[2],'uncertainty':'medium'})
+        return completion({'status':'answered','answer':'评审过程涉及主线程整改 [2]。','citation_ids':[2],'uncertainty':'medium',
+            'radar_presentation':{'status':'pending_confirmation','headline':'主线程整改已有评审记录',
+                'explanation':'评审要求可核对，整改完成状态仍需后续记录。','citation_ids':[2],
+                'needs_confirmation':[{'item':'核对整改完成与批准记录。','citation_ids':[2]}]}})
 
     def ask(self):
         with patch.dict(os.environ, {'LLM_API_KEY':'fixture-key'}), patch('urllib.request.urlopen', side_effect=self.transport):

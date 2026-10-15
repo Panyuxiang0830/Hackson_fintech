@@ -53,6 +53,10 @@ class RadarAnswerTests(unittest.TestCase):
         self.answerer=AnswerService()
         self.call={'action':'call_tool','tool_name':'decision_radar','arguments':{'anchor_ids':['ENG-123'],'focus':['history']}}
         self.good={'status':'answered','answer':'工单记录 [1]。恢复验证尚待确认。','citation_ids':[1],'uncertainty':'medium'}
+        self.radar_good=self.good|{'radar_presentation':{
+            'status':'pending_confirmation','headline':'恢复仍待确认',
+            'explanation':'工单记录可见，但恢复验证仍待确认。','citation_ids':[1],
+            'needs_confirmation':[{'item':'核对运行恢复依据。','citation_ids':[1]}]}}
 
     def test_provider_paragraph_escape_normalization_preserves_citations(self):
         from contextledger.answering.service import _validate_model_output
@@ -73,12 +77,24 @@ class RadarAnswerTests(unittest.TestCase):
     def test_single_tool_action_followed_by_answer_and_guard(self):
         calls=[]
         def handler(arguments): calls.append(arguments);return {'coverage':{'documents':1}}
-        with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.good)]) as transport:
+        with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.radar_good)]) as transport:
             answer=self.answerer.answer(self.user,'ENG-123',self.evidence,tool_handler=handler,before_call=lambda:calls.append('guard'))
         self.assertEqual(answer[1],'answered')
         self.assertEqual(sum(isinstance(c,dict) for c in calls),1)
         final=json.loads(json.loads(transport.call_args_list[1].args[0].data)['messages'][1]['content'])
         self.assertIn('decision_radar_result',final)
+
+    def test_tool_answer_without_presentation_stays_safe_after_format_retry(self):
+        calls=[]
+        with patch('urllib.request.urlopen',side_effect=[completion(self.call),
+                completion(self.good),completion(self.good)]) as transport:
+            result=self.answerer.answer(self.user,'ENG-123',self.evidence,
+                tool_handler=lambda arguments:calls.append(arguments) or {'coverage':{'documents':1}})
+        self.assertEqual(result[1: ],('insufficient','mock_fallback'))
+        self.assertEqual(len(calls),1)
+        self.assertEqual(transport.call_count,3)
+        self.assertEqual(self.answerer.last_diagnostics['failures'],['invalid_output','invalid_output'])
+        self.assertNotIn(self.good['answer'],result[0])
 
     def test_repeated_call_across_retry_cannot_execute_twice(self):
         calls=[]
@@ -100,7 +116,7 @@ class RadarAnswerTests(unittest.TestCase):
             self.evidence[:] = [Evidence(Document(str(i),'jira','Topic ' + str(i),'x' * 4000,
                 'eng','t','t','t','internal'),1.,'acl','snapshot','unknown') for i in range(120)]
             return {'coverage':{'documents':120}}
-        with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.good)]) as transport:
+        with patch('urllib.request.urlopen',side_effect=[completion(self.call),completion(self.radar_good)]) as transport:
             result = self.answerer.answer(self.user,'ENG-123',self.evidence,tool_handler=handler)
         self.assertEqual(result[1],'answered')
         final=json.loads(json.loads(transport.call_args_list[1].args[0].data)['messages'][1]['content'])
