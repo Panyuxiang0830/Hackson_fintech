@@ -165,6 +165,11 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertEqual(data["authorised_evidence"][0]["content"], evidence[0].document.content)
         self.assertNotIn("UNTRUSTED:", captured["messages"][0]["content"])
         self.assertEqual(answerer.last_diagnostics["prompt_version"], PROMPT_VERSION)
+        # The frontend shows the first sentence as the headline; the prompt bounds it.
+        self.assertIn("first sentence of an answered response is shown alone as the headline",
+                      captured["messages"][0]["content"])
+        self.assertIn("at most 25 words (at most 50 characters for Chinese, Japanese or Korean)",
+                      captured["messages"][0]["content"])
 
     def test_multiline_answer_keeps_paragraphs_citations_and_relevant_style_rules(self):
         captured = {}

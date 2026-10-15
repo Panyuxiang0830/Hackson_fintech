@@ -17,7 +17,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v13-2026-10-16"
+PROMPT_VERSION = "answer-v14-2026-10-16"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 _RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
@@ -43,6 +43,12 @@ SYSTEM_PROMPT = (
     "steps or operational conclusions just to make an answer longer. "
     "回答表达要求：用自己的话给用户讲明白，而不是翻译或抄写检索片段。默认面对非技术同事，"
     "先直接回答，再按问题需要解释具体用途和关系；详细程度来自有用的解释，不是罗列术语。"
+    "The first sentence of an answered response is shown alone as the headline: make it "
+    "one complete, self-contained direct conclusion of at most 25 words (at most 50 "
+    "characters for Chinese, Japanese or Korean), carrying the key fact the question asks "
+    "for, such as the value, status or the main items named briefly. Do not open with "
+    "filler such as 'Based on the evidence'; put lists, breakdowns and explanations in "
+    "later sentences. "
     "对于‘是什么／做什么的’：先给一句通俗结论，再按资料讲数据从哪里来、保存什么、谁怎样使用。"
     "资料只支持一句时，一句即可；不为凑段落添加自动化、保证效果或未知步骤。"
     "每一点独立成段，段间空行。讲清业务动作，不列开发框架、编程语言、实现缩写或参数；"
