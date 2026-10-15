@@ -22,6 +22,9 @@
 ## 文档地图
 
 - `project/requirements.json`：唯一的需求台账，供人和工具修改；
+- `docs/submission/main.tex`：英文提交报告、三项创新功能与最新前端截图；
+- `docs/evaluation/submission-20261015.md`：新鲜度、权限、召回、单次延迟与模型费用；
+- `docs/source/submission-requirements-20261015.md`：Handbook第37页提交字段与附件要求；
 - `docs/architecture/functional-packages.md`：本轮功能分包、旧 JSON/Streamlit 退出范围、命令兼容与统一测试；对应 ADR-0006；
 - `docs/requirements.md`：由台账自动生成的只读视图；
 - `BENCHMARK_QUICKSTART.md`：英文简短测评入口，包含 Part A 检索与新鲜度回放命令及报告位置；

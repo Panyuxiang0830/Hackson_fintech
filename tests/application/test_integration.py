@@ -265,8 +265,8 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(client.get("/auth/callback?code=forged").status_code, 404)
         page = client.get("/").get_data(as_text=True)
         self.assertNotIn('href="/auth/login"', page)
-        self.assertIn("Source ACLs use an offline snapshot", page)
-        self.assertIn("Live source permission sync is not enabled", page)
+        self.assertIn("Offline source ACL snapshot", page)
+        self.assertIn("Live permission sync is not enabled", page)
         self.assertNotIn('id="demo-account-select"', page)
         status = client.get("/api/session").json
         self.assertFalse(status["browser_login_enabled"])

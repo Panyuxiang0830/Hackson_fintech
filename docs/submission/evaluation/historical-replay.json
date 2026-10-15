@@ -1,0 +1,418 @@
+[
+  {
+    "name": "Calibrated BGE",
+    "source": "runtime/part_a/retrieval_tuning.json",
+    "source_sha256": "66700c305e18132e552ba9accca222d80af2b9590adbd136c99fb9e021f2ccaa",
+    "original_created_at": "2026-10-06T16:29:01.645683+00:00",
+    "applied_to_serving": false,
+    "replay_type": "saved predictions independently scored against fixed reference IDs; no model rerun",
+    "splits": {
+      "all": {
+        "questions": 180,
+        "metrics": {
+          "1": {
+            "recall": 0.6320987654320988,
+            "hit": 0.75,
+            "all_evidence": 0.5611111111111111,
+            "reciprocal_rank": 0.75,
+            "reference_precision": 0.75
+          },
+          "5": {
+            "recall": 0.7863425925925926,
+            "hit": 0.8444444444444444,
+            "all_evidence": 0.7333333333333333,
+            "reciprocal_rank": 0.7802777777777777,
+            "reference_precision": 0.21222222222222237
+          },
+          "10": {
+            "recall": 0.8332407407407406,
+            "hit": 0.8777777777777778,
+            "all_evidence": 0.7944444444444444,
+            "reciprocal_rank": 0.7841887125220457,
+            "reference_precision": 0.1177777777777779
+          }
+        }
+      },
+      "development": {
+        "questions": 20,
+        "metrics": {
+          "1": {
+            "recall": 0.5888888888888888,
+            "hit": 0.8,
+            "all_evidence": 0.5,
+            "reciprocal_rank": 0.8,
+            "reference_precision": 0.8
+          },
+          "5": {
+            "recall": 0.775,
+            "hit": 0.9,
+            "all_evidence": 0.65,
+            "reciprocal_rank": 0.8266666666666665,
+            "reference_precision": 0.26000000000000006
+          },
+          "10": {
+            "recall": 0.9,
+            "hit": 1.0,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.8372222222222222,
+            "reference_precision": 0.16500000000000004
+          }
+        }
+      },
+      "validation": {
+        "questions": 160,
+        "metrics": {
+          "1": {
+            "recall": 0.6375,
+            "hit": 0.74375,
+            "all_evidence": 0.56875,
+            "reciprocal_rank": 0.74375,
+            "reference_precision": 0.74375
+          },
+          "5": {
+            "recall": 0.7877604166666667,
+            "hit": 0.8375,
+            "all_evidence": 0.74375,
+            "reciprocal_rank": 0.7744791666666667,
+            "reference_precision": 0.20624999999999968
+          },
+          "10": {
+            "recall": 0.8248958333333334,
+            "hit": 0.8625,
+            "all_evidence": 0.79375,
+            "reciprocal_rank": 0.7775595238095239,
+            "reference_precision": 0.11187499999999992
+          }
+        }
+      }
+    },
+    "timing": null
+  },
+  {
+    "name": "BGE plus rules",
+    "source": "runtime/part_a/ranking_fork.json",
+    "source_sha256": "395e5cde3519d05aeb97da7430d2e61b7cede92aab208de01eb38a0b1dc17c40",
+    "original_created_at": "2026-10-06T18:44:22.789442+00:00",
+    "applied_to_serving": false,
+    "replay_type": "saved predictions independently scored against fixed reference IDs; no model rerun",
+    "splits": {
+      "all": {
+        "questions": 180,
+        "metrics": {
+          "1": {
+            "recall": 0.6320987654320988,
+            "hit": 0.75,
+            "all_evidence": 0.5611111111111111,
+            "reciprocal_rank": 0.75,
+            "reference_precision": 0.75
+          },
+          "5": {
+            "recall": 0.7918981481481483,
+            "hit": 0.85,
+            "all_evidence": 0.7388888888888889,
+            "reciprocal_rank": 0.7830555555555555,
+            "reference_precision": 0.21333333333333343
+          },
+          "10": {
+            "recall": 0.8408796296296296,
+            "hit": 0.8833333333333333,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.7869664902998235,
+            "reference_precision": 0.1200000000000001
+          }
+        }
+      },
+      "development": {
+        "questions": 20,
+        "metrics": {
+          "1": {
+            "recall": 0.5888888888888888,
+            "hit": 0.8,
+            "all_evidence": 0.5,
+            "reciprocal_rank": 0.8,
+            "reference_precision": 0.8
+          },
+          "5": {
+            "recall": 0.775,
+            "hit": 0.9,
+            "all_evidence": 0.65,
+            "reciprocal_rank": 0.8266666666666665,
+            "reference_precision": 0.26000000000000006
+          },
+          "10": {
+            "recall": 0.9,
+            "hit": 1.0,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.8372222222222222,
+            "reference_precision": 0.16500000000000004
+          }
+        }
+      },
+      "validation": {
+        "questions": 160,
+        "metrics": {
+          "1": {
+            "recall": 0.6375,
+            "hit": 0.74375,
+            "all_evidence": 0.56875,
+            "reciprocal_rank": 0.74375,
+            "reference_precision": 0.74375
+          },
+          "5": {
+            "recall": 0.7940104166666667,
+            "hit": 0.84375,
+            "all_evidence": 0.75,
+            "reciprocal_rank": 0.7776041666666667,
+            "reference_precision": 0.2074999999999997
+          },
+          "10": {
+            "recall": 0.8334895833333332,
+            "hit": 0.86875,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.7806845238095239,
+            "reference_precision": 0.11437499999999996
+          }
+        }
+      }
+    },
+    "timing": {
+      "p50": 0.04675821401178837,
+      "p95": 11.21555524878203,
+      "total": 1336.6688042879105
+    }
+  },
+  {
+    "name": "Qwen shortlist",
+    "source": "runtime/part_a/qwen_shortlist.json",
+    "source_sha256": "281f08fad5a192e97c6fa5846ab05a42123070f08d9f86c194a073a3453dee07",
+    "original_created_at": "2026-10-06T19:42:59.640191+00:00",
+    "applied_to_serving": false,
+    "replay_type": "saved predictions independently scored against fixed reference IDs; no model rerun",
+    "splits": {
+      "all": {
+        "questions": 180,
+        "metrics": {
+          "1": {
+            "recall": 0.6557407407407408,
+            "hit": 0.75,
+            "all_evidence": 0.6,
+            "reciprocal_rank": 0.75,
+            "reference_precision": 0.75
+          },
+          "5": {
+            "recall": 0.8484876543209877,
+            "hit": 0.9,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.8089814814814815,
+            "reference_precision": 0.23000000000000023
+          },
+          "10": {
+            "recall": 0.8742592592592593,
+            "hit": 0.9055555555555556,
+            "all_evidence": 0.85,
+            "reciprocal_rank": 0.8099074074074072,
+            "reference_precision": 0.12444444444444461
+          }
+        }
+      },
+      "development": {
+        "questions": 20,
+        "metrics": {
+          "1": {
+            "recall": 0.6333333333333332,
+            "hit": 0.8,
+            "all_evidence": 0.55,
+            "reciprocal_rank": 0.8,
+            "reference_precision": 0.8
+          },
+          "5": {
+            "recall": 0.9055555555555556,
+            "hit": 1.0,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.8791666666666668,
+            "reference_precision": 0.31000000000000005
+          },
+          "10": {
+            "recall": 0.9666666666666666,
+            "hit": 1.0,
+            "all_evidence": 0.95,
+            "reciprocal_rank": 0.8791666666666668,
+            "reference_precision": 0.18500000000000005
+          }
+        }
+      },
+      "validation": {
+        "questions": 160,
+        "metrics": {
+          "1": {
+            "recall": 0.6585416666666667,
+            "hit": 0.74375,
+            "all_evidence": 0.60625,
+            "reciprocal_rank": 0.74375,
+            "reference_precision": 0.74375
+          },
+          "5": {
+            "recall": 0.8413541666666667,
+            "hit": 0.8875,
+            "all_evidence": 0.8,
+            "reciprocal_rank": 0.8002083333333332,
+            "reference_precision": 0.21999999999999983
+          },
+          "10": {
+            "recall": 0.8627083333333335,
+            "hit": 0.89375,
+            "all_evidence": 0.8375,
+            "reciprocal_rank": 0.8012499999999999,
+            "reference_precision": 0.11687500000000003
+          }
+        }
+      }
+    },
+    "timing": {
+      "p50": 15023.602220229805,
+      "p95": 16742.66283181496
+    }
+  },
+  {
+    "name": "Qwen refinement",
+    "source": "runtime/part_a_chunked/retrieval_refinement.json",
+    "source_sha256": "71e54ef28039de9ea5f70d0622bfadac1c0b64dad3049dfed1ade12c2b987be8",
+    "original_created_at": "2026-10-07T03:39:05.321237+00:00",
+    "applied_to_serving": false,
+    "replay_type": "saved predictions independently scored against fixed reference IDs; no model rerun",
+    "splits": {
+      "all": {
+        "questions": 180,
+        "metrics": {
+          "1": {
+            "recall": 0.6376543209876543,
+            "hit": 0.7555555555555555,
+            "all_evidence": 0.5666666666666667,
+            "reciprocal_rank": 0.7555555555555555,
+            "reference_precision": 0.7555555555555555
+          },
+          "5": {
+            "recall": 0.8300925925925927,
+            "hit": 0.8888888888888888,
+            "all_evidence": 0.7722222222222223,
+            "reciprocal_rank": 0.7985185185185183,
+            "reference_precision": 0.22333333333333355
+          },
+          "10": {
+            "recall": 0.9198148148148148,
+            "hit": 0.95,
+            "all_evidence": 0.8944444444444445,
+            "reciprocal_rank": 0.8055842151675482,
+            "reference_precision": 0.13000000000000023
+          }
+        }
+      },
+      "development": {
+        "questions": 20,
+        "metrics": {
+          "1": {
+            "recall": 0.5888888888888888,
+            "hit": 0.8,
+            "all_evidence": 0.5,
+            "reciprocal_rank": 0.8,
+            "reference_precision": 0.8
+          },
+          "5": {
+            "recall": 0.8083333333333332,
+            "hit": 0.95,
+            "all_evidence": 0.65,
+            "reciprocal_rank": 0.8433333333333334,
+            "reference_precision": 0.28
+          },
+          "10": {
+            "recall": 0.9666666666666666,
+            "hit": 1.0,
+            "all_evidence": 0.95,
+            "reciprocal_rank": 0.8483333333333334,
+            "reference_precision": 0.18500000000000005
+          }
+        }
+      },
+      "validation": {
+        "questions": 160,
+        "metrics": {
+          "1": {
+            "recall": 0.64375,
+            "hit": 0.75,
+            "all_evidence": 0.575,
+            "reciprocal_rank": 0.75,
+            "reference_precision": 0.75
+          },
+          "5": {
+            "recall": 0.8328125,
+            "hit": 0.88125,
+            "all_evidence": 0.7875,
+            "reciprocal_rank": 0.7929166666666668,
+            "reference_precision": 0.2162499999999999
+          },
+          "10": {
+            "recall": 0.9139583333333334,
+            "hit": 0.94375,
+            "all_evidence": 0.8875,
+            "reciprocal_rank": 0.8002405753968252,
+            "reference_precision": 0.12312500000000011
+          }
+        }
+      }
+    },
+    "timing": {
+      "additional_score_p95_ms": 0.007602851837873458,
+      "seed_plus_additional_p95_ms": 16742.66943591647
+    },
+    "by_type": {
+      "basic": {
+        "questions": 64,
+        "document_recall10": 0.984375
+      },
+      "completeness": {
+        "questions": 13,
+        "document_recall10": 0.658974358974359
+      },
+      "conflicting_info": {
+        "questions": 8,
+        "document_recall10": 1.0
+      },
+      "constrained": {
+        "questions": 25,
+        "document_recall10": 0.96
+      },
+      "intra_document_reasoning": {
+        "questions": 4,
+        "document_recall10": 1.0
+      },
+      "miscellaneous": {
+        "questions": 8,
+        "document_recall10": 1.0
+      },
+      "project_related": {
+        "questions": 6,
+        "document_recall10": 0.8333333333333334
+      },
+      "semantic": {
+        "questions": 52,
+        "document_recall10": 0.8653846153846154
+      }
+    },
+    "configuration": {
+      "model": [
+        "Qwen/Qwen3-Reranker-4B",
+        "22e683669bc0f0bd69640a1354a6d0aebcfeede5"
+      ],
+      "max_tokens": 1536,
+      "base": "calibrated BGE plus condition and sibling rules; replayed from unchanged sources",
+      "old_shortlist": 80,
+      "contextual_vector_additions": 0,
+      "vector_chunks": 0,
+      "nprobe": null,
+      "passage": "title plus two lexical windows",
+      "selection": "highest development Recall@10; ties prefer fewer replacements then lower margin",
+      "candidate_budget_selection": "Maximum development Recall@10; ties use fewer extra candidates."
+    },
+    "selected_setting": "slots2-margin1"
+  }
+]

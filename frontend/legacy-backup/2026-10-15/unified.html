@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F4F7F6">
+  <title>ContextLedger · Knowledge workspace</title>
+  <link rel="stylesheet" href="/static/unified.css?v=20261014-layout2">
+  <script src="/static/unified.js?v=20261014-layout2" defer></script>
+</head>
+<body data-demo-mode="{{ 'true' if demo_mode else 'false' }}" data-demo-auto-entry="{{ 'true' if demo_auto_entry else 'false' }}">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <div class="sidebar-brand">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span class="brand-copy"><strong>ContextLedger</strong><small>Knowledge, with context</small></span>
+      </div>
+
+      <div class="sidebar-section-label">WORKSPACE</div>
+      <nav class="app-nav" id="main-nav" aria-label="Main navigation">
+        <button class="nav-tab active" type="button" data-view="workspace" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><path d="M14 17h7M17.5 13.5v7"/></svg>
+          <span>Workspace</span><span class="nav-dot" aria-hidden="true"></span>
+        </button>
+        <button class="nav-tab hidden" id="nav-audit" type="button" data-view="audit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7l8-4Z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span>Audit</span><span class="nav-dot" aria-hidden="true"></span>
+        </button>
+        <button class="nav-tab hidden" id="nav-admin" type="button" data-view="admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a6 6 0 0 1 12 0v1H3ZM17 7h4M19 5v4M17 17h4"/></svg>
+          <span>Manage Permissions</span><span class="nav-dot" aria-hidden="true"></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-info">
+          <span class="info-icon" aria-hidden="true">i</span>
+          <div><strong>Snapshot scope</strong><p>Source ACLs use an offline snapshot. Live source permission sync is not enabled.</p></div>
+        </div>
+        <div class="sidebar-version">CONTEXTLEDGER <span>·</span> INTEGRATED PREVIEW</div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>ContextLedger</span><span class="chevron" aria-hidden="true">/</span><strong id="current-view-label">Workspace</strong></div>
+        <div class="topbar-actions">
+          <span id="current-identity" class="identity-badge" role="status">Checking session…</span>
+          {% if demo_mode %}
+          <div class="demo-controls">
+            <span class="demo-indicator"><span class="demo-light" aria-hidden="true"></span> DEMO</span>
+            <select id="demo-account-select" aria-label="Switch demo identity"><option value="" disabled selected>Select identity</option></select>
+          </div>
+          {% endif %}
+          {% if browser_login_enabled %}<a id="login-btn" class="topbar-button" href="/auth/login">Log in</a>{% endif %}
+          <button id="logout-btn" class="topbar-button hidden" type="button">Log out</button>
+        </div>
+      </header>
+
+      <div class="page-body">
+        <section id="view-workspace" class="view-panel active" aria-label="Workspace">
+          <div class="workspace-banner"><span class="workspace-banner-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-4"/></svg></span><div><strong>Evidence workspace</strong><span id="workspace-banner-status">Current access scope applies</span></div><span class="banner-source-status">OFFLINE SNAPSHOT</span></div>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> KNOWLEDGE WORKSPACE</div><h1>Answers backed by evidence.</h1><p>Ask across the knowledge you can access, follow how a business state changes, and inspect the source behind each citation.</p></div>
+          </div>
+
+          <div class="workspace-grid" id="workspace-grid">
+            <section class="composer-panel surface" aria-labelledby="composer-title">
+              <div class="surface-heading"><div><span class="radar-number" aria-hidden="true">1</span><h2 id="composer-title">Ask across your authorised sources</h2></div><span class="composer-access"><span class="scope-dot" aria-hidden="true"></span> Authorised sources only</span></div>
+              <div class="composer-body">
+                <div class="field query-field"><label for="query-input">What would you like to know?</label><textarea id="query-input" rows="3" maxlength="4000" placeholder="Ask a question about your authorised knowledge…"></textarea><p id="query-validation" class="field-validation hidden" role="alert"></p></div>
+                <div class="composer-toolbar">
+                  <div class="field dataset-field"><label for="dataset-select">Dataset</label><select id="dataset-select"><option value="" disabled selected>Select a dataset</option></select></div>
+                  <details class="advanced-search">
+                    <summary>Search settings <span class="settings-chevron" aria-hidden="true">⌄</span></summary>
+                    <div class="advanced-search-content">
+                      <div class="radio-group" id="mode-selector"><label><input type="radio" name="search_mode" value="hybrid" checked><span>Hybrid</span></label><label><input type="radio" name="search_mode" value="keyword"><span>Keyword</span></label><label><input type="radio" name="search_mode" value="vector"><span>Semantic</span></label></div>
+                      <div class="planner-setting"><label for="planning-toggle" class="planner-row"><span><strong>Plan the query first</strong><small>Split a complex question into bounded search paths.</small></span><input id="planning-toggle" type="checkbox" aria-describedby="planner-availability"></label><p id="planner-availability" class="planner-availability">Checking planner availability…</p></div>
+                    </div>
+                  </details>
+                  <div class="action-group"><button id="btn-search" class="secondary-btn" type="button">Search evidence</button><button id="btn-ask" class="primary-btn" type="button"><span>Ask ContextLedger</span><span class="button-arrow" aria-hidden="true">↗</span></button></div>
+                </div>
+                <div class="home-mobile-metrics"><div><span>Permission version</span><strong id="home-permission-version">—</strong></div><div><span>Available datasets</span><strong id="home-corpus-count">—</strong></div></div>
+              </div>
+              <div class="composer-foot"><span class="foot-lock" aria-hidden="true">◆</span> Access is checked before retrieval and again before delivery.</div>
+            </section>
+
+            <main class="result-panel surface" id="results-surface" aria-live="polite">
+              <div class="results-query-banner"><div><span class="section-index">ACTIVE QUERY</span><p id="query-summary-text"></p></div><button id="btn-edit-query" class="secondary-btn" type="button">Edit question</button></div>
+              <div class="result-body">
+                <div id="onboarding-state" class="state-container onboarding-state">
+                  <div class="onboarding-visual"><img src="/static/onboarding.svg" alt="" aria-hidden="true"></div>
+                  <div class="onboarding-copy"><span class="empty-eyebrow">READY WHEN YOU ARE</span><h3>Start with a question</h3><p>Choose a dataset and ask a question. ContextLedger will find authorised evidence and give you a cited answer.</p></div>
+                  <div class="steps-list" aria-label="How it works"><div><span>1</span> Choose a dataset</div><div><span>2</span> Ask your question</div><div><span>3</span> Review the evidence</div></div>
+                </div>
+                <div id="loading-state" class="state-container loading-state hidden"><div class="loading-symbol" aria-hidden="true"><span></span><span></span><span></span></div><h3>Working through your evidence</h3><p id="loading-text">Processing request…</p></div>
+                <div id="error-state" class="state-container error-state hidden"><span class="error-mark" aria-hidden="true">!</span><h3 id="error-title">Something went wrong</h3><p id="error-message"></p></div>
+                <div id="results-state" class="results-container hidden"><div class="results-topline"><p id="result-status" class="result-status" role="status"></p><span class="source-caption">AUTHORISED SOURCES ONLY</span></div><p id="query-plan-status" class="workflow-status hidden"></p><div class="decision-layout"><main class="decision-main"><details class="full-answer"><summary>Full generated answer</summary><div id="answer-box" class="answer-box hidden"></div></details><details id="radar" class="radar-panel hidden" open><summary><span class="radar-number" aria-hidden="true">1</span><strong>Decision Radar</strong><span class="radar-summary-note">Business status and source timeline</span></summary><p id="radarcoverage" class="radar-coverage muted"></p><section id="radar-presentation" class="radar-presentation hidden" aria-live="polite"><div class="radar-verdict-top"><div><span class="eyebrow">CURRENT JUDGMENT</span><h3 id="radar-headline"></h3></div><span id="radar-status" class="status-pill"></span></div><p id="radar-explanation"></p><div id="radar-summary-citations" class="radar-citations"></div></section><section id="radar-needs" class="radar-needs hidden"><h3><span class="radar-number" aria-hidden="true">3</span>Needs confirmation</h3><ul id="radar-needs-list"></ul></section><div id="radarconflicts" class="radar-conflicts"></div><h3 class="timeline-title"><span class="radar-number" aria-hidden="true">2</span>Business timeline</h3><ol id="radartimeline" class="radar-timeline"></ol></details></main><aside class="decision-aside"><section class="surface security-summary"><div class="aside-heading"><span class="radar-number" aria-hidden="true">4</span><span class="section-index">SECURITY LENS</span><span class="summary-shield" aria-hidden="true">✓</span></div><span class="status-pill status-confirmed">Authorised evidence only</span><div class="security-summary-row"><span>Employee</span><strong id="security-summary-name">Current identity</strong></div><div class="security-summary-row"><span>Role</span><strong id="security-summary-role">Member</strong></div><div class="security-summary-row"><span>Permission version</span><strong id="security-summary-epoch">—</strong></div><p class="security-summary-note">Source ACL snapshot and current system restrictions apply.</p><p class="security-summary-note">Live source permission sync is not enabled.</p></section><section class="surface supporting-card"><div class="aside-heading"><div><span class="section-index">03 / EVIDENCE PASSPORT</span><h3>Supporting evidence</h3></div><span id="security-summary-evidence" class="evidence-count"></span></div><p class="supporting-subtitle">Open a source to inspect its original text.</p><div id="evidence-list" class="evidence-list"></div></section></aside></div><section class="radar-feature-strip" aria-label="Decision Radar guide"><article><strong>01　Current judgment</strong><p>Read the business conclusion and its evidence limits.</p></article><article><strong>02　Source timeline</strong><p>Follow reports, recorded states and timestamps.</p></article><article><strong>03　Needs confirmation</strong><p>Review unresolved evidence conditions when shown.</p></article><article><strong>04　Access scope</strong><p>Only currently authorised evidence is available.</p></article></section></div>
+              </div>
+            </main>
+          </div>
+          <section id="home-support" class="home-support-grid">
+            <div class="surface home-guide-card"><div class="home-card-heading"><span class="section-index">HOW IT WORKS</span><h2>How to explore an answer</h2></div><div class="home-guide-visual"><img src="/static/onboarding.svg" alt="Authorised records flow into a business judgment and cited evidence"></div><div class="home-steps"><div><span>01</span><div><strong>Read the current judgment</strong><p>Start with the conclusion and its limits.</p></div></div><div><span>02</span><div><strong>Follow the business timeline</strong><p>See source reports, recorded states and unknown times.</p></div></div><div><span>03</span><div><strong>Open a citation</strong><p>Inspect the original source and its access details.</p></div></div></div></div>
+            <div class="surface home-examples-card"><div class="home-card-heading"><span class="section-index">CURATED EXAMPLES</span><h2>Try a demo question</h2></div><div class="demo-question-list"><button type="button" class="demo-question" data-demo-question="Has SG Batch Payments v2.3 fully recovered?"><span class="demo-question-dot"></span><span>Has SG Batch Payments v2.3 fully recovered?</span><span>↗</span></button><button type="button" class="demo-question" data-demo-question="What changed in the incident response plan?"><span class="demo-question-dot warning"></span><span>What changed in the incident response plan?</span><span>↗</span></button><button type="button" class="demo-question" data-demo-question="Which recovery conditions still need confirmation?"><span class="demo-question-dot muted"></span><span>Which recovery conditions still need confirmation?</span><span>↗</span></button></div><p class="home-demo-note">Examples use synthetic records, not live company data.</p><div class="home-scope-band"><span class="scope-dot"></span><div><strong>Authorised sources only</strong><p>Offline source ACL snapshot plus current system permissions.</p></div></div></div>
+          </section>
+          <section class="home-feature-strip" aria-label="Workspace guide"><article><strong>01　Ask</strong><p>Enter a question and choose its dataset.</p></article><article><strong>02　Review</strong><p>Read the current judgment and its limits.</p></article><article><strong>03　Inspect</strong><p>Open a citation to view its source.</p></article><article><strong>04　Access</strong><p>Your current identity controls each result.</p></article></section>
+        </section>
+
+        <section id="view-audit" class="view-panel hidden" aria-label="Audit">
+          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> GOVERNANCE · CURRENT ACCESS CHECKS APPLY</div><h1>Audit Trail</h1><p>Trace a request, its recorded evidence versions and the access context used for delivery.</p></div></div>
+          <div class="audit-layout">
+            <div class="surface management-card">
+              <div class="surface-heading"><div><span class="section-index">FILTERS</span><h2>Find an event</h2></div></div>
+              <form id="audit-form" class="management-form">
+                <label for="audit-q">Search terms</label><input id="audit-q" type="text" placeholder="Search audit events (optional)">
+                <label for="audit-user">User ID</label><input id="audit-user" type="text" placeholder="Optional">
+                <label for="audit-req">Request ID</label><input id="audit-req" type="text" placeholder="Optional">
+                <div class="audit-actions"><button id="audit-search" type="submit" class="primary-btn">Search audit</button><button id="audit-ask" type="button" class="secondary-btn">Explain with model</button></div>
+              </form>
+            </div>
+            <div class="surface management-card">
+              <div class="surface-heading"><div><span class="section-index">EVENTS</span><h2>Results</h2></div><button id="audit-export" class="subtle-button" type="button" disabled>Export JSON</button></div>
+              <div id="audit-answer" class="audit-answer hidden"></div>
+              <div class="audit-browser"><div id="audit-results" class="audit-event-list">Run a search to view available audit events.</div><section id="audit-detail" class="audit-detail"><span class="reader-label">SELECT A REQUEST</span><p>Request identity, evidence and current visibility will appear here.</p></section></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-admin" class="view-panel hidden" aria-label="Administration">
+          <div class="page-heading admin-page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ADMINISTRATOR · ACCESS CONTROL</div><h1>Security Lens</h1><p>Demonstrate how a permission change affects the next request.</p></div><span class="admin-only-chip">Admin-only access</span></div>
+          <div class="security-employee-bar surface"><div class="security-step">1</div><strong>Selected employee</strong><select id="admin-user-id" required aria-label="Selected employee"><option value="">Choose an account</option></select><span class="permission-version-chip">Current permission version <strong id="security-current-version">—</strong></span><span class="security-scenario">Scenario <strong>SG Batch Payments v2.3</strong></span></div>
+          <div class="security-flow-grid">
+            <section class="surface security-state-card" aria-labelledby="security-before-title"><div class="security-card-kicker">01 / BEFORE CHANGE <span aria-hidden="true">↺</span></div><h2 id="security-before-title">Authorised selection</h2><p class="security-record-total"><strong id="security-before-count">—</strong><span>active source bindings</span></p><ul id="security-before-bindings" class="security-binding-list"><li>Select an employee to review access.</li></ul><span class="permission-version-chip">Permission version <strong id="security-before-version">—</strong></span></section>
+            <div class="surface management-card">
+              <div class="surface-heading"><div><span class="section-index">02 / UPDATE PERMISSION →</span><h2>Change access</h2></div><span class="scope-dot"></span></div>
+              <form id="admin-mutate-form" class="management-form">
+                <label for="admin-action">Change type</label>
+                <select id="admin-action" required><option value="binding">Source binding</option><option value="restriction">Local restriction</option><option value="account">Account settings</option></select>
+                <div id="admin-binding-fields" class="admin-action-fields">
+                  <label for="admin-principal">Source identity</label><select id="admin-principal"><option value="">Choose a source identity</option></select>
+                  <label for="admin-binding-enabled">Action</label><select id="admin-binding-enabled"><option value="true">Bind or restore</option><option value="false">Revoke binding</option></select>
+                </div>
+                <div id="admin-restriction-fields" class="admin-action-fields hidden">
+                  <label for="admin-corpus">Dataset</label><select id="admin-corpus"><option value="">Choose a dataset</option></select>
+                  <label for="admin-rule-kind">Restriction type</label><select id="admin-rule-kind"><option value="source">Platform</option><option value="project">Project</option><option value="department">Document department</option><option value="document">Document ID</option><option value="corpus">Entire dataset</option></select>
+                  <label for="admin-rule-value">Value</label><input id="admin-rule-value" type="text" placeholder="Exact source or document ID">
+                  <label for="admin-rule-denied">Action</label><select id="admin-rule-denied"><option value="true">Add restriction</option><option value="false">Remove restriction</option></select>
+                </div>
+                <div id="admin-account-fields" class="admin-action-fields hidden">
+                  <label for="admin-role">Role</label><select id="admin-role"><option value="member">Member</option><option value="compliance">Compliance</option><option value="admin">Admin</option></select>
+                  <label for="admin-clearance">Clearance</label><select id="admin-clearance"><option value="0">Public</option><option value="1">Internal</option><option value="2">Confidential</option><option value="3">Restricted</option></select>
+                  <label for="admin-enabled">Account status</label><select id="admin-enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+                </div>
+                <button type="submit" class="primary-btn">Apply change</button>
+              </form>
+              <p id="admin-mutate-feedback" class="feedback-msg" role="status"></p>
+            </div>
+            <section class="surface security-state-card" aria-labelledby="security-after-title"><div class="security-card-kicker">03 / QUERY AGAIN → <span aria-hidden="true">⟳</span></div><h2 id="security-after-title">Updated selection</h2><p class="security-record-total"><strong id="security-after-count">—</strong><span>active source bindings</span></p><ul id="security-after-bindings" class="security-binding-list"><li>Updated access will appear after a change.</li></ul><span class="permission-version-chip">Permission version <strong id="security-after-version">—</strong></span><button id="security-run-query" class="secondary-btn security-run-query" type="button">Switch to employee and query again</button><p class="security-state-note">The next employee request uses the current permission state.</p></section>
+          </div>
+          <section class="surface security-delivery-card"><div class="surface-heading"><div><span class="security-step">4</span><h2>Check each delivery path</h2></div><span class="status-pill status-confirmed">Current access checked</span></div><div class="security-delivery-grid"><article><strong>Search</strong><p>Run the query again with the employee's current access.</p></article><article><strong>Original document</strong><p>Access is checked again when an evidence source is opened.</p></article><article><strong>Generated answer</strong><p>The answer is built from the evidence available to that request.</p></article></div><p class="security-state-note">An employee view does not reveal the title or contents of restricted records.</p></section>
+          <details class="admin-users-details"><summary>View all system users</summary><div class="surface management-card admin-users-card">
+              <div class="surface-heading"><div><span class="section-index">ACCOUNTS</span><h2>System users</h2></div><button id="btn-load-users" class="subtle-button" type="button">Refresh</button></div>
+              <div id="admin-users-list" class="list-container">Select Refresh to load users.</div>
+          </div></details>
+        </section>
+      </div>
+    </div>
+  </div>
+  <dialog id="document-reader" class="passport-dialog" aria-labelledby="doc-title"><div class="passport-header"><div><span class="reader-label">EVIDENCE PASSPORT · ORIGINAL SOURCE</span><h2 id="doc-title">Document</h2></div><button id="btn-close-doc" class="passport-close" type="button" aria-label="Close evidence details">×</button></div><div class="passport-metadata" id="doc-metadata"></div><pre id="doc-content" class="doc-content"></pre><div class="passport-actions"><a id="doc-source-link" class="source-link hidden" target="_blank" rel="noopener noreferrer">Open original ↗</a><button id="btn-close-doc-secondary" class="secondary-btn" type="button">Back to results</button></div></dialog>
+</body>
+</html>

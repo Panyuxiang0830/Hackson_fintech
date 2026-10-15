@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#081b37"/><stop offset="1" stop-color="#163869"/></linearGradient>
+ <linearGradient id="card" x2="1" y2="1"><stop stop-color="#20477a"/><stop offset="1" stop-color="#112b53"/></linearGradient>
+ <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#9bbaff" stroke-opacity=".065"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="url(#bg)"/><rect width="1920" height="1080" fill="url(#grid)"/>
+<circle cx="1660" cy="30" r="570" fill="#3678ed" opacity=".06"/>
+<circle cx="1330" cy="700" r="430" fill="#29d5b6" opacity=".035"/>
+<g font-family="Arial,Helvetica,sans-serif">
+ <text x="120" y="145" fill="#8cb2ff" font-size="24" letter-spacing="5">FINTECH / THE INTERNAL BRAIN</text>
+ <rect x="120" y="238" width="78" height="78" rx="22" fill="#3978ff"/>
+ <g fill="white"><rect x="137" y="255" width="18" height="18" rx="4"/><rect x="163" y="255" width="18" height="18" rx="4"/><rect x="137" y="281" width="18" height="18" rx="4"/><rect x="163" y="281" width="18" height="18" rx="4"/></g>
+ <text x="220" y="301" fill="white" font-size="82" font-weight="700" letter-spacing="-3">ContextLedger</text>
+ <text x="120" y="415" fill="#eef4ff" font-size="45" font-weight="600">Enterprise knowledge.</text>
+ <text x="120" y="478" fill="#eef4ff" font-size="45" font-weight="600">Every answer accountable.</text>
+ <text x="120" y="562" fill="#a5bcdf" font-size="28">Bring the right context together.</text>
+ <text x="120" y="608" fill="#a5bcdf" font-size="28">Keep permissions, versions and evidence intact.</text>
+ <g stroke="#548ce1" stroke-width="3" fill="none" opacity=".8">
+  <path d="M1180 259V330H1390V385"/><path d="M1690 259V330H1510V385"/>
+  <path d="M1175 815V755H1390V695"/><path d="M1685 815V755H1510V695"/>
+ </g>
+ <g fill="url(#card)" stroke="#42638e" stroke-width="2">
+  <rect x="1050" y="175" width="260" height="90" rx="18"/><rect x="1550" y="175" width="260" height="90" rx="18"/>
+  <rect x="1050" y="815" width="260" height="90" rx="18"/><rect x="1550" y="815" width="260" height="90" rx="18"/>
+  <rect x="1150" y="385" width="590" height="310" rx="26"/>
+ </g>
+ <g fill="#ddeaff" font-size="30" text-anchor="middle"><text x="1180" y="231">Confluence</text><text x="1680" y="231">Jira</text><text x="1180" y="871">Slack</text><text x="1680" y="871">Google Drive</text></g>
+ <circle cx="1445" cy="452" r="33" fill="#2b6bf1"/>
+ <path d="M1426 447L1445 438L1464 447V462Q1445 480 1426 462Z" fill="none" stroke="white" stroke-width="3"/>
+ <path d="M1435 455L1442 462L1456 448" fill="none" stroke="#62f2d4" stroke-width="4"/>
+ <text x="1445" y="522" text-anchor="middle" fill="white" font-size="34" font-weight="700">Authorised context</text>
+ <text x="1445" y="567" text-anchor="middle" fill="#b9cee9" font-size="25">Source-linked answers</text>
+ <path d="M1240 601H1650" stroke="#44638c" stroke-width="2"/>
+ <text x="1445" y="648" text-anchor="middle" fill="#6ee5cd" font-size="24">Permissions · Freshness · Audit</text>
+ <g fill="#91abd0" font-size="21" letter-spacing="2"><text x="120" y="941">GROUNDED ANSWERS</text><text x="455" y="941">CURRENT ACCESS</text><text x="120" y="987">TRACEABLE EVIDENCE</text></g>
+ <rect x="120" y="720" width="650" height="1" fill="#42618a"/>
+ <text x="120" y="770" fill="#7c9dc9" font-size="23">Tencent Cloud AI CAN DO IT 2026</text>
+</g>
+</svg>

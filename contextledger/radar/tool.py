@@ -6,6 +6,7 @@ import time
 from contextledger.radar.protocol import (VERSION, MAX_DOCS, MAX_EVENTS, MAX_RELATIONS,
                                          MAX_ROUNDS, RadarBudget, identifiers, validate_arguments)
 from contextledger.retrieval.filtered_index import IndexUnavailable
+from contextledger.radar.timing import source_timing, order_events
 
 
 def source_guidance(hit):
@@ -120,7 +121,7 @@ class DecisionRadarTool:
                 "observed_at": guidance["observed_at"], "quote": excerpt,
                 "quote_span": ({**hit["radar_source_span"], "end": hit["radar_source_span"]["start"] + len(excerpt)}
                                if "radar_source_span" in hit else {"chunk_id": hit["chunk_id"], "start": 0, "end": len(excerpt)}),
-                "actor": hit["metadata"].get("actor"), "time_precision": hit["metadata"].get("time_precision", "unknown"),
+                "actor": hit["metadata"].get("actor"), **source_timing(hit),
                 "version": hit["version"], "historical": guidance["historical"]})
             ids = identifiers(hit["title"] + "\n" + hit["text"])
             for anchor in anchors:
@@ -156,10 +157,10 @@ class DecisionRadarTool:
                 disagreements.append({"entity_id": anchor, "attribute": "partition_count",
                     "assessment": "requires_review", "reason": "different reported values; scope and time may differ",
                     "claims": relevant[:8], "claims_truncated": len(relevant) > 8})
-        ordered = sorted(events, key=lambda e: (e["event_time"] is None, str(e["event_time"] or ""), e["citation_id"]))
+        ordered, timeline_order = order_events(events)
         return selected, {"version": VERSION, "entity_candidates": anchors,
             "source_statuses": statuses, "event_candidates": ordered[:self.budget.events],
-            "relations": relations, "disagreements": disagreements,
+            "relations": relations, "disagreements": disagreements, "timeline_order": timeline_order,
             "coverage": {"documents": len(selected), "rounds": rounds, "truncated": bool(truncated),
                          "limits": {"documents": maximum, "events": self.budget.events, "relations": self.budget.relations, "rounds": MAX_ROUNDS, "seconds": self.budget.seconds},
                          "truncation_reasons": sorted(reasons),

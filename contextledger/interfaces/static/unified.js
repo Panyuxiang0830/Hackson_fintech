@@ -395,7 +395,7 @@ function renderRadar(radar, evidence) {
   const reasonLabels={document_limit:"资料数量上限",related_scan_limit:"关联扫描范围或时间限制",expansion_round_limit:"关联展开轮数",relation_limit:"关系数量上限",time_budget:"查询时间预算"};
   const reasons=(coverage.truncation_reasons || []).map(r=>reasonLabels[r] || "检索范围限制");
   if(coverage.evidence_excerpts_truncated || coverage.model_input_truncated) reasons.push("模型只读取正文节选");
-  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${reasons.length ? `；范围说明：${reasons.join("、")}` : ""}；未证明业务链完整。时间未知的记录单独列出。`;
+  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${reasons.length ? `；范围说明：${reasons.join("、")}` : ""}；未证明业务链完整。按可比较的来源记录时间组内排序，不同时间基准及未知时间分组展示；Slack 记录时间不证明 GitHub 实际操作时间。`;
   for (const conflict of radar.disagreements) {
     const p=document.createElement("p");
     p.textContent=`待核对：${conflict.entity_id} 的 ${conflict.attribute} 出现不同报告值（${conflict.claims.map(c=>`${c.value} [${c.citation_id}]`).join(" / ")}），需要核对时间和适用范围。`;
@@ -407,10 +407,11 @@ function renderRadar(radar, evidence) {
     const labels={native_state:"来源系统状态",comment:"评论／评审",description:"来源描述",artifact:"来源材料"};
     const label=labels[event.type] || "来源记录";
     const button=document.createElement("button"); button.className="radarlink";
-    button.textContent=`${event.event_time || "事件时间未知"} · ${label}${status && status.native_status ? `：${status.native_status}` : ""} · ${event.historical ? "历史修订 · " : ""}${item ? item.title : event.doc_id} [${event.citation_id}]`;
+    button.textContent=`来源记录时间：${event.source_record_time || event.event_time || "未知"}${event.time_group==='local_timestamp'?'（时区未提供）':''} · ${label}${status && status.native_status ? `：${status.native_status}` : ""} · ${event.historical ? "历史修订 · " : ""}${item ? item.title : event.doc_id} [${event.citation_id}]`;
     if(item) button.onclick=()=>openDoc(item.corpus,item.doc_id);
     const quote=document.createElement("p"); quote.textContent=(event.historical ? `该修订观测于：${event.observed_at || "未知"}\n` : "") + event.quote;
     li.append(button,quote); el("radartimeline").append(li);
+    for(const warning of event.time_warnings||[]){const note=document.createElement('p');note.textContent=warning;li.append(note);}
   }
 }
 

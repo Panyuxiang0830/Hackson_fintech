@@ -235,8 +235,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
 
     @app.get("/")
     def index_page():
-        return render_template("unified.html", browser_login_enabled=browser_login_enabled, demo_mode=demo_mode,
-                               demo_auto_entry=demo_mode and app.config.get("DEMO_AUTO_ENTRY") is True)
+        return app.send_static_file("stitch/index.html")
 
     @app.get("/api/session")
     def status():
@@ -254,6 +253,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
                        workflows={"planner_enabled": service.planner.enabled,
                                   "planner_configured": service.planner.stage.ready,
                                   "citation_validation": "deterministic IDs and scope only"},
+                       demo_auto_entry=demo_mode and app.config.get("DEMO_AUTO_ENTRY") is True,
                        source_permissions="not_enabled", freshness="offline snapshot only")
 
     @app.get("/api/demo/accounts")
@@ -357,7 +357,8 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     def ask():
         body = request.get_json() or {}
         corpus, query, mode, day = inputs(body)
-        result, hits = service.ask(g.actor.id, corpus, query, mode, day, planning=body.get("planning"))
+        result, hits = service.ask(g.actor.id, corpus, query, mode, day, planning=body.get("planning"),
+                                   output_language=body.get("output_language"))
         g.delivery = (corpus, result["index_generation"], hits)
         return jsonify(result)
 

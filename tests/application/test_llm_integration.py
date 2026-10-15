@@ -159,11 +159,11 @@ class LLMIntegrationTests(unittest.TestCase):
 
     def test_new_ui_controls_and_api_input_types(self):
         html = self.client.get("/").get_data(as_text=True)
-        self.assertIn('id="planning-toggle"', html)
-        self.assertIn('id="planner-availability"', html)
-        self.assertIn('id="query-plan-status"', html)
-        self.assertIn('id="audit-ask"', html)
-        self.assertIn('id="audit-answer"', html)
+        self.assertIn('data-slot="planning-toggle"', html)
+        self.assertIn('data-slot="planning-label"', html)
+        self.assertIn('data-slot="audit-form"', html)
+        self.assertIn('data-slot="audit-answer"', html)
+        self.assertIn('data-slot="audit-authorisations"', html)
         self.assertNotIn('id="reviewfeedback"', html)
         self.assertNotIn("首次回答单独调用", html)
         self.assertNotIn("review_enabled", self.client.get("/api/session").json["workflows"])

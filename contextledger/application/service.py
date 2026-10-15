@@ -183,7 +183,9 @@ class UnifiedService:
                 "index_generation": generation, "query_suggestions": suggestions,
                 "query_plan": plan, "scope": "offline ACL snapshot + system-local permissions"}, hits
 
-    def ask(self, user_id, corpus, query, mode="hybrid", day=None, *, planning=None):
+    def ask(self, user_id, corpus, query, mode="hybrid", day=None, *, planning=None, output_language=None):
+        if output_language not in (None, "en"):
+            raise ValueError("unsupported output_language")
         actor = self.current(user_id)
         hits, generation, scope, plan = self.retrieve(actor, corpus, query, mode, day, planning, resolve_names=True)
         suggestions = self.index.suggestions(scope, query) if not hits and plan["status"] != "clarification_required" else []
@@ -191,6 +193,7 @@ class UnifiedService:
         levels = ("public", "internal", "confidential", "restricted")
         user = User(actor.id, actor.name, actor.department or "source ACL snapshot", actor.role, levels[actor.clearance])
         radar = None
+        radar_presentation = None
         evidence = []
         def build_evidence(total_budget=12000):
             evidence.clear()
@@ -213,49 +216,88 @@ class UnifiedService:
             radar = report
             # Quotes are already in the unified evidence registry. Avoid duplicating
             # them in the model tool payload; the public timeline retains its spans.
+            from contextledger.radar.timing import model_event
             model_report = {**report,
-                "event_candidates": [{k: v for k, v in event.items() if k in {"citation_id", "type", "event_time", "historical"}}
-                                     for event in report["event_candidates"]],
+                "event_candidates": [model_event(event) for event in report["event_candidates"]],
                 "source_statuses": [{k: v for k, v in item.items() if k in {"citation_id", "native_status", "historical", "supported_fact"}}
                                     for item in report["source_statuses"] if item["record_type"] == "native_state"]}
             return model_report
         try:
             guard = lambda: self.fence(actor, corpus, generation, hits)
             kwargs = {"before_call": guard, "tool_handler": run_radar} if isinstance(self.answer, AnswerService) else {}
+            if isinstance(self.answer, AnswerService) and output_language:
+                kwargs["output_language"] = output_language
             if plan["status"] == "clarification_required":
-                answer = "请确认问题中的名称、时间和具体意图后重新提问；系统不会自动更换实体或问题含义。" if re.search(r"[\u4e00-\u9fff]", query) else "Please confirm the names, time constraints and intended meaning. No entity or intent was automatically replaced."
+                answer = "请确认问题中的名称、时间和具体意图后重新提问；系统不会自动更换实体或问题含义。" if output_language != "en" and re.search(r"[\u4e00-\u9fff]", query) else "Please confirm the names, time constraints and intended meaning. No entity or intent was automatically replaced."
                 decision, provider = "clarification_required", "deterministic"
             elif not hits:
-                answer, decision, provider = empty_evidence_answer(query), "insufficient", "deterministic"
+                answer, decision, provider = empty_evidence_answer(query, output_language), "insufficient", "deterministic"
             else:
                 answer, decision, provider = self.answer.answer(user, query, evidence, **kwargs)
             diagnostics = getattr(self.answer, "last_diagnostics", {}) if hits else {"attempts": 0, "prompt_version": PROMPT_VERSION}
             diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
+            if radar:
+                radar_presentation = getattr(self.answer, "last_radar_presentation", None)
+                if radar_presentation is None and (
+                    decision == "insufficient" or radar.get("disagreements")
+                    or any((radar.get("coverage") or {}).get(key) for key in
+                           ("truncated", "evidence_excerpts_truncated", "model_input_truncated"))
+                ):
+                    available_ids = set(range(1, len(evidence) + 1))
+                    needs = []
+                    refs = []
+                    for conflict in (radar.get("disagreements") or [])[:5]:
+                        conflict_refs = list(dict.fromkeys(
+                            claim.get("citation_id") for claim in conflict.get("claims", [])
+                            if type(claim.get("citation_id")) is int and claim["citation_id"] in available_ids
+                        ))
+                        refs.extend(conflict_refs)
+                        needs.append({
+                            "item": f"Review the differing {conflict.get('attribute', 'reported')} values for {conflict.get('entity_id', 'this item')} and confirm their time and scope.",
+                            "citation_ids": conflict_refs,
+                        })
+                    incomplete = any((radar.get("coverage") or {}).get(key) for key in
+                                     ("truncated", "evidence_excerpts_truncated", "model_input_truncated"))
+                    if incomplete:
+                        needs.append({"item": "Review the records omitted by the bounded evidence selection.", "citation_ids": []})
+                    if not needs:
+                        needs.append({"item": "Find authorised evidence that establishes the requested business outcome.", "citation_ids": []})
+                    radar_presentation = {
+                        "status": "pending_confirmation",
+                        "headline": "Conflicting reports need review." if radar.get("disagreements") else "The available evidence does not confirm this outcome.",
+                        "explanation": "The authorised records do not yet establish a confirmed business outcome.",
+                        "citation_ids": list(dict.fromkeys(refs)),
+                        "needs_confirmation": needs[:5],
+                    }
             guard()
             if decision == "insufficient" and provider.startswith("openai_compatible/"):
                 # A model can label an invented claim "insufficient". Release a
                 # server-owned neutral refusal, not unchecked factual prose.
-                answer = empty_evidence_answer(query)
+                answer = empty_evidence_answer(query, output_language)
                 if radar:
-                    answer += ("\n\n本次已读取的授权记录尚未支持可靠结论；可展开时间线核对来源说法、未知时间和待确认分歧。" if re.search(r"[\u4e00-\u9fff]", query) else "\n\nThe authorised selection does not support a reliable conclusion; inspect the timeline for source reports, unknown times and unresolved differences.")
+                    answer += ("\n\n本次已读取的授权记录尚未支持可靠结论；可展开时间线核对来源说法、未知时间和待确认分歧。" if output_language != "en" and re.search(r"[\u4e00-\u9fff]", query) else "\n\nThe authorised selection does not support a reliable conclusion; inspect the timeline for source reports, unknown times and unresolved differences.")
             self.fence(actor, corpus, generation, hits)  # Also after a possibly slow LLM call.
         except (PermissionError, PermissionChanged, IndexUnavailable):
             self.record(actor, "answer_discarded", question=query, decision="permission_or_version_changed")
             raise
         if not hits and suggestions:
-            answer += "\n你是否想查询：" + " / ".join(suggestions) + "？请确认名称后重新提问；系统未自动替换。"
+            answer += ("\nDid you mean: " + " / ".join(suggestions) + "? Confirm the name and ask again; no entity was replaced." if output_language == "en" or not re.search(r"[\u4e00-\u9fff]", query) else "\n你是否想查询：" + " / ".join(suggestions) + "？请确认名称后重新提问；系统未自动替换。")
         event = self.record(actor, "answer", question=query, hits=hits, answer=answer, decision=decision,
                             provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day,
                             llm_diagnostics=diagnostics, query_plan=plan,
-                            radar_summary=radar["coverage"] if radar else None)
-        return {"answer": answer, "decision": decision, "provider": provider,
+                            radar_summary=radar["coverage"] if radar else None,
+                            **({"radar_presentation": radar_presentation} if radar_presentation else {}))
+        result = {"answer": answer, "decision": decision, "provider": provider,
                 "evidence": [self.public_hit(hit) | {"citation_id": i, "excerpt": hit["text"][:4000]}
                              for i, hit in enumerate(hits, 1)],
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
                 "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation, "query_plan": plan,
                 "radar": radar,
-                "citation_validation": "citation IDs and authorised scope only; no model semantic review"}, hits
+                "citation_validation": "citation IDs and authorised scope only; no model semantic review"}
+        if radar_presentation:
+            result["radar_presentation"] = radar_presentation
+        return result, hits
 
     def open(self, user_id, corpus, doc_id, day=None):
         actor = self.current(user_id)
@@ -302,16 +344,23 @@ class UnifiedService:
         events = events[:maximum]
         for event in events:
             visible = bool(event.get("evidence"))
+            evidence_visibility = "visible" if visible else "not_recorded"
             local_guards = []
             for item in event.get("evidence", []):
                 try:
                     scope = self.index.scope(actor, item["corpus"])
                     hit, generation = self.index.open(scope, item["doc_id"])
-                    if not hit or hit["version"] != item["version"] or hit["content_hash"] != item.get("content_hash"):
+                    if not hit:
+                        evidence_visibility = "current_access_unavailable"
+                        visible = False
+                        break
+                    if hit["version"] != item["version"] or hit["content_hash"] != item.get("content_hash"):
+                        evidence_visibility = "version_mismatch"
                         visible = False
                         break
                     local_guards.append((item["corpus"], generation, [hit]))
                 except IndexUnavailable:
+                    evidence_visibility = "index_unavailable"
                     visible = False
                     break
             # Whitelist projection: arbitrary extras/diagnostics may contain private
@@ -322,10 +371,11 @@ class UnifiedService:
             display["user_name"] = subject.name if subject else "unknown account"
             display.update(query=str(event.get("query") or "")[:4000], answer=str(event.get("answer") or "")[:8000],
                 evidence=event.get("evidence", []) if visible else [],
+                radar_presentation=event.get("radar_presentation") if visible else None,
                 retrieved_document_ids=event.get("retrieved_document_ids", []) if visible else [],
                 authorization_decisions=event.get("authorization_decisions", []) if visible else [],
                 returned_evidence_count=len(event.get("evidence", [])) if visible or not event.get("evidence") else None,
-                redacted=not visible)
+                redacted=not visible, evidence_visibility=evidence_visibility)
             if event.get("event_type") in {"permission_change", "permission_change_intent"}:
                 change = event.get("change") or {}
                 display["change"] = {k: change[k] for k in ("user_id", "action", "kind", "enabled", "denied", "role") if k in change}
@@ -352,7 +402,7 @@ class UnifiedService:
             model_events, size = [], 0
             for e in results[:20]:
                 projected = {k: e[k] for k in ("sequence", "timestamp", "event_type", "user_id", "user_name",
-                    "user_role", "permission_epoch", "policy_version", "decision", "returned_evidence_count", "redacted")}
+                    "user_role", "permission_epoch", "policy_version", "decision", "returned_evidence_count", "redacted", "evidence_visibility")}
                 projected.update(id=f"E{e['sequence']}", query=e["query"][:1000], answer=e["answer"][:1500])
                 projected["evidence_ids"] = [item["doc_id"] for item in e["evidence"][:5]]
                 projected["evidence_ids_truncated"] = len(e["evidence"]) > 5

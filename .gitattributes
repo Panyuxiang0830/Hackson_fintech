@@ -1,0 +1,4 @@
+# Imported references and archived snapshots retain their original byte hashes.
+frontend/stitch/source/*.html -text
+frontend/legacy-backup/** -text
+contextledger/interfaces/static/stitch/assets/* -text

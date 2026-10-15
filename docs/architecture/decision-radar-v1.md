@@ -196,6 +196,12 @@ facts、ground_truth、causal_chain、recurrence_of 等评测元数据不进入�
 
 ## 10. 影响范围和当前状态
 
+### 2026-10-14 展示状态契约
+
+Radar 工具运行后的最终回答可附加结构化 presentation：业务状态、标题、解释、授权引用和待确认事项。业务状态与 answered/insufficient 分离：只有回答充分、有引用、工具未标记未决分歧且覆盖未截断时，服务端才接受 confirmed；所有不能确认的情况使用 pending_confirmation 并列出具体待核事项。未执行 Radar 的普通回答沿用旧接口，不需要新增字段。
+
+服务端只验证结构、枚举、长度和引用编号属于本次授权证据，不做模型语义复核。无效摘要触发既有一次格式重试；仍无效则不返回展示状态，旧答案和安全降级保持可用。审计记录保存该展示摘要，但只有当前访问校验通过时才随事件返回。
+
 实际接入：contextledger/answering/service.py、contextledger/application/service.py、filtered_index.py、search.py、templates/unified.html、static/unified.js/css。保留 PR #7 的 QueryPlanner、请求字段、原文入口和 HTTP delivery fence；没有改造原始 QueryPlanner 协议。
 
 新增：radar_protocol.py（结构化 action 与提示词）、radar_tool.py（补查与事实来源指引）、radar_data.py（业务材料适配／回放裁剪）、radar_store.py（不可变观测修订）、scripts/radar_demo.py（隔离发布与实测）。普通数据仍照常存，未增加强制 LLM 入库标签或实体图谱。
@@ -218,3 +224,11 @@ facts、ground_truth、causal_chain、recurrence_of 等评测元数据不进入�
 资料数量、事件、关系、展开轮数、扫描／时间与模型正文预算分别管理。关系按实体对去重；coverage 返回 limits 与 truncation_reasons，前端区分资料上限、展开轮数与正文节选。提高资料数不增加递归轮数或外部工具次数。模型仍最多 60000 字符：节省重复来源／事件字段，保留全部引用编号，并在 56000 字符软预算处缩短正文；仍超预算安全降级。正文截断可见，不声称模型读过全部原文。
 
 新增 LLM_RADAR_SEARCH_MODEL/BASE_URL/API_KEY/REASONING_EFFORT（可选），默认沿用现有 LLM 配置。最多增加一次 15 秒、500 输出 token 的名称规划；失败回退原问句检索，不重写原问句或授予权限。四案例真实测试默认用不带编号的问题；常量向量只用于安全／快照回放，名称实测用关键词召回及模型翻译，不证明生产向量或全量语料效果。
+
+## 来源记录时间（2026-10-15 修复）
+
+`radar/timing.py` 在授权检索之后读取顶层 `ts`，再兼容 `metadata.event_time`、原始 timestamp/date 字段；输出 `source_record_time`、`time_basis`、精度、时间基准组及 `source_time_fields` / `time_warnings`。`event_time` 原字段保留，不以记录时间改写实际业务事件时间。原生最终状态快照不借用父记录创建时间或观察时间。数值 `day` 保留原值，不假设日历起点。
+
+具有时区偏移的时间按 UTC 瞬时排序；无时区时间按原始本地钟面排序；日期精度、未知时间分别分组。不同组没有统一的先后结论，组内排序也不证明实际操作顺序或因果。界面标注 Source record time / Timezone unspecified，展示 date 与 timestamp 的原值差异。该结构和排序说明传给同次综合模型，不额外调用复核模型。
+
+服务器 ENG-195 / PR-135 案例中，要求修改的 Slack 记录 `ts=2026-02-17T09:37:07`，合并通知 `ts=2026-02-18T09:38:43`，后者 `date=2026-02-17`；按来源记录时间显示前者在前、后者在后，并保留日期差异。这些时间没有时区，不标 SGT，也不作为 GitHub 原生操作时间证明。

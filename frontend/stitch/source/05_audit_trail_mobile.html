@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>ContextLedger</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f8f9ff;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-highest":"#d3e4fe","primary-fixed":"#4dffb2","error":"#ba1a1a","secondary-fixed":"#dae5e4","surface-variant":"#d3e4fe","on-surface-variant":"#3b4a41","error-container":"#ffdad6","on-primary-fixed":"#002112","on-secondary-fixed":"#131d1d","tertiary-fixed":"#6ffbbe","primary-fixed-dim":"#00e297","text-secondary":"#475569","outline":"#6b7b70","surface":"#f8f9ff","on-tertiary-fixed-variant":"#005236","secondary-container":"#d7e2e1","tertiary-fixed-dim":"#4edea3","surface-container-high":"#dce9ff","text-muted":"#64748B","secondary-fixed-dim":"#bec9c8","mint-glow":"#C4F7D3","surface-dark":"#0B1313","canvas-bg":"#F4F7F6","tertiary-container":"#51e1a5","outline-variant":"#bacbbe","border-subtle-hover":"#D1D7D5","on-tertiary-fixed":"#002113","on-tertiary":"#ffffff","surface-card":"#FFFFFF","border-subtle":"#E5E9E8","on-secondary":"#ffffff","on-background":"#0b1c30","primary":"#006c46","surface-container-lowest":"#ffffff","on-tertiary-container":"#006141","surface-slate":"#111827","border-divider":"#EAECF0","status-danger":"#EF4444","status-danger-bg":"#FEE2E2","status-success":"#059669","on-primary":"#ffffff","on-secondary-container":"#5a6564","on-primary-container":"#00613e","secondary":"#566060","surface-dim":"#cbdbf5","inverse-primary":"#00e297","surface-container-low":"#eff4ff","inverse-on-surface":"#eaf1ff","surface-tint":"#006c46","inverse-surface":"#213145","on-surface":"#0b1c30","status-warning-bg":"#FEF3C7","tertiary":"#006c49","background":"#f8f9ff","surface-container":"#e5eeff","on-error-container":"#93000a","surface-bright":"#f8f9ff","text-primary":"#0D1717","status-warning":"#F59E0B","on-error":"#ffffff","mint-badge-bg":"#E6F9F2","primary-container":"#00e599","on-primary-fixed-variant":"#005234","mint-tint":"#EAF8EC","on-secondary-fixed-variant":"#3e4949"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"1rem","margin":"2rem","space-sm":"0.5rem","space-xl":"2.5rem","gutter-mobile":"1rem","space-xs":"0.25rem","gutter":"1.5rem","space-2xl":"4rem","space-md":"1rem","space-lg":"1.5rem"},"fontFamily":{"body-sm":["Inter"],"label-sm":["Inter"],"display-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"body-md":["Inter"],"body-lg":["Inter"],"headline-md":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"display":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"numerical-data":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-md":["Inter"]},"fontSize":{"body-sm":["13px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"display-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"headline-sm":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["15px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"body-lg":["18px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"400"}],"headline-md":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"600"}],"title-md":["16px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"display":["56px",{"lineHeight":"64px","letterSpacing":"-0.03em","fontWeight":"700"}],"headline-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.025em","fontWeight":"700"}],"numerical-data":["15px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface-slate flex items-center justify-center text-primary-container shadow-sm"><span class="material-symbols-outlined text-[20px]">account_tree</span></div><div class="flex flex-col"><div class="flex items-center gap-1.5"><span class="font-title-md text-title-md text-surface-slate leading-none">ContextLedger</span><span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-[10px] leading-tight font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>Live Synced</span></div><span class="font-label-sm text-[11px] text-text-muted leading-tight">Audit</span></div></div><div class="flex items-center gap-1"><button aria-label="Notifications" class="w-11 h-11 rounded-full flex items-center justify-center text-secondary hover:text-on-surface relative transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-status-danger ring-2 ring-surface"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 px-margin-mobile bg-surface"><div class="flex flex-col w-full gap-space-md">
+<!-- Status & Integrity Overview Card -->
+<div class="bg-surface-slate text-on-tertiary rounded-xl p-space-md shadow-md relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-primary/20 blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between gap-space-xs mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-container text-[20px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-headline-sm text-headline-sm text-on-tertiary tracking-tight">Audit Trail</span>
+</div>
+<span class="font-label-sm text-label-sm bg-primary/25 text-primary-fixed px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-ping"></span>
+        SHA-256 Validated
+      </span>
+</div>
+<div class="flex items-center justify-between text-secondary-fixed text-body-sm font-body-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed">link</span>
+<span>Local audit chain · valid</span>
+</div>
+<span class="text-secondary-fixed-dim font-label-sm text-[11px]">Chain #20498</span>
+</div>
+<!-- Micro hash ledger visualization -->
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-dark/70 rounded-lg px-2.5 py-1.5 text-[11px] font-numerical-data text-secondary-fixed">
+<span class="text-secondary-fixed-dim truncate max-w-[190px]">root: 9f83…4ea1·blake3</span>
+<span class="text-primary-container font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span> Tamper-proof
+      </span>
+</div>
+</div>
+<!-- Mobile Scope & Filter Row -->
+<div class="w-full flex items-center gap-2 overflow-x-auto pb-1 -mx-margin-mobile px-margin-mobile scrollbar-none" id="filter-scroll-container">
+<button class="shrink-0 flex items-center gap-1 bg-surface-card text-on-surface shadow-sm rounded-full px-3 py-1.5 text-label-sm font-label-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px] text-text-muted">tune</span>
+<span>Filters</span>
+<span class="w-4 h-4 rounded-full bg-surface-slate text-on-tertiary text-[10px] flex items-center justify-center font-bold">3</span>
+</button>
+<div class="shrink-0 flex items-center gap-1 bg-mint-badge-bg text-status-success rounded-full px-3 py-1.5 text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span>User: <strong>Jax</strong></span>
+<span class="material-symbols-outlined text-[14px] cursor-pointer opacity-70 hover:opacity-100">close</span>
+</div>
+<div class="shrink-0 flex items-center gap-1 bg-surface-container-high text-on-surface-variant rounded-full px-3 py-1.5 text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+<span>Req: <strong>demo-001</strong></span>
+<span class="material-symbols-outlined text-[14px] cursor-pointer opacity-70 hover:opacity-100">close</span>
+</div>
+<div class="shrink-0 flex items-center gap-1 bg-surface-container-high text-on-surface-variant rounded-full px-3 py-1.5 text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>Time: <strong>Today</strong></span>
+<span class="material-symbols-outlined text-[14px] cursor-pointer opacity-70 hover:opacity-100">close</span>
+</div>
+</div>
+<!-- Event Selector Segmented Timeline Stack -->
+<div class="flex flex-col gap-2" id="event-selector-stack">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-sm text-label-sm text-text-muted uppercase tracking-wider">Indexed Audit Nodes (3)</span>
+<span class="font-label-sm text-label-sm text-primary flex items-center gap-0.5 cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">sync</span> Auto-refresh
+      </span>
+</div>
+<!-- Event 1 (Selected) -->
+<div class="event-card cursor-pointer bg-surface-card rounded-xl p-3 shadow-md transition-all active:scale-[0.99] bg-gradient-to-r from-mint-tint/60 via-surface-card to-surface-card" data-event-id="883921">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-start gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-slate text-primary-container flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-status-success font-semibold">10:01</span>
+<span class="font-label-sm text-[11px] bg-mint-badge-bg text-status-success px-1.5 py-0.5 rounded-full uppercase">ANSWER</span>
+<span class="font-label-sm text-[10px] text-text-muted">#883921</span>
+</div>
+<span class="font-title-md text-[14px] text-text-primary font-semibold truncate mt-0.5">SG Batch Payments v2.3</span>
+<div class="flex items-center gap-2 mt-1 text-[11px] text-text-muted font-body-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">account_circle</span>Jax</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">code</span>demo-001</span>
+</div>
+</div>
+</div>
+<span class="font-label-sm text-[11px] text-status-success bg-mint-badge-bg px-2 py-0.5 rounded-full shrink-0">Active</span>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="event-card cursor-pointer bg-surface-card rounded-xl p-3 shadow-sm transition-all active:scale-[0.99] opacity-85 hover:opacity-100" data-event-id="883922">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-start gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-status-warning-bg text-status-warning flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">key</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-text-muted">10:04</span>
+<span class="font-label-sm text-[11px] bg-status-warning-bg text-status-warning px-1.5 py-0.5 rounded-full uppercase">PERMISSION</span>
+<span class="font-label-sm text-[10px] text-text-muted">#883922</span>
+</div>
+<span class="font-title-md text-[14px] text-text-primary font-semibold truncate mt-0.5">Local source binding updated</span>
+<div class="flex items-center gap-2 mt-1 text-[11px] text-text-muted font-body-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">admin_panel_settings</span>Admin Key</span>
+<span>•</span>
+<span>Root ring-0</span>
+</div>
+</div>
+</div>
+<span class="font-label-sm text-[11px] text-text-muted bg-surface-container-high px-2 py-0.5 rounded-full shrink-0">Applied</span>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="event-card cursor-pointer bg-surface-card rounded-xl p-3 shadow-sm transition-all active:scale-[0.99] opacity-85 hover:opacity-100" data-event-id="883923">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-start gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">query_stats</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm text-text-muted">10:05</span>
+<span class="font-label-sm text-[11px] bg-surface-container-high text-on-surface-variant px-1.5 py-0.5 rounded-full uppercase">ANSWER</span>
+<span class="font-label-sm text-[10px] text-text-muted">#883923</span>
+</div>
+<span class="font-title-md text-[14px] text-text-primary font-semibold truncate mt-0.5">Follow-up authorised query</span>
+<div class="flex items-center gap-2 mt-1 text-[11px] text-text-muted font-body-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">verified_user</span>SG-Gov Vault</span>
+<span>•</span>
+<span class="text-status-success font-medium">Cached</span>
+</div>
+</div>
+</div>
+<span class="font-label-sm text-[11px] text-status-success bg-mint-badge-bg px-2 py-0.5 rounded-full shrink-0">Success</span>
+</div>
+</div>
+</div>
+<!-- Detailed Mobile Record Card for Selected Event (#883921) -->
+<div class="bg-surface-card rounded-xl p-space-md shadow-md flex flex-col gap-space-sm relative">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-status-success"></div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-text-primary leading-tight">Record Inspection</span>
+<span class="font-numerical-data text-[11px] text-text-muted">Tx UID: #883921-SG</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-mint-badge-bg text-status-success px-2 py-1 rounded-full text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[14px]">shield_lock</span>
+<span>Scope 5</span>
+</div>
+</div>
+<!-- Request Info Bento Grid -->
+<div class="grid grid-cols-2 gap-2 bg-surface-container-low rounded-xl p-3">
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-text-muted uppercase tracking-wider">Actor / Scope</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="w-5 h-5 rounded-full bg-surface-slate text-on-tertiary flex items-center justify-center text-[10px] font-bold">J</div>
+<span class="font-label-md text-label-md text-text-primary truncate">Jax (L5 Sec)</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-text-muted uppercase tracking-wider">Timestamp</span>
+<span class="font-numerical-data text-label-md text-text-primary mt-0.5">10:01:24.081</span>
+</div>
+<div class="flex flex-col min-w-0 col-span-2 pt-1">
+<span class="font-label-sm text-[11px] text-text-muted uppercase tracking-wider">Request Identifier</span>
+<div class="flex items-center justify-between mt-0.5">
+<span class="font-numerical-data text-body-sm text-text-primary font-medium">req_demo_001_sg_prod</span>
+<button class="text-primary text-[11px] font-label-sm flex items-center gap-0.5 hover:underline" onclick="navigator.clipboard?.writeText('req_demo_001_sg_prod')" type="button">
+<span class="material-symbols-outlined text-[13px]">content_copy</span> Copy
+          </button>
+</div>
+</div>
+</div>
+<!-- Encrypted Payload Container -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[11px] text-text-muted uppercase tracking-wider">Payload Integrity</span>
+<span class="font-label-sm text-[11px] text-text-muted">AES-GCM-256</span>
+</div>
+<div class="bg-surface-slate text-on-tertiary rounded-xl p-3 shadow-inner relative overflow-hidden flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-primary-container font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">key_off</span>
+<span>Masked for unauthorized auditors</span>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed text-[16px] cursor-pointer hover:text-on-tertiary" title="Security token enforced">info</span>
+</div>
+<p class="font-numerical-data text-[12px] text-secondary-fixed tracking-wider select-none break-all leading-relaxed opacity-80">
+          •••• •••• •••• 9b3d 4e81 a490 22fc [SG-SWIFT-KEY-LOCKED] 7c10 88aa fe41 003b 99a1
+        </p>
+<div class="flex items-center justify-between pt-1">
+<span class="text-[10px] text-secondary-fixed-dim">Zero-knowledge proof verified</span>
+<button class="text-primary-container text-[11px] font-label-sm flex items-center gap-1 hover:underline" id="reveal-toggle-btn" type="button">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Request Key
+          </button>
+</div>
+</div>
+</div>
+<!-- Recorded Evidence & Current Visibility Items -->
+<div class="flex flex-col gap-2 mt-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[11px] text-text-muted uppercase tracking-wider">Recorded Evidence Items</span>
+<span class="font-label-sm text-[11px] text-text-muted">3 Attachments</span>
+</div>
+<!-- Item 1: Restricted evidence -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-md bg-error-container text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">policy</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-[13px] text-text-primary truncate">Restricted KYC Raw File</span>
+<span class="font-body-sm text-[11px] text-text-muted">Hash: e02a...c890</span>
+</div>
+</div>
+<span class="font-label-sm text-[11px] bg-status-danger-bg text-status-danger px-2 py-0.5 rounded-full shrink-0 font-medium">Redacted</span>
+</div>
+<!-- Item 2: Jira record -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-md bg-mint-badge-bg text-status-success flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">task_alt</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-[13px] text-text-primary truncate">Jira Ticket FIN-8840</span>
+<span class="font-body-sm text-[11px] text-text-muted">Signed by SecOps bot</span>
+</div>
+</div>
+<span class="font-label-sm text-[11px] bg-mint-badge-bg text-status-success px-2 py-0.5 rounded-full shrink-0 font-medium">Authorised</span>
+</div>
+<!-- Item 3: Recovery runbook -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-md bg-mint-badge-bg text-status-success flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-[13px] text-text-primary truncate">SG Recovery Runbook v4</span>
+<span class="font-body-sm text-[11px] text-text-muted">Audit check passed</span>
+</div>
+</div>
+<span class="font-label-sm text-[11px] bg-mint-badge-bg text-status-success px-2 py-0.5 rounded-full shrink-0 font-medium">Authorised</span>
+</div>
+</div>
+</div>
+<!-- Quick Interactive Banner: Audit Integrity Seal -->
+<div class="rounded-xl bg-gradient-to-r from-surface-slate to-surface-dark text-on-tertiary p-3 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">fingerprint</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-[12px] text-on-tertiary font-semibold">Ledger Certificate Active</span>
+<span class="font-body-sm text-[11px] text-secondary-fixed-dim">Merkle tree leaf 481 matched</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed text-[18px]">check_circle</span>
+</div>
+<!-- Primary Export Action -->
+<div class="w-full pt-1 pb-2">
+<button class="w-full h-12 bg-surface-dark hover:bg-surface-slate text-on-tertiary font-label-md text-label-md rounded-full flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-all" id="export-json-btn" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary-container">file_download</span>
+<span>Export redacted JSON</span>
+</button>
+<p class="text-center font-body-sm text-[11px] text-text-muted mt-2">
+      Cryptographically signed with ContextLedger ephemeral node cert
+    </p>
+</div>
+</div>
+<script>
+  // Simple micro-interactions for Audit Trail
+  const exportBtn = document.getElementById('export-json-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      const originalText = exportBtn.innerHTML;
+      exportBtn.innerHTML = `
+        <span class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+        <span>Signing & Packaging JSON...</span>
+      `;
+      exportBtn.disabled = true;
+      setTimeout(() => {
+        exportBtn.innerHTML = `
+          <span class="material-symbols-outlined text-[18px] text-primary-container">check</span>
+          <span>Redacted JSON Downloaded</span>
+        `;
+        setTimeout(() => {
+          exportBtn.innerHTML = originalText;
+          exportBtn.disabled = false;
+        }, 2200);
+      }, 1000);
+    });
+  }
+
+  // Event item selector switcher
+  const eventCards = document.querySelectorAll('.event-card');
+  eventCards.forEach(card => {
+    card.addEventListener('click', () => {
+      eventCards.forEach(c => {
+        c.classList.remove('bg-gradient-to-r', 'from-mint-tint/60', 'via-surface-card', 'to-surface-card', 'shadow-md');
+        c.classList.add('shadow-sm', 'opacity-85');
+      });
+      card.classList.add('bg-gradient-to-r', 'from-mint-tint/60', 'via-surface-card', 'to-surface-card', 'shadow-md');
+      card.classList.remove('opacity-85');
+    });
+  });
+
+  // Reveal toggle micro-toast
+  const revealBtn = document.getElementById('reveal-toggle-btn');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', () => {
+      alert('Access ticket requested for Auditor Jax. Escalation sent to SecOps for key retrieval.');
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(13,23,23,0.04)]" data-active-classes="text-primary font-bold"><div class="flex justify-around items-center h-16 px-space-xs"><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="workspace" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Workspace</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="evidence" href="#"><span class="material-symbols-outlined text-[22px]">folder_supervised</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Evidence</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="security" href="#"><span class="material-symbols-outlined text-[22px]">verified_user</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Security</span></a><a aria-current="page" class="flex-1 flex flex-col items-center justify-center h-12 transition-colors text-primary font-bold" data-path="audit" href="#"><span class="material-symbols-outlined text-[22px]">history_toggle_off</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Audit</span></a></div></nav></body></html>

@@ -1,0 +1,16 @@
+{
+  "frontend_branch": "feat/REQ-017-aspire-responsive-ui",
+  "frontend_base_commit": "5ebce03",
+  "frontend_files_sha256": {
+    "app.js": "b59705533b1bfa4e7f2200a5943acf5adae7bb26a31c1ccb462e6803c8915fdf",
+    "index.html": "79fc3fe71e91270b17e8a073a3b0bff6a9741f246ae389e33e2d369b5e0e7374",
+    "responsive.css": "950ac05c834afcf1a531ea0e2a58f2111409ea4cc6630617051afd3c69137c68"
+  },
+  "recorded_response": "runtime/chat/accepted-deepseek-v10/results.jsonl",
+  "case_id": "approval-0-en",
+  "answer_and_evidence_unchanged": true,
+  "new_model_calls": 0,
+  "api_replay": true,
+  "production_changes": false,
+  "javascript_errors": []
+}

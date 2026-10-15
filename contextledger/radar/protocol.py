@@ -5,7 +5,7 @@ import re
 import os
 from dataclasses import dataclass
 
-VERSION = "decision-radar-v4-2026-10-13"
+VERSION = "decision-radar-v5-2026-10-15"
 MAX_DOCS, MAX_EVENTS, MAX_RELATIONS, MAX_ROUNDS = 120, 200, 80, 2
 
 
@@ -59,4 +59,17 @@ TOOL_PROMPT += (
     "evidence. Every ordinary answer JSON must have a non-empty answer string."
 )
 
-SYNTHESIS_PROMPT = '\nFinal synthesis requirements: Separate an explicit link between records from a confirmed causal attribution. A "may be related" notification and an incident ID link establish an association, not proof that the incident caused this customer\'s observed symptom. Preserve that uncertainty from the first sentence through the conclusion; do not begin with a definitive claim and retract it later. Describe an author\'s root-cause or deployment report as that source\'s report, unless supplied operational observations independently establish the fact. Native Done/Solved/merged statuses establish only those record states. Do not invent completion of requested tests, monitoring windows or action items. When date and timestamp differ, disclose the mismatch or keep timing uncertain; do not silently call an observation timestamp the actual publication date. Give a concise direct conclusion, then a linked chronology, then specific unresolved facts, with local citations. Supported associations and repair steps should still be answered. Return ordinary answer JSON only; no hidden chain of thought or further tools.\n'
+SYNTHESIS_PROMPT = '\nFinal synthesis requirements: Separate an explicit link between records from a confirmed causal attribution. A "may be related" notification and an incident ID link establish an association, not proof that the incident caused this customer\'s observed symptom. Preserve that uncertainty from the first sentence through the conclusion; do not begin with a definitive claim and retract it later. Describe an author\'s root-cause or deployment report as that source\'s report, unless supplied operational observations independently establish the fact. Native Done/Solved/merged statuses establish only those record states. Do not invent completion of requested tests, monitoring windows or action items. When date and timestamp differ, disclose the mismatch or keep timing uncertain; do not silently call an observation timestamp the actual publication date. Give a concise direct conclusion, then a linked chronology, then specific unresolved facts, with local citations. Supported associations and repair steps should still be answered. Return the answer and structured Radar presentation as specified below; no hidden chain of thought or further tools.\n'
+
+SYNTHESIS_PROMPT += (
+    " The event_candidates include source_record_time, time_basis, time_group, source_time_fields "
+    "and time_warnings. Use these fields when describing timing: Missing/null event_time does NOT mean "
+    "the source record has no timestamp. A Slack notification timestamp is the source record "
+    "time, not independent proof of the GitHub review/merge operation time. Never attach a "
+    "timezone to local_timestamp or convert it to SGT. time_warnings=source_date_mismatch flags preserved field differences. Disclose date/timestamp mismatches "
+    "with both original values and citations; preserve numeric day without inventing its "
+    "calendar origin. timeline_order describes record ordering only, not verified operation "
+    "chronology or causation. Native snapshot state transition times remain unknown. "
+)
+
+SYNTHESIS_PROMPT += "Return the ordinary answer fields plus exactly one radar_presentation object with these fields: {\"status\":\"confirmed|pending_confirmation\",\"headline\":\"short business judgment\",\"explanation\":\"brief evidence-based reason\",\"citation_ids\":[1],\"needs_confirmation\":[{\"item\":\"specific unresolved condition or evidence gap\",\"citation_ids\":[2]}]}. Use only citation IDs in the supplied unified authorised evidence registry. Every material statement in the headline and explanation must be supported by those references. Use status=confirmed only when the authorised evidence directly establishes the requested business outcome, no material criterion remains unmet, and there is no unresolved material disagreement. Otherwise use status=pending_confirmation and list each concrete conflict, missing required evidence, or unresolved condition. Missing evidence may have an empty citation_ids list; describe it only as not found in this bounded selection. A pending result must contain at least one needs_confirmation item. A confirmed result must have no needs_confirmation items and must cite evidence. Never emit a confidence percentage, verified badge, cryptographic claim, or infer status from whether the answer JSON says answered. Return JSON only; no hidden reasoning or further tools.\r\n"

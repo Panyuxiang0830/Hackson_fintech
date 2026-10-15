@@ -61,3 +61,15 @@ Radar 分支以仍开放的 PR #7 分支 `codex/llm-workflows` 为 PR base，只
 
 
 2026-10-12 同步 PR #7 冲突修复后，245 项主 unittest、8 项 Part A pytest、需求同步检查、前端 JS 语法与 diff 检查通过；新增数量来自父分支的新鲜度评测测试。同步未改变 Radar 业务代码，不以回归通过代替业务语义验收或部署。
+
+## 2026-10-15 来源记录时间修复复测
+
+修复前：授权检索命中保留 `ts`，Radar 仅取 `metadata.event_time`，导致两个 Slack 记录显示未知、按引用顺序把合并通知排在修改请求之前。服务器独立预览数据库核对两条原始记录：`2026-02-17T09:37:07`（修改请求／回复）、`2026-02-18T09:38:43`（合并通知）；后者 `date=2026-02-17`。未改写数据。
+
+修复后：代码 `42e11735` 部署至 gpushare 的既有隔离预览（端口17866），沿用真实 MiniLM/Qdrant 索引、原配置 GLM 和复制的身份／审计库。Jax、OrgForge、Query planning Off，通过实际浏览器提问：
+
+> Summarise the review history of ENG-195 and PR-135. What was requested, approved and merged, and what remains unconfirmed?
+
+真实自动调用 Radar，返回两条来源记录，按 2 月17日、18日排序；两条都标 Timezone unspecified，后者同时显示 date 与 ts 差异。Full answer 将时间称为 source record time，说明合并只是 Slack 通知且不能独立核实 GitHub 原生状态，保留日期差异。不是模拟回答，也不声称每次模型都会同样选择工具或表达。
+
+新增回归覆盖顶层 ts、引用注册表不随时间排序改号、时区偏移按瞬时比较、无时区／日精度／未知分组、非法时间、原生状态不借用创建／观测时间、模型时间证据和120条时间元数据输入预算、隐藏记录不进入综合。最终本地全量：368 unittest；376 pytest、149 subtests；构建、JS语法、project_sync与diff检查通过。浏览器实测确认来源时间、排序、差异提示和Full answer。截图保存在 ignored `runtime/aspire-ui-validation/radar-source-time-fixed.png`，不提交运行时回答／审计日志。

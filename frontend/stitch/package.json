@@ -1,0 +1,7 @@
+{
+  "name": "contextledger-stitch-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {"build": "node build.cjs", "verify": "node verify.cjs"},
+  "devDependencies": {"linkedom": "0.18.12", "tailwindcss": "3.4.17", "playwright": "1.64.1"}
+}

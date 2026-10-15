@@ -67,17 +67,17 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertFalse(status["identity_verified"])
         self.assertEqual(self.get("/auth/login").status_code, 404)
         page = self.get("/").get_data(as_text=True)
-        self.assertIn('data-demo-mode="true"', page)
-        self.assertIn('id="demo-account-select"', page)
+        self.assertIn('data-page="home"', page)
+        self.assertIn('data-slot="identity-select"', page)
         self.select(self.admin)
         self.assertEqual(len(self.get("/api/admin/users").json), 7)
         self.assertEqual(self.get("/api/corpora").json, [])
 
     def test_auto_entry_is_explicit_demo_only_and_get_does_not_select_identity(self):
-        self.assertIn('data-demo-auto-entry="false"', self.get("/").get_data(as_text=True))
+        self.assertFalse(self.get("/api/session").json["demo_auto_entry"])
         enabled = create_app(self.db_path, self.directory, service=self.service,
                              config={**self.config, "DEMO_AUTO_ENTRY": True}).test_client()
-        self.assertIn('data-demo-auto-entry="true"', self.get("/", enabled).get_data(as_text=True))
+        self.assertTrue(self.get("/api/session", enabled).json["demo_auto_entry"])
         self.assertIsNone(self.get("/api/session", enabled).json["user"])
         response = enabled.post("/api/demo/select", base_url=self.url, json={"user_id": self.alice})
         self.assertEqual(response.status_code, 403)
@@ -85,7 +85,7 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(self.get("/api/session", enabled).json["user"]["id"], self.alice)
         ordinary = create_app(self.db_path, self.directory, service=self.service,
                              config={**self.config, "DEMO_MODE": False, "DEMO_AUTO_ENTRY": True}).test_client()
-        self.assertIn('data-demo-auto-entry="false"', self.get("/", ordinary).get_data(as_text=True))
+        self.assertFalse(self.get("/api/session", ordinary).json["demo_auto_entry"])
         self.assertIsNone(self.get("/api/session", ordinary).json["user"])
 
     def test_loopback_host_origin_and_csrf_gates(self):

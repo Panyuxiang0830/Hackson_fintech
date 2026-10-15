@@ -605,7 +605,8 @@
         "内部 LLM 工具不等于 REQ-020 外部 Agent/MCP/插件适配，本轮不扩展对外协议或恢复浏览器登录",
         "默认资料上限提高至120，资料/事件/关系/正文/时间预算分别报告；模型正文预算不随资料数量无限增加，关键状态和提问相关段落优先保留",
         "员工可使用项目名、组件名或无编号业务描述起查；跨语言查询时生成有界检索短语，内部编号只能来自实际授权候选，不硬编码四案例别名或将语义近似候选判为同一实体；未知专名不自动纠错",
-        "四案例补充全部不含内部编号的真实模型问题；区分名称匹配、证据召回、工具触发、故事节点覆盖与全量语料泛化，增加未知/同名/权限变更负例"
+        "四案例补充全部不含内部编号的真实模型问题；区分名称匹配、证据召回、工具触发、故事节点覆盖与全量语料泛化，增加未知/同名/权限变更负例",
+        "Radar 综合回答额外返回受限结构化展示摘要：只有证据足以支持所问业务结果、授权检索未截断且没有未解决重要分歧时才可标为 Confirmed；其余不可判定情况标为 Pending confirmation 并列出具体待核实条件；该状态与 answered/insufficient 回答状态分离"
       ],
       "code": [
         "contextledger/ingestion/connectors.py",
@@ -678,6 +679,75 @@
           "docs": [
             "docs/architecture/radar-reasoning-comparison.md"
           ]
+        },
+        {
+          "key": "radar_presentation_ui",
+          "title": "Radar 状态摘要与 Aspire 响应式界面",
+          "source": "user design handoff and explicit status rule confirmed 2026-10-14",
+          "authority": "team_decision",
+          "status": "implemented",
+          "description": "在 Radar 工具综合回答后返回有界业务状态摘要与待确认事项，按 Aspire Financial Modern 设计改造现有应用的 Radar、证据、权限和审计展示。Confirmed 必须有可用授权证据、回答充分、无工具检测到的未决分歧且结果未被截断；其余情况标记 Pending confirmation 并提供具体待核实项。复用当前引用与权限 API，不宣称逐句语义验证或用模型自报置信度百分比。",
+          "acceptance_criteria": [
+            "Radar 响应中仅在工具综合阶段附加 presentation 字段；包含 confirmed/pending_confirmation、简短判断、说明、授权引用编号和待确认列表；旧字段与非 Radar 请求保持兼容",
+            "服务端验证字段形状、文本边界与所有引用均属于本次授权证据；confirmed 必须 answered、至少有引用、无未决分歧且资料未截断；pending_confirmation 必须列出具体待核实事项",
+            "前端只在 confirmed 时显示 Confirmed，只在 pending_confirmation 时显示 Pending confirmation 和 Needs confirmation；普通回答或格式降级失败时不猜测业务状态",
+            "证据护照从现有引用打开原文并显示版本、时间、访问依据和内容指纹；不展示未经校准置信度、实时 p95 或外部签章能力",
+            "隔离 Demo 的管理员可用现有权限接口撤销员工来源绑定，员工切换身份后重查；普通员工页面不泄漏受限标题或受限资料是否存在",
+            "审计页面展示请求字段和当前可见证据；事件被整体脱敏时同时隐藏 Radar presentation",
+            "Desktop、tablet 与 320px 以上 mobile 使用同一组页面结构自适应，手机端保留顶部横向角色受控导航，资料 Passport 为全屏对话框",
+            "页面遵循用户提供的 Stitch 结构：搜索首页为全宽提问区加双栏引导／示例；Radar 为问题横幅加判断／时间线主栏与 Security Lens／证据侧栏；权限页为员工选择条与变更前／权限操作／变更后三栏；审计页为顶部筛选与下方事件列表／请求详情。权限状态来自现有用户／绑定 API，不用合成统计冒充证据数量"
+          ],
+          "code": [
+            "contextledger/answering/service.py",
+            "contextledger/radar/protocol.py",
+            "contextledger/application/service.py",
+            "contextledger/interfaces/templates/unified.html",
+            "contextledger/interfaces/static/unified.js",
+            "contextledger/interfaces/static/unified.css"
+          ],
+          "tests": [
+            "tests/answering/test_radar_synthesis.py",
+            "tests/radar/test_radar_integration.py",
+            "tests/application/test_llm_integration.py",
+            "tests/access/test_demo_identity.py"
+          ],
+          "docs": [
+            "docs/architecture/decision-radar-v1.md",
+            "docs/architecture/unified-integration.md",
+            "docs/product/prompt-and-login-walkthrough.md"
+          ]
+        },
+        {
+          "title": "Radar 来源记录时间映射与排序修复",
+          "authority": "team_decision",
+          "status": "validated",
+          "description": "2026-10-15 用户授权修复、PR并合并：读取授权检索结果 ts，区分来源记录时间与实际操作时间；保留无时区及 date/day/timestamp 差异，修正可比较记录的时间排序并把时间依据传递给同次综合模型。",
+          "acceptance_criteria": [
+            "ENG-195/PR-135 两条 Slack 记录按来源 ts 排序，原始无时区时间不转换为 SGT",
+            "来源 date 与 ts 日期差异可见且传入模型；不将 Slack 通知时间当作 GitHub 操作时间",
+            "原生快照状态不借用创建或观察时间冒充状态变更时间；未知及不同时间基准不强行排序"
+          ],
+          "code": [
+            "contextledger/radar/timing.py",
+            "contextledger/radar/tool.py",
+            "contextledger/radar/protocol.py",
+            "contextledger/application/service.py",
+            "contextledger/interfaces/static/stitch/app.js",
+            "contextledger/interfaces/static/unified.js",
+            "frontend/stitch/build.cjs"
+          ],
+          "tests": [
+            "tests/radar/test_radar.py",
+            "tests/radar/test_radar_timing.py",
+            "tests/radar/test_radar_integration.py",
+            "frontend/stitch/verify.cjs"
+          ],
+          "docs": [
+            "docs/architecture/decision-radar-v1.md",
+            "docs/architecture/decision-radar-validation.md"
+          ],
+          "key": "radar_source_record_time",
+          "source": "user requested deployed Radar timestamp fix, PR and merge on 2026-10-15"
         }
       ]
     },
@@ -770,10 +840,10 @@
     {
       "id": "REQ-013",
       "title": "交付材料与格式待确认清单",
-      "source": "handbook wording and submission form pending confirmation",
+      "source": "Handbook pp. 14-20 and 37, and user-provided Submission Requirements screenshot received 2026-10-15; remaining submission details pending confirmation",
       "authority": "pending_confirmation",
-      "status": "planned",
-      "description": "公开仓库、Demo 视频、部署链接、Pitch Deck、腾讯产品、正式报告及合规格式不得在核实前写成官方硬性要求。",
+      "status": "in_progress",
+      "description": "已核对用户提供的完整 Handbook 第37页及提交截图：标题、少于10词的简介、四部分项目说明、至少3份真实CodeBuddy/WorkBuddy开发聊天截图或录屏及16:9封面为Required；5–8分钟演示视频和项目链接为Optional。准备英文报告并同步到用户指定Overleaf；真实开发对话附件尚待补齐，未确认的公开仓库、Pitch Deck、截止时间及合规细节继续单独核实。",
       "acceptance_criteria": [
         "提交前逐项核对比赛邮件中的 Handbook 和登录后的提交表",
         "把已确认字段、格式和截止时间更新到官方来源文档",
@@ -785,6 +855,64 @@
         "docs/source/submission-open-questions.md",
         "docs/source/handbook-fintech-track.md",
         "docs/product/workload.md"
+      ],
+      "extensions": [
+        {
+          "key": "submission_report_20261015",
+          "title": "按Handbook与提交表准备英文报告",
+          "source": "User-provided Handbook pp.14-20 and37 and Submission Requirements screenshot, verified 2026-10-15",
+          "authority": "handbook_mandatory",
+          "status": "in_progress",
+          "description": "英文报告覆盖Handbook用户、痛点、五个场景、三个创新功能和实测指标；使用最新前端截图，保留真实开发聊天附件缺口。",
+          "acceptance_criteria": [
+            "开头明确唯一案例Internal Brain及FinTech/Aspire赛道；目标用户和痛点从Handbook第14–19页出发，标注30%为场景估计",
+            "提供项目标题及少于10个英文单词的简介；四部分覆盖目标场景/用户/价值、现实痛点、业务/技术/Prompt设计及量化或明确影响",
+            "五个赛题场景均有worked example，权限、来源新鲜度、审计和当前实现/验证边界清楚区分",
+            "附16:9封面和真实CodeBuddy/WorkBuddy开发对话的待补清单；不得把产品截图或整理的提示词冒充开发聊天证据",
+            "Overleaf写入并编译成功；报告不宣称所有附件或生产验收已完成；只推送工作分支，不合并main"
+          ],
+          "code": [],
+          "tests": [
+            "tests/operations/test_project_sync.py"
+          ],
+          "docs": [
+            "docs/submission/main.tex",
+            "docs/submission/README.md",
+            "docs/submission/assets/cover.png",
+            "docs/source/submission-requirements-20261015.md",
+            "docs/source/submission-requirements-20261015.png",
+            "docs/source/submission-open-questions.md",
+            "docs/source/handbook-fintech-track.md",
+            "docs/README.md",
+            "docs/submission/assets/workspace-latest-en.png",
+            "docs/submission/assets/workspace-latest-en.json"
+          ]
+        },
+        {
+          "key": "innovation_showcase_20261015",
+          "title": "三项创新展示与新版前端截图",
+          "source": "User requested emphasis on Decision Radar, Security Lens and Evidence Passport, plus latest frontend screenshots on 2026-10-15",
+          "authority": "team_decision",
+          "status": "validated",
+          "description": "突出Decision Radar、Security Lens、Evidence Passport；标注示意场景与验证边界。评测数字保持不变。",
+          "acceptance_criteria": [
+            "分别说明Decision Timeline、Conflict Radar和Answer Replay，不能把示意09:40/09:47/09:50事件写成实测结果",
+            "Security Lens展示系统内撤权与角色边界，普通员工不显示受限文档存在与否",
+            "Evidence Passport列来源/原文/版本/当前访问依据；引用合法与逐句事实支持分开，不编造可信度百分比",
+            "最新前端英文截图同步Overleaf并编译，既有实验数字保持不变"
+          ],
+          "code": [],
+          "tests": [
+            "tests/operations/test_project_sync.py"
+          ],
+          "docs": [
+            "docs/submission/main.tex",
+            "docs/submission/README.md",
+            "docs/README.md",
+            "docs/submission/assets/workspace-latest-en.png",
+            "docs/submission/assets/workspace-latest-en.json"
+          ]
+        }
       ]
     },
     {
@@ -962,7 +1090,8 @@
         "中文与英文实体相邻输入可检索；未知实体不强行用无关候选作答，拼写建议仅来自当前授权资料且不自动替换；模型降级明确标记未生成可靠答案，记录不含密钥或原始模型输出的失败原因",
         "本次集成在独立工作分支实施；2026-10-08 用户授权在修复审查问题、补齐依赖并完成真实索引重建与验证后，通过 Pull Request 合并到 main；条件未满足时不得合并",
         "重新分块后旧 Qdrant 快照明确失效；元数据主键、授权过滤字段与分块变化进入变更检查；新向量与新 collection 校验通过后才发布，旧 collection、身份权限与审计保留；副本链接指向实际原始数据位置，目录切换不能产生循环链接；不把整快照重建冒充高可用增量同步",
-        "2026-10-13 用户明确授权合并 feat/REQ-017-team-ui-integration 到 main；DashKit 页面保留当前后端及自动 Radar 的覆盖说明、分歧与证据原文入口，普通模式不自动选择身份"
+        "2026-10-13 用户明确授权合并 feat/REQ-017-team-ui-integration 到 main；DashKit 页面保留当前后端及自动 Radar 的覆盖说明、分歧与证据原文入口，普通模式不自动选择身份",
+        "2026-10-14 按 Aspire Financial Modern 设计改造统一问答、Radar、证据护照、权限和审计页面；桌面与移动端自适应，手机保留顶部横向导航；权限演示复用隔离 Demo 的真实权限服务，页面只显示接口提供的证据和审计状态"
       ],
       "extensions": [
         {
@@ -1000,6 +1129,62 @@
             "docs/architecture/tailnet-preview.md",
             "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md"
           ]
+        },
+        {
+          "key": "stitch_independent_frontend",
+          "title": "直接使用 Stitch HTML 的独立前端",
+          "authority": "team_decision",
+          "status": "implemented",
+          "source": "user explicitly requested a separate frontend preserving the existing version on 2026-10-14",
+          "description": "直接导入用户五张桌面设计页的 HTML，保留原始文件并编译本地样式、字体与素材；新版作为唯一默认首页复用现有身份、问答、证据、权限和审计 API。原 unified 前端仅备份，不提供切换入口。",
+          "acceptance_criteria": [
+            "原 unified.html、unified.css、unified.js 保留本轮开始时的版本并备份；新版使用独立文件并作为默认首页，不与原版集成",
+            "保留用户 HTML 的页面 DOM、Tailwind 配置和组件类，不用原前端样式重新绘制；原文件哈希纳入来源清单",
+            "本地编译样式并整理字体和图片，不加载原设计里的模拟交互脚本；业务数据只来自现有 API，未知／示意指标不作为已验证结果",
+            "搜索、Radar、证据护照、管理员撤权和审计使用当前会话、CSRF 与授权检查；身份／权限变化或页面隐藏时清理旧结果",
+            "桌面保留设计稿布局，移动端使用顶部横向导航并堆叠多栏内容",
+            "2026-10-15 显示审查修复：Passport 清除全部原稿示例节点与固定版本／事件数；技术详情可实际展开、折叠并提供正确的可访问状态",
+            "320–1600px 包括 768/820/900px 平板断点的页面与顶栏控件无横向溢出；紧凑视口直接聚焦证据面板，支持关闭、键盘返回及恢复引用焦点",
+            "手机首页压缩重复信息并将示例问题放在使用引导之前；长标题与时间线使用可展开的有界显示，证据总数保留且列表可滚动",
+            "审计标识缩略展示并支持复制完整值；时间明确标注时区且完整原值保留；手机交互目标约44px，加载状态在按钮内，错误提示置于对应页面内容中",
+            "2026-10-15 新版作为唯一默认首页，原版前端按文件备份且不显示切换入口；删除中文设计说明，演示身份显示英文；Query planning 可切换且不会被会话轮询覆盖；操作按钮自动调整字号保持单行；Audit 筛选自适应网格；使用用户提供的 vectorized.svg.svg 引导图",
+            "2026-10-15 问题卡使用独立配色与结论分层；移除 Isolated demo 视觉标签；搜索区数据集、规划和提交控件统一高度；下拉菜单圆角与主题绿色选中态；参考 emilkowalski/skills 的动效原则实现 Radar 与 Passport 的焦点转移和短时切换，支持 reduced motion 与快速返回，权限清理不等待动画",
+            "2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计",
+            "2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID",
+            "首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行",
+            "2026-10-15 Radar摘要与完整回答分别展示；完整回答可键盘展开，保留原文与引用，身份或权限变化后清空；没有摘要时不重复显示同一回答"
+          ],
+          "code": [
+            "frontend/stitch/build.cjs",
+            "frontend/stitch/package.json",
+            "frontend/stitch/package-lock.json",
+            "frontend/stitch/source/01_search_home.html",
+            "frontend/stitch/source/02_decision_radar.html",
+            "frontend/stitch/source/03_evidence_passport.html",
+            "frontend/stitch/source/04_security_lens.html",
+            "frontend/stitch/source/05_audit_trail.html",
+            "contextledger/interfaces/static/stitch/index.html",
+            "contextledger/interfaces/static/stitch/app.js",
+            "contextledger/interfaces/static/stitch/design.css",
+            "contextledger/interfaces/static/stitch/responsive.css",
+            "contextledger/interfaces/static/stitch/fonts.css",
+            "contextledger/interfaces/static/stitch/source-manifest.json",
+            "contextledger/interfaces/web.py",
+            "contextledger/interfaces/static/stitch/assets/vectorized.svg.svg",
+            "frontend/legacy-backup/2026-10-15",
+            ".gitattributes",
+            "contextledger/answering/service.py",
+            "contextledger/application/service.py"
+          ],
+          "tests": [
+            "tests/interfaces/test_stitch_frontend.py",
+            "frontend/stitch/verify.cjs",
+            "tests/interfaces/test_stitch_api.py",
+            "tests/answering/test_radar_synthesis.py"
+          ],
+          "docs": [
+            "docs/product/stitch-independent-frontend.md"
+          ]
         }
       ],
       "code": [
@@ -1023,7 +1208,9 @@
         "scripts/sync_preview_config.py",
         "requirements-integration.txt",
         ".github/workflows/ci.yml",
-        "contextledger/interfaces/static/onboarding.svg"
+        "contextledger/interfaces/static/onboarding.svg",
+        "contextledger/answering/service.py",
+        "contextledger/radar/protocol.py"
       ],
       "tests": [
         "tests/application/test_integration.py",
@@ -1034,9 +1221,12 @@
         "tests/operations/test_integration_dependencies.py",
         "tests/ingestion/part_a/test_supplemental.py",
         "tests/ingestion/part_a/conftest.py",
-        "tests/application/test_llm_integration.py"
+        "tests/application/test_llm_integration.py",
+        "tests/answering/test_radar_synthesis.py",
+        "tests/radar/test_radar_integration.py"
       ],
       "docs": [
+        "docs/evaluation/aspire-server-20261015.md",
         "docs/architecture/integration-plan.md",
         "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md",
         "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md",
@@ -1051,7 +1241,8 @@
         "docs/product/workload.md",
         "docs/architecture/decision-radar-v1.md",
         "docs/evaluation/chat.md",
-        "docs/product/frontend-team-integration.md"
+        "docs/product/frontend-team-integration.md",
+        "docs/product/prompt-and-login-walkthrough.md"
       ]
     },
     {
@@ -1084,7 +1275,8 @@
             "保存固定问题、期望事实与证据版本；失败和拒答保留在分母",
             "使用本地配置的真实模型及原生 Qdrant，分别报告回答、跨来源审批状态、无证据/越权、更新后答案和延迟",
             "浏览器检查回答/原文/权限切换与手机布局；明确当前为单轮问答，省略实体的追问不自动继承旧上下文",
-            "保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料"
+            "保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料",
+            "2026-10-15 定稿 Stitch 前端在 c7a7967 基线上完成3项真实API冒烟：2项真实模型问答/原文哈希通过，1项未知实体零生成拒答；保留一次格式修正记录。本次keyword/规划关闭，不计为真实向量召回或生产验收"
           ],
           "code": [
             "scripts/evaluate_chat.py",
@@ -1107,7 +1299,8 @@
             "docs/evaluation/chat.md",
             "docs/README.md",
             "BENCHMARK_QUICKSTART.md",
-            "docs/product/prompt-and-login-walkthrough.md"
+            "docs/product/prompt-and-login-walkthrough.md",
+            "docs/evaluation/stitch-live-20261015.md"
           ]
         },
         {
@@ -1141,6 +1334,28 @@
             "docs/evaluation/chat.md",
             "docs/README.md",
             "docs/decisions/ADR-0004-decision-radar.md"
+          ]
+        },
+        {
+          "key": "submission_metrics_20261015",
+          "title": "提交报告的五维实测与费用证据",
+          "source": "user requested freshness, permission, recall, latency and cost experiments on 2026-10-15",
+          "authority": "team_decision",
+          "status": "validated",
+          "description": "冻结952881f基线，记录新鲜度、权限、召回、单次延迟和账单费用。仅文档化已完成实验，不重跑模型、不改变在线配置。原始失败、重评分和实验范围分别保留。",
+          "acceptance_criteria": [
+            "报告用直观表格回答更新多久可查、是否越权、召回多少、单次回答多久、实际模型费用",
+            "固定受控来源与权限样例，保留失败、不可用、误放行/误拒绝和在途撤权记录",
+            "公开集按三种模式顺序执行，报告 Recall@1/5/10/20 和参考证据覆盖；离线排序不冒充已接入或未见测试效果",
+            "延迟与费用只使用单次请求，统计实际 provider token 和账单，包括重试和被丢弃的答案；被取消的并发与压测记录保留但不进报告",
+            "英文报告保持 Handbook 场景、用户、痛点和字体；原始与修正后的自动判分分别注明"
+          ],
+          "code": [],
+          "tests": [],
+          "docs": [
+            "docs/evaluation/submission-20261015.md",
+            "docs/submission/main.tex",
+            "docs/submission/evaluation/metrics.json"
           ]
         }
       ],

@@ -36,7 +36,10 @@ class RadarIntegrationTests(unittest.TestCase):
             return completion(plan(payload['original_query'],semantic_queries=[]),'planner')
         if 'decision_radar_result' not in payload:
             return completion({'action':'call_tool','tool_name':'decision_radar','arguments':{'anchor_ids':['ENG-123'],'focus':['history','conflicts']}},'writer')
-        return completion({'status':'answered','answer':'工单已有记录 [1]，生产恢复尚缺验证依据。','citation_ids':[1],'uncertainty':'medium'},'writer')
+        return completion({'status':'answered','answer':'工单已有记录 [1]，生产恢复尚缺验证依据。','citation_ids':[1],'uncertainty':'medium',
+            'radar_presentation':{'status':'pending_confirmation','headline':'生产恢复仍待确认。',
+                'explanation':'现有授权记录未提供正式验证结果 [1]。','citation_ids':[1],
+                'needs_confirmation':[{'item':'核实正式监控验证是否通过。','citation_ids':[1]}]}},'writer')
 
     def ask(self):
         with patch.dict(os.environ,{'LLM_API_KEY':'fixture-key'}), patch('urllib.request.urlopen',side_effect=self.transport):
@@ -54,6 +57,14 @@ class RadarIntegrationTests(unittest.TestCase):
         self.assertTrue(response.json['radar'])
         self.assertEqual([e['citation_id'] for e in response.json['evidence']],list(range(1,len(response.json['evidence'])+1)))
         self.assertEqual(self.audit.query(request_id=response.json['request_id'])[0]['radar_summary']['documents'],2)
+        self.assertEqual(response.json['radar_presentation']['status'],'pending_confirmation')
+        self.assertEqual(response.json['radar_presentation']['needs_confirmation'][0]['citation_ids'],[1])
+        stored=self.audit.query(request_id=response.json['request_id'])[0]
+        self.assertEqual(stored['radar_presentation']['headline'],'生产恢复仍待确认。')
+        self.login(self.admin)
+        audited=self.client.get('/api/audit?request_id='+response.json['request_id']).json['events'][0]
+        self.assertTrue(audited['redacted'])
+        self.assertIsNone(audited['radar_presentation'])
 
     def test_disjoint_native_ids_can_seed_relationship_request(self):
         self.configure()
@@ -61,6 +72,44 @@ class RadarIntegrationTests(unittest.TestCase):
         hits,_=self.index.search(scope,'ENG-123、PR-999 的关系',mode='keyword')
         self.assertTrue(hits)
         self.assertFalse(any('PRIVATE' in h['full_text'] for h in hits))
+
+    def test_source_times_and_mismatch_reach_synthesis_without_hidden_records(self):
+        self.configure()
+        with connect(self.db_path) as db:
+            for doc_id, ts in [('doc-0','2026-02-18T09:38:43'),('doc-1','2026-02-17T09:37:07')]:
+                db.execute('UPDATE documents SET ts=?,extra_json=? WHERE doc_id=?',
+                    (ts,json.dumps({'date':'2026-02-17'}),doc_id))
+            db.commit();prepare_snapshot(db,'fixture','radar-times','test-embedding',2)
+            db.execute("UPDATE cl_index_state SET state='ready'");db.commit()
+        response=self.ask()
+        self.assertEqual(response.status_code,200,response.json)
+        report=self.calls[-1]['decision_radar_result']
+        events=report['event_candidates']
+        self.assertEqual([e['source_record_time'] for e in events],
+                         ['2026-02-17T09:37:07','2026-02-18T09:38:43'])
+        self.assertIsNone(events[1].get('event_time'))
+        self.assertEqual(events[1]['time_basis'],'ts')
+        self.assertEqual(events[1]['source_time_fields']['date'],'2026-02-17')
+        self.assertEqual(events[1]['time_warnings'],['source_date_mismatch'])
+        self.assertEqual(report['timeline_order']['groups'],['local_timestamp'])
+        self.assertNotIn('PRIVATE',json.dumps(self.calls))
+
+    def test_invalid_radar_summary_falls_back_to_pending_not_confirmed(self):
+        self.configure()
+        def missing_summary(request, **kwargs):
+            body=json.loads(request.data); payload=json.loads(body['messages'][1]['content'])
+            self.calls.append(payload)
+            if 'original_query' in payload:
+                return completion(plan(payload['original_query'],semantic_queries=[]),'planner')
+            if 'decision_radar_result' not in payload:
+                return completion({'action':'call_tool','tool_name':'decision_radar','arguments':{'anchor_ids':['ENG-123'],'focus':['history','conflicts']}},'writer')
+            return completion({'status':'answered','answer':'Recovery is reported [1].','citation_ids':[1],'uncertainty':'low'},'writer')
+        self.transport=missing_summary
+        response=self.ask()
+        self.assertEqual(response.status_code,200,response.json)
+        self.assertEqual(response.json['provider'],'mock_fallback')
+        self.assertEqual(response.json['radar_presentation']['status'],'pending_confirmation')
+        self.assertTrue(response.json['radar_presentation']['needs_confirmation'])
 
     def test_revocation_during_final_model_discards_everything(self):
         self.configure();original=self.transport
