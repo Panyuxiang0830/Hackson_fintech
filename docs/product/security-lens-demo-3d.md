@@ -1,59 +1,48 @@
 # 3D：Security Lens——撤权前后对照（约60秒）
 
-2026-10-16；REQ-016/resource_access_controls、REQ-019。线上17866自然问法实际复测通过，用户人工录制待完成。
+2026-10-16；REQ-016/resource_access_controls、REQ-019。采用当前界面的三个来源开关，录制问题为自然问法。以下流程在17866隔离演示入口完成真实模型与后端权限复测；用户人工录制待完成。
 
-## 当前录制方式（2026-10-16更新）
+## 录制前准备（不计入60秒）
 
-按用户最新选择，本段可直接关闭Jax的Slack、Jira、Confluence三个来源来演示，不删除绑定。项目管理现已改成可搜索、添加/移除的成员卡片；界面不再出现Configured demo permissions或demo项目勾选框。自然问题仍用下文原句。
-
-当前Jax三个来源已全部关闭，测试后保留该状态。录制正常回答前先在管理员页面勾回三个来源；拿到正常回答后开录，再依次关掉三个来源并Run employee query again。实测仍可选择orgforge、零证据且零回答模型调用。
-
-下方旧项目勾选步骤仅作历史记录；新版如演示项目单独撤权，移除SwiftUI项目卡片即可，通过搜索添加可恢复。详见[项目权限](project-permissions.md)。
-
-## 录制前准备
-
-- 页面刷新至当前版本。身份 Jax，dataset `orgforge`，Query planning Off，默认混合检索。
-- Jax 当前为 Engineering_Backend、Confidential(2)，自身绑定启用、SwiftUI项目允许；本轮自然问法复测结束权限版本27。
-- 先提交下方问题，等真实回答完成再开始录制。等待模型的时间可以剪短。
-- 本段演示项目撤权。保留来源开关和 Allow dataset reading，不删除员工绑定。
+1. 刷新页面，顶部身份选 `ContextLedger Administrator`，进入 `Manage Permissions`，员工选 `Jax`，数据集选 `orgforge`。
+2. 保持 `Allow dataset reading` 勾选，勾选 `Confluence`、`Jira`、`Slack`，每次等待自动保存完成。密级为 `Confidential`，项目卡片保留 `SwiftUI Telemetry Dashboard`；若缺少该卡片，搜索 `SwiftUI` 后添加。
+3. 切为 `Jax`，数据集选 `orgforge`，`Query planning` 设为 `Off`。输入下方原句，等待正常回答和引用出现，再开始录制。模型等待时间不计入成片60秒。
 
 ```text
 What did the GitHub review say about the SwiftUI dashboard's UIKit timers?
 ```
 
-## 操作与时间
+含义：SwiftUI看板评审对UIKit计时器提出了什么问题？本轮实际回答指出后台队列更新UI及UIKit计时器问题，并引用工程Slack中的评审讨论；不把该记录描述为直接读取GitHub原文。
 
-| 成片时间 | 操作与应见结果 |
-| --- | --- |
-| 0–10秒 | 展示 Jax 的正常回答及编号引用。可承接3C，关闭Passport回到回答。 |
-| 10–20秒 | 顶部 Current identity 切为 ContextLedger Administrator；左侧 Manage Permissions 进入 Security Lens；Selected employee 选 Jax，Dataset 选 orgforge。 |
-| 20–35秒 | 找到 Configured demo permissions，取消 `Read project: SwiftUI telemetry dashboard (demo)`。自动保存，无额外提交。展示 Before 的 Allowed、After 的 Blocked 和权限版本变化。 |
-| 35–45秒 | 点击 `Run employee query again`。它会自动切回Jax并重问当前问题。 |
-| 45–60秒 | 展示无可用授权证据的安全提示和空来源列表，再指向仍可选择的 orgforge。停留几秒，保存为 `3D_security_lens.mov`。 |
+本轮复测结束已恢复测试前状态：Jax的三个来源全部关闭，原三个项目与Confidential密级保留，权限版本128。因此录制前需要完成上面的开通准备。
 
-前后卡片大数字表示允许的**来源种类**，项目撤权后可能仍为3；应展示项目 Allowed→Blocked 和权限版本，不能说数字是可读文档数量。
+## 60秒操作与旁白
 
-录制完如需重录：切管理员→Manage Permissions→Jax→重新勾选项目，密级保持Confidential，再切回Jax。不要删除或更换来源身份。
+| 成片时间 | 屏幕操作与应见结果 | 中文讲解要点 |
+| --- | --- | --- |
+| 0–10秒 | 展示Jax刚得到的正常回答和引用标记。 | 这名员工目前可以读取相关项目资料，系统据此生成带引用的回答。 |
+| 10–22秒 | 顶部身份切为 `ContextLedger Administrator` → `Manage Permissions` → 员工选 `Jax`，确认数据集 `orgforge`。 | 现在管理员撤销这名员工的资料读取权限。 |
+| 22–38秒 | 依次取消 `Confluence`、`Jira`、`Slack`，每次等待保存完成；保留 `Allow dataset reading`。展示来源Allowed→Blocked和权限版本变化。 | 修改会立即保存，后端在下一次请求使用最新权限。 |
+| 38–45秒 | 点击 `Run employee query again`。系统自动切回Jax，重新提交刚才同一句问题。 | 用相同员工、相同问题再次查询。 |
+| 45–60秒 | 展示证据不足提示、没有返回来源，并展示数据集下拉框中的 `orgforge` 仍可选择。 | 数据库仍然可以选择，但已撤权资料不会进入回答。 |
 
-## 英文旁白
+第三步三个开关全关后，前后卡片的大数字应从3变为0；这是允许读取的**来源种类**，不是文档数量。权限版本展示实际变化即可，不念固定数字。
 
-> The employee can initially read the project evidence and receive a cited answer. In Security Lens, the administrator removes access to this project. The permission version changes, and the next request uses the updated permissions. When we run the same question again as the employee, the protected evidence is no longer returned. The dataset remains selectable, while the service safely reports that no authorised evidence is available. Access is checked by the backend, including when an original document is opened.
+`Run employee query again` 会复用当前页面已提交的问题。录制期间保持同一标签页，不刷新页面；不要点首页预置问题替换当前问句。如果误刷新，重新输入上面的原句再查询即可。
 
-## 本轮线上复测证据
+## 英文旁白（约40–50秒，配合操作停顿）
 
-- 运行代码 `ca0886b2`，PID775226；四份显式资源都有 `manual_demo`、项目 `demo:swiftui-telemetry`、confidential、允许部门Engineering_Backend。
-- 配置中的三题在keyword/hybrid均有结果，所有命中及真实GLM回答引用均落在标注范围内，实际引用为两份公开工程Slack。第三题纯vector没有命中，默认hybrid有结果；不把纯向量召回描述为全题通过。
-- 三题回答请求ID：`65171d7e-dc4d-4560-b1c2-fa63c1b997fd`、`2d3ab1af-d35e-4d26-ae77-62603cb9f074`、`20eab11c-2c77-4b39-a870-69fe4c1c44ec`。
-- 分别撤项目、降密级后，三题×keyword/vector/hybrid均零证据；三题回答模型attempts均0。四份原文均404，OrgForge仍可选，无关TitanDB关键词结果不变。
-- Alex同为Confidential，因部门不匹配三题×三模式均零证据；Jax原本不能读的私聊仍404。
-- 测试后恢复Jax项目允许、密级2；审计链有效。原始详细结果留服务器 `previews/aspire-ui-20261015/demo-permission-annotations/recheck-20261016.json`，不提交运行时日志。
+> Jax can initially read the relevant evidence and receive a cited answer. Now, the administrator opens Security Lens and revokes his reading access to Confluence, Jira, and Slack. Each change is saved, and the permission version updates. We run the same question again as Jax. The backend applies the new permissions, so no authorised evidence is returned. The system safely reports insufficient evidence instead of generating an unsupported answer. Notice that OrgForge remains selectable: access to the dataset is preserved, while access to its protected content has been revoked.
 
-## 当前自然问法验证
+## 收尾与重录
 
-录制使用文首原句，不要求员工输入工单或PR编号。已用Jax / orgforge / planning Off真实提交，模型正常回答Chloe提出的后台UI更新和UIKit计时器问题，以及Miki的回复，引用为已标注的公开评审记录。
+录制可停在撤权结果。重录时切管理员，重新勾选三个来源，再切回Jax提交同一句问题并等待正常回答。员工绑定、项目卡片及密级按上述准备保持即可。保存成片可用 `3D_security_lens.mov`。
 
-2026-10-16线上修复为 `26d9a0d0` / answer-v13，PID783815。撤权前请求 `6fb631ff-5d1e-4ed4-84ea-dece265a63bf`，真实GLM一次成功、无格式失败；项目撤权后请求 `9bb62d58-0bbc-4e1f-92a8-6b9ffee41ebe`，零证据、零模型调用，数据库仍可选，原文404。恢复项目后同句真实模型再次正常回答；结束Jax密级2、项目允许、权限版本27，审计链有效。keyword/vector/hybrid撤权检查均为空。
+## 2026-10-16 最新复测证据
 
-旧版带编号三题的复测结果保留在上节作为历史证据。本次自然问法使用已有4份标注，不新增或改写正文/ACL。较宽泛的“telemetry dashboard”仍可能召回其他项目的授权资料，不能承诺所有宽泛问题在撤此项目后都完全无结果。
-
-原始结果：服务器 `previews/aspire-ui-20261015/demo-permission-annotations/natural-question-20261016.json`。完整修复与测试说明见 [自然问法验证](natural-question-validation-20261016.md)。
+- 服务代码58ffc6ef，当前17866入口；已应用九项目目录及75份项目标签，本次仅验证录制流程，没有更换服务或修改业务代码。
+- 正常回答请求 `e13e556a-04fe-4e7e-a145-07a2d47c9bed`：真实 `openai_compatible/glm-5.3-flash`，decision=answered，引用 `slack_engineering_2026-02-17T09:37:07`，项目为SwiftUI。
+- 三来源关闭后请求 `c16771ba-ffea-47a2-8020-e4e0473b0124`：decision=insufficient、provider=deterministic、零证据、回答模型attempts=0；keyword/vector/hybrid均无结果，先前引用原文404，orgforge仍可选。
+- 当前英文提示原文：`This request found insufficient usable evidence within your current access permissions. Please check your reading permissions or add more detail to the question.` 不将其描述为已证明数据不存在。
+- 测试结束恢复原成员、密级和三来源关闭状态；Jax版本128，审计链有效。运行结果：服务器 `previews/aspire-ui-20261015/project-permissions/security-lens-recording-20261016.json`，不提交运行时日志。
+- 项目单独撤权和四案例资料覆盖见[项目权限](project-permissions.md)；自然英文短回答修复与早期验证见[自然问法验证](natural-question-validation-20261016.md)。本稿替换旧版演示项目复选框步骤，历史记录可查Git历史。
