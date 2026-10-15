@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"mint-badge-bg":"#E6F9F2","primary-fixed-dim":"#00e297","text-primary":"#0D1717","on-primary-fixed":"#002112","on-tertiary-fixed-variant":"#005236","on-tertiary-container":"#006141","secondary-container":"#d7e2e1","on-primary":"#ffffff","inverse-surface":"#213145","error":"#ba1a1a","on-primary-container":"#00613e","surface-dark":"#0B1313","border-subtle":"#E5E9E8","tertiary-fixed-dim":"#4edea3","outline":"#6b7b70","on-tertiary":"#ffffff","on-primary-fixed-variant":"#005234","primary":"#006c46","mint-tint":"#EAF8EC","primary-fixed":"#4dffb2","background":"#f8f9ff","secondary-fixed-dim":"#bec9c8","on-surface-variant":"#3b4a41","surface-tint":"#006c46","status-warning-bg":"#FEF3C7","on-error":"#ffffff","on-background":"#0b1c30","border-divider":"#EAECF0","on-secondary":"#ffffff","surface-container-high":"#dce9ff","surface-container-low":"#eff4ff","status-danger-bg":"#FEE2E2","on-secondary-container":"#5a6564","inverse-primary":"#00e297","on-surface":"#0b1c30","surface-container-highest":"#d3e4fe","outline-variant":"#bacbbe","tertiary":"#006c49","tertiary-container":"#51e1a5","status-danger":"#EF4444","surface-slate":"#111827","surface-container":"#e5eeff","status-success":"#059669","border-subtle-hover":"#D1D7D5","secondary-fixed":"#dae5e4","secondary":"#566060","tertiary-fixed":"#6ffbbe","inverse-on-surface":"#eaf1ff","on-secondary-fixed-variant":"#3e4949","on-secondary-fixed":"#131d1d","on-error-container":"#93000a","text-muted":"#64748B","surface":"#f8f9ff","status-warning":"#F59E0B","surface-card":"#FFFFFF","surface-bright":"#f8f9ff","error-container":"#ffdad6","on-tertiary-fixed":"#002113","primary-container":"#00e599","mint-glow":"#C4F7D3","surface-dim":"#cbdbf5","text-secondary":"#475569","canvas-bg":"#F4F7F6","surface-container-lowest":"#ffffff","surface-variant":"#d3e4fe"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin":"2rem","margin-mobile":"1rem","gutter":"1.5rem","space-xs":"0.25rem","space-lg":"1.5rem","space-2xl":"4rem","space-xl":"2.5rem","space-sm":"0.5rem","space-md":"1rem","gutter-mobile":"1rem"},"fontFamily":{"body-sm":["Inter"],"display-mobile":["Plus Jakarta Sans"],"body-lg":["Inter"],"numerical-data":["Inter"],"body-md":["Inter"],"headline-md":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"display":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-sm":["Plus Jakarta Sans"],"label-sm":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"]},"fontSize":{"body-sm":["13px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"display-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"body-lg":["18px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"400"}],"numerical-data":["15px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-md":["15px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"headline-md":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"600"}],"title-md":["16px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.025em","fontWeight":"700"}],"display":["56px",{"lineHeight":"64px","letterSpacing":"-0.03em","fontWeight":"700"}],"label-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}],"headline-sm":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-lg-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}};</script></head><body class="bg-canvas-bg font-body-md text-text-primary antialiased selection:bg-mint-badge-bg selection:text-status-success"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-card z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="px-6 py-5 flex items-center gap-3"><img alt="ContextLedger Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlQ8yWeQ4Ja9R8lvpighw8lMocs9RSAgJHQLJ83HPz5VTJ8m3jNA0K0uFPVoUxkEFEfeauOkAApt8FBSU0uuzhnzM1HlA9zhXeX_fYyMBR-PAPI2r5TXJnO4YVdfRQL-OXa-05ebjzCiDVbOi8J3cLvkWkGksTzLAkfZahh6OaTmLZtEeW3Mf7HwP_sqGFr_88EM7RdEHYLhGd0snUimW0SCuTtNMZsmBUSmbhylD2yHn9B5LJNEd1"/><div class="flex flex-col"><span class="font-title-md text-title-md text-text-primary font-bold tracking-tight">ContextLedger</span><span class="font-label-sm text-label-sm text-text-muted">Decision &amp; Compliance Intel</span></div></div><div class="px-4 py-2"><div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-canvas-bg"><span class="material-symbols-outlined text-text-muted text-[16px]">corporate_fare</span><span class="font-label-sm text-label-sm text-text-secondary truncate flex-1">Acme Corp Enterprise</span><span class="w-2 h-2 rounded-full bg-status-success"></span></div></div><div class="px-6 pt-4 pb-2"><span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">Navigation</span></div><nav class="flex flex-col gap-1 px-3" data-active-classes="bg-text-primary text-on-primary font-semibold shadow-sm"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-text-secondary font-label-md text-label-md hover:bg-canvas-bg hover:text-text-primary transition-all" data-path="workspace" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Workspace</span></a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-text-secondary font-label-md text-label-md hover:bg-canvas-bg hover:text-text-primary transition-all" data-path="audit-trail" href="#"><span class="material-symbols-outlined text-[20px]">verified</span><span>Audit Trail</span></a><a aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all bg-text-primary text-on-primary font-semibold shadow-sm" data-path="manage-permissions" href="#"><span class="material-symbols-outlined text-[20px]">shield_person</span><span>Manage Permissions</span></a></nav></div><div class="p-4 flex flex-col gap-3"><div class="p-3.5 rounded-xl bg-canvas-bg flex flex-col gap-2"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-text-primary font-semibold">Ledger Node Status</span><span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Active</span></div><p class="font-label-sm text-label-sm text-text-muted">Evidence synchronizing with SHA-256 cryptochain.</p><a class="font-label-sm text-label-sm text-primary font-semibold hover:underline flex items-center gap-1 mt-1" data-path="wireframe-reference" href="#"><span class="material-symbols-outlined text-[14px]">help_outline</span>Documentation &amp; Specs</a></div><div class="flex items-center justify-between px-2 pt-1"><span class="font-label-sm text-label-sm text-text-muted">© ContextLedger v2.4</span><span class="font-label-sm text-label-sm text-text-muted">Encrypted</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-card/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-3"><div class="flex items-center gap-2"><span class="font-title-md text-title-md text-text-muted">ContextLedger</span><span class="text-text-muted font-body-sm text-body-sm">/</span><span class="font-title-md text-title-md text-text-primary font-semibold">Workspace</span></div><span class="px-2.5 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm flex items-center gap-1.5 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>Live Synced</span></div><div class="flex items-center gap-4"><div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-canvas-bg text-text-secondary"><span class="material-symbols-outlined text-[16px] text-text-muted">cloud_done</span><span class="font-label-sm text-label-sm">Offline snapshot stored (08:42 AM)</span></div><div class="h-6 w-px bg-border-divider hidden sm:block"></div><div class="flex items-center gap-2.5 bg-canvas-bg hover:bg-secondary-container transition-colors px-3 py-1.5 rounded-full cursor-pointer"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-label-sm text-label-sm font-semibold text-text-primary leading-tight">JX · Jax</span><span class="font-label-sm text-label-sm text-text-muted leading-tight">Compliance · Enterprise</span></div><span class="material-symbols-outlined text-text-muted text-[18px]">expand_more</span></div></div></header><main class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Enterprise Evidence Vault Active</span><span class="font-body-sm text-body-sm text-text-muted">All regulatory audits and decision records are immutably signed.</span></div></div><div class="flex items-center gap-2"><span class="px-3 py-1 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Audit Agent Healthy</span><button class="px-3.5 py-1.5 rounded-full bg-text-primary text-on-primary font-label-sm text-label-sm font-semibold hover:bg-surface-slate transition-all">Export Snapshot</button></div></div><div class="flex flex-col w-full">
+<div class="flex flex-col gap-6">
+<!-- Header Section with Security Metadata -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span class="font-label-sm text-label-sm tracking-wider uppercase text-text-muted">ADMINISTRATOR · ACCESS CONTROL</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary tracking-tight">Security Lens</h1>
+<p class="font-body-md text-text-muted">Demonstrate how a permission change affects the next request in real time.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="px-3 py-1.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+          Admin-only demonstration
+        </div>
+</div>
+</div>
+<!-- Section 1: Target Entity & Scenario Card -->
+<div class="p-4 sm:p-5 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3.5">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">1</div>
+<span class="font-title-md text-title-md text-text-primary">Selected employee</span>
+<!-- Select dropdown trigger -->
+<div class="relative inline-flex items-center">
+<button class="flex items-center gap-2 bg-canvas-bg hover:bg-secondary-container transition-colors px-3 py-1.5 rounded-lg text-text-primary font-label-md text-label-md font-semibold cursor-pointer" id="employeeSelectorBtn">
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>
+<span>Jax · Engineering</span>
+<span class="material-symbols-outlined text-text-muted text-[18px]">keyboard_arrow_down</span>
+</button>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm font-semibold">
+          Current permission version: <span class="text-status-success font-bold" id="currentVersionTag">5</span>
+</span>
+</div>
+<div class="flex items-center gap-2 text-text-muted font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">folder_supervised</span>
+<span>Scenario:</span>
+<span class="font-numerical-data text-numerical-data text-text-primary font-bold">SG Batch Payments v2.3</span>
+</div>
+</div>
+<!-- Three-Column Comparison Workflow -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Column 1: Before Change -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">01 / BEFORE CHANGE</span>
+<span class="material-symbols-outlined text-text-muted text-[18px]">history</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Authorised selection</h2>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-display text-[44px] leading-none text-text-primary font-bold">3</span>
+<span class="font-body-sm text-body-sm text-text-muted">authorised evidence records</span>
+</div>
+</div>
+<!-- Document Record List -->
+<div class="flex flex-col gap-2 pt-2">
+<div class="p-3 rounded-xl bg-canvas-bg flex items-center justify-between transition-transform group-hover:translate-x-0.5">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-muted text-[18px]">tag</span>
+<span class="font-body-sm text-body-sm font-medium text-text-primary">Slack · Recovery report</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+</div>
+<div class="p-3 rounded-xl bg-canvas-bg flex items-center justify-between transition-transform group-hover:translate-x-0.5">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-muted text-[18px]">bug_report</span>
+<span class="font-body-sm text-body-sm font-medium text-text-primary">Jira · Incident record</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+</div>
+<div class="p-3 rounded-xl bg-canvas-bg flex items-center justify-between transition-transform group-hover:translate-x-0.5">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-muted text-[18px]">menu_book</span>
+<span class="font-body-sm text-body-sm font-medium text-text-primary">Runbook · Recovery criteria</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+</div>
+</div>
+</div>
+<div class="pt-6">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">lock_clock</span>
+            Permission version 5
+          </span>
+</div>
+</div>
+<!-- Column 2: Update Permission -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">02 / UPDATE PERMISSION →</span>
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">2</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Change access</h2>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted">Remove Jax's Slack source binding in the isolated demo sandbox.</p>
+</div>
+<!-- Action Interactive Selector -->
+<div class="flex flex-col gap-3 pt-2">
+<div class="relative">
+<div class="w-full flex items-center justify-between px-3.5 py-2.5 bg-canvas-bg rounded-xl font-label-md text-label-md text-text-primary">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[18px]">source</span>
+<span class="font-medium">Source binding: Slack</span>
+</div>
+<span class="material-symbols-outlined text-text-muted text-[18px]">expand_more</span>
+</div>
+</div>
+<button class="w-full py-2.5 px-4 rounded-xl bg-text-primary text-on-primary hover:bg-surface-slate transition-all font-label-md text-label-md font-semibold flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] cursor-pointer" id="revokeButton">
+<span class="material-symbols-outlined text-[18px]">link_off</span>
+<span id="revokeButtonText">Remove binding</span>
+</button>
+</div>
+<!-- Illustrative Saved State Banner -->
+<div class="p-4 rounded-xl bg-mint-badge-bg transition-all flex flex-col gap-1.5" id="statusBanner">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-success text-[18px]">check_circle</span>
+<span class="font-label-sm text-label-sm font-bold text-status-success uppercase tracking-wider">Illustrative saved state</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-primary">
+              Permission version <span class="font-numerical-data font-bold text-status-success">5 → 6</span>
+</p>
+<p class="font-label-sm text-label-sm text-text-muted leading-tight">
+              New requests immediately enforce revised scopes. Zero cache leakage.
+            </p>
+</div>
+</div>
+<div class="pt-4 flex items-center gap-2 text-text-muted font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span>Zero-trust hot swap ready</span>
+</div>
+</div>
+<!-- Column 3: Query Again -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">03 / QUERY AGAIN →</span>
+<span class="material-symbols-outlined text-status-success text-[18px]">autorenew</span>
+</div>
+<div>
+<div class="flex items-center gap-2.5 mb-1.5">
+<div class="w-6 h-6 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">3</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Updated selection</h2>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-display text-[44px] leading-none text-text-primary font-bold" id="recordsCount">2</span>
+<span class="font-body-sm text-body-sm text-text-muted">authorised evidence records</span>
+</div>
+</div>
+<!-- Updated Document Record List -->
+<div class="flex flex-col gap-2 pt-2">
+<div class="p-3 rounded-xl bg-canvas-bg flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-muted text-[18px]">bug_report</span>
+<span class="font-body-sm text-body-sm font-medium text-text-primary">Jira · Incident record</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+</div>
+<div class="p-3 rounded-xl bg-canvas-bg flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-muted text-[18px]">menu_book</span>
+<span class="font-body-sm text-body-sm font-medium text-text-primary">Runbook · Recovery criteria</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+</div>
+<div class="p-2.5 rounded-xl bg-status-danger-bg text-status-danger flex items-center justify-between opacity-80" id="revokedItemPlaceholder">
+<div class="flex items-center gap-2 text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">block</span>
+<span class="line-through">Slack · Recovery report</span>
+</div>
+<span class="font-label-sm text-[11px] font-bold">Redacted</span>
+</div>
+</div>
+<button class="w-full py-2.5 px-4 rounded-xl bg-canvas-bg hover:bg-secondary-container transition-all font-label-md text-label-md text-text-primary font-semibold flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer" id="runQueryBtn">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+<span>Run employee query again</span>
+</button>
+</div>
+<div class="pt-4">
+<p class="font-body-sm text-body-sm text-text-muted leading-relaxed">
+            Counts are synthetic scenario values, not blocked-document statistics.
+          </p>
+</div>
+</div>
+</div>
+<!-- Section 4: Comprehensive Delivery Path Verification Panel -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col gap-5">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">4</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Check every delivery path</h2>
+</div>
+<span class="px-3 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1.5 self-start sm:self-auto">
+<span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+          All 3 Channels Sanitized
+        </span>
+</div>
+<!-- 3 Channels Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Channel 1: Search -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">search</span>
+              Search
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Live Clean</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Re-query using current access. Replace the old result selection entirely.
+          </p>
+</div>
+<!-- Channel 2: Original document -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">draft</span>
+              Original document
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Protected</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Re-check access on open. Show a neutral unavailable state without exposing title.
+          </p>
+</div>
+<!-- Channel 3: Generated answer -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
+              Generated answer
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Zero Hallucination</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Use only currently authorised evidence. Clear stale protected tokens immediately.
+          </p>
+</div>
+</div>
+<div class="pt-2 flex items-center gap-2 text-text-muted font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span>Employee views never reveal restricted titles, content, or document existence.</span>
+</div>
+</div>
+<!-- Bottom Flow Step Reference Footer -->
+<div class="pt-4 pb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="flex flex-col gap-1 p-3 rounded-lg bg-surface-card">
+<span class="font-label-sm text-label-sm font-bold text-text-primary">01 选择员工</span>
+<span class="font-body-sm text-body-sm text-text-muted">管理员演示入口；普通员工不显示管理操作。</span>
+</div>
+<div class="flex flex-col gap-1 p-3 rounded-lg bg-surface-card">
+<span class="font-label-sm text-label-sm font-bold text-text-primary">02 修改权限</span>
+<span class="font-body-sm text-body-sm text-text-muted">展示真实撤权操作及权限版本即时变化。</span>
+</div>
+<div class="flex flex-col gap-1 p-3 rounded-lg bg-surface-card">
+<span class="font-label-sm text-label-sm font-bold text-text-primary">03 再次请求</span>
+<span class="font-body-sm text-body-sm text-text-muted">显示新授权结果；不会暴露受限文档标题。</span>
+</div>
+<div class="flex flex-col gap-1 p-3 rounded-lg bg-surface-card">
+<span class="font-label-sm text-label-sm font-bold text-text-primary">04 交付检查</span>
+<span class="font-body-sm text-body-sm text-text-muted">搜索、原文、回答均重新检查当前权限。</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const revokeBtn = document.getElementById('revokeButton');
+    const revokeText = document.getElementById('revokeButtonText');
+    const statusBanner = document.getElementById('statusBanner');
+    const currentVersionTag = document.getElementById('currentVersionTag');
+    const runQueryBtn = document.getElementById('runQueryBtn');
+    const recordsCount = document.getElementById('recordsCount');
+    const revokedItemPlaceholder = document.getElementById('revokedItemPlaceholder');
+
+    let revoked = true;
+
+    if (revokeBtn) {
+      revokeBtn.addEventListener('click', function() {
+        revoked = !revoked;
+        if (revoked) {
+          revokeText.textContent = "Remove binding";
+          currentVersionTag.textContent = "6";
+          recordsCount.textContent = "2";
+          revokedItemPlaceholder.classList.remove('hidden');
+          statusBanner.classList.remove('bg-surface-container');
+          statusBanner.classList.add('bg-mint-badge-bg');
+        } else {
+          revokeText.textContent = "Restore Slack binding";
+          currentVersionTag.textContent = "5";
+          recordsCount.textContent = "3";
+          revokedItemPlaceholder.classList.add('hidden');
+          statusBanner.classList.remove('bg-mint-badge-bg');
+          statusBanner.classList.add('bg-surface-container');
+        }
+      });
+    }
+
+    if (runQueryBtn) {
+      runQueryBtn.addEventListener('click', function() {
+        runQueryBtn.classList.add('opacity-50');
+        setTimeout(() => {
+          runQueryBtn.classList.remove('opacity-50');
+        }, 300);
+      });
+    }
+  })();
+</script></div></main></div></body></html>

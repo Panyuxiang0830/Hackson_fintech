@@ -182,6 +182,7 @@ class UnifiedService:
         levels = ("public", "internal", "confidential", "restricted")
         user = User(actor.id, actor.name, actor.department or "source ACL snapshot", actor.role, levels[actor.clearance])
         radar = None
+        radar_presentation = None
         evidence = []
         def build_evidence(total_budget=12000):
             evidence.clear()
@@ -222,6 +223,39 @@ class UnifiedService:
                 answer, decision, provider = self.answer.answer(user, query, evidence, **kwargs)
             diagnostics = getattr(self.answer, "last_diagnostics", {}) if hits else {"attempts": 0, "prompt_version": PROMPT_VERSION}
             diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
+            if radar:
+                radar_presentation = getattr(self.answer, "last_radar_presentation", None)
+                if radar_presentation is None and (
+                    decision == "insufficient" or radar.get("disagreements")
+                    or any((radar.get("coverage") or {}).get(key) for key in
+                           ("truncated", "evidence_excerpts_truncated", "model_input_truncated"))
+                ):
+                    available_ids = set(range(1, len(evidence) + 1))
+                    needs = []
+                    refs = []
+                    for conflict in (radar.get("disagreements") or [])[:5]:
+                        conflict_refs = list(dict.fromkeys(
+                            claim.get("citation_id") for claim in conflict.get("claims", [])
+                            if type(claim.get("citation_id")) is int and claim["citation_id"] in available_ids
+                        ))
+                        refs.extend(conflict_refs)
+                        needs.append({
+                            "item": f"Review the differing {conflict.get('attribute', 'reported')} values for {conflict.get('entity_id', 'this item')} and confirm their time and scope.",
+                            "citation_ids": conflict_refs,
+                        })
+                    incomplete = any((radar.get("coverage") or {}).get(key) for key in
+                                     ("truncated", "evidence_excerpts_truncated", "model_input_truncated"))
+                    if incomplete:
+                        needs.append({"item": "Review the records omitted by the bounded evidence selection.", "citation_ids": []})
+                    if not needs:
+                        needs.append({"item": "Find authorised evidence that establishes the requested business outcome.", "citation_ids": []})
+                    radar_presentation = {
+                        "status": "pending_confirmation",
+                        "headline": "Conflicting reports need review." if radar.get("disagreements") else "The available evidence does not confirm this outcome.",
+                        "explanation": "The authorised records do not yet establish a confirmed business outcome.",
+                        "citation_ids": list(dict.fromkeys(refs)),
+                        "needs_confirmation": needs[:5],
+                    }
             guard()
             if decision == "insufficient" and provider.startswith("openai_compatible/"):
                 # A model can label an invented claim "insufficient". Release a
@@ -238,15 +272,19 @@ class UnifiedService:
         event = self.record(actor, "answer", question=query, hits=hits, answer=answer, decision=decision,
                             provider=provider, corpus=corpus, index_generation=generation, as_of=scope.day,
                             llm_diagnostics=diagnostics, query_plan=plan,
-                            radar_summary=radar["coverage"] if radar else None)
-        return {"answer": answer, "decision": decision, "provider": provider,
+                            radar_summary=radar["coverage"] if radar else None,
+                            **({"radar_presentation": radar_presentation} if radar_presentation else {}))
+        result = {"answer": answer, "decision": decision, "provider": provider,
                 "evidence": [self.public_hit(hit) | {"citation_id": i, "excerpt": hit["text"][:4000]}
                              for i, hit in enumerate(hits, 1)],
                 "request_id": event["request_id"], "permission_epoch": actor.epoch,
                 "query_suggestions": suggestions, "llm_diagnostics": diagnostics,
                 "index_generation": generation, "query_plan": plan,
                 "radar": radar,
-                "citation_validation": "citation IDs and authorised scope only; no model semantic review"}, hits
+                "citation_validation": "citation IDs and authorised scope only; no model semantic review"}
+        if radar_presentation:
+            result["radar_presentation"] = radar_presentation
+        return result, hits
 
     def open(self, user_id, corpus, doc_id, day=None):
         actor = self.current(user_id)
@@ -313,6 +351,7 @@ class UnifiedService:
             display["user_name"] = subject.name if subject else "unknown account"
             display.update(query=str(event.get("query") or "")[:4000], answer=str(event.get("answer") or "")[:8000],
                 evidence=event.get("evidence", []) if visible else [],
+                radar_presentation=event.get("radar_presentation") if visible else None,
                 retrieved_document_ids=event.get("retrieved_document_ids", []) if visible else [],
                 authorization_decisions=event.get("authorization_decisions", []) if visible else [],
                 returned_evidence_count=len(event.get("evidence", [])) if visible or not event.get("evidence") else None,

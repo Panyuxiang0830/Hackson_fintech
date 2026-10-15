@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>ContextLedger</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f8f9ff;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-highest":"#d3e4fe","primary-fixed":"#4dffb2","error":"#ba1a1a","secondary-fixed":"#dae5e4","surface-variant":"#d3e4fe","on-surface-variant":"#3b4a41","error-container":"#ffdad6","on-primary-fixed":"#002112","on-secondary-fixed":"#131d1d","tertiary-fixed":"#6ffbbe","primary-fixed-dim":"#00e297","text-secondary":"#475569","outline":"#6b7b70","surface":"#f8f9ff","on-tertiary-fixed-variant":"#005236","secondary-container":"#d7e2e1","tertiary-fixed-dim":"#4edea3","surface-container-high":"#dce9ff","text-muted":"#64748B","secondary-fixed-dim":"#bec9c8","mint-glow":"#C4F7D3","surface-dark":"#0B1313","canvas-bg":"#F4F7F6","tertiary-container":"#51e1a5","outline-variant":"#bacbbe","border-subtle-hover":"#D1D7D5","on-tertiary-fixed":"#002113","on-tertiary":"#ffffff","surface-card":"#FFFFFF","border-subtle":"#E5E9E8","on-secondary":"#ffffff","on-background":"#0b1c30","primary":"#006c46","surface-container-lowest":"#ffffff","on-tertiary-container":"#006141","surface-slate":"#111827","border-divider":"#EAECF0","status-danger":"#EF4444","status-danger-bg":"#FEE2E2","status-success":"#059669","on-primary":"#ffffff","on-secondary-container":"#5a6564","on-primary-container":"#00613e","secondary":"#566060","surface-dim":"#cbdbf5","inverse-primary":"#00e297","surface-container-low":"#eff4ff","inverse-on-surface":"#eaf1ff","surface-tint":"#006c46","inverse-surface":"#213145","on-surface":"#0b1c30","status-warning-bg":"#FEF3C7","tertiary":"#006c49","background":"#f8f9ff","surface-container":"#e5eeff","on-error-container":"#93000a","surface-bright":"#f8f9ff","text-primary":"#0D1717","status-warning":"#F59E0B","on-error":"#ffffff","mint-badge-bg":"#E6F9F2","primary-container":"#00e599","on-primary-fixed-variant":"#005234","mint-tint":"#EAF8EC","on-secondary-fixed-variant":"#3e4949"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"1rem","margin":"2rem","space-sm":"0.5rem","space-xl":"2.5rem","gutter-mobile":"1rem","space-xs":"0.25rem","gutter":"1.5rem","space-2xl":"4rem","space-md":"1rem","space-lg":"1.5rem"},"fontFamily":{"body-sm":["Inter"],"label-sm":["Inter"],"display-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"body-md":["Inter"],"body-lg":["Inter"],"headline-md":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"display":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"numerical-data":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-md":["Inter"]},"fontSize":{"body-sm":["13px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"display-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"headline-sm":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["15px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"body-lg":["18px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"400"}],"headline-md":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"600"}],"title-md":["16px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"display":["56px",{"lineHeight":"64px","letterSpacing":"-0.03em","fontWeight":"700"}],"headline-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.025em","fontWeight":"700"}],"numerical-data":["15px",{"lineHeight":"20px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface-slate flex items-center justify-center text-primary-container shadow-sm"><span class="material-symbols-outlined text-[20px]">account_tree</span></div><div class="flex flex-col"><div class="flex items-center gap-1.5"><span class="font-title-md text-title-md text-surface-slate leading-none">ContextLedger</span><span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-[10px] leading-tight font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>Live Synced</span></div><span class="font-label-sm text-[11px] text-text-muted leading-tight">Evidence</span></div></div><div class="flex items-center gap-1"><button aria-label="Notifications" class="w-11 h-11 rounded-full flex items-center justify-center text-secondary hover:text-on-surface relative transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-status-danger ring-2 ring-surface"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 px-margin-mobile bg-surface"><div class="flex flex-col w-full relative">
+<!-- Peeking Decision Radar Ambient Context (Dimmed mobile background) -->
+<div class="relative w-full rounded-2xl bg-surface-container-low p-space-md shadow-sm mb-space-md opacity-45 pointer-events-none select-none overflow-hidden">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-status-success animate-ping"></span>
+<span class="font-headline-sm text-headline-sm text-surface-slate">Decision Radar</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-card text-on-surface-variant font-label-sm text-label-sm shadow-sm">Claim #034</span>
+</div>
+<!-- Mini Radar Metric Mock -->
+<div class="grid grid-cols-2 gap-space-sm pt-space-xs">
+<div class="bg-surface-card rounded-xl p-space-sm shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted block">Corroboration Score</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm text-surface-slate font-bold">78%</span>
+<span class="font-label-sm text-label-sm text-status-warning font-semibold">Elevated</span>
+</div>
+</div>
+<div class="bg-surface-card rounded-xl p-space-sm shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted block">Evidence Vectors</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm text-surface-slate font-bold">4 Active</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Ready</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Evidence Passport Mobile Drawer Container -->
+<div class="w-full bg-surface-card rounded-2xl shadow-xl overflow-hidden relative">
+<!-- Top Drag Indicator & Header -->
+<div class="pt-space-sm px-space-md pb-space-xs flex flex-col items-center">
+<div class="w-10 h-1.5 rounded-full bg-secondary-fixed mb-space-sm"></div>
+<div class="w-full flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<div class="w-7 h-7 rounded-lg bg-surface-dark flex items-center justify-center text-primary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+<div class="flex items-center gap-1.5">
+<h2 class="font-title-md text-title-md text-surface-slate font-bold tracking-tight">Evidence Passport</h2>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-[11px] font-bold">[1]</span>
+</div>
+</div>
+<button aria-label="Close Passport" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-secondary hover:text-surface-slate transition-colors" id="closeDrawerBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<!-- Target Claim Banner -->
+<div class="mx-space-md mt-space-sm p-space-md rounded-xl bg-surface-container-low shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted uppercase tracking-wider block mb-1">Target Claim</span>
+<p class="font-title-md text-title-md text-surface-slate font-semibold leading-snug">
+        “Operations reported service recovery.”
+      </p>
+<!-- Context Badges -->
+<div class="flex flex-wrap items-center gap-1.5 mt-space-sm">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">source_notes</span>
+          Source-reported
+        </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">troubleshoot</span>
+          Needs corroboration
+        </span>
+</div>
+</div>
+<!-- Original Citation Excerpt Card (Slack Recovery Report) -->
+<div class="mx-space-md mt-space-md p-space-md rounded-xl bg-surface-container-lowest shadow-sm relative overflow-hidden">
+<!-- Accent vertical bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-container"></div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-1.5">
+<div class="w-5 h-5 rounded bg-surface-dark flex items-center justify-center text-primary-fixed">
+<span class="material-symbols-outlined text-[13px]">chat_bubble</span>
+</div>
+<span class="font-label-md text-label-md text-surface-slate font-bold">Slack Recovery report</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-[11px] font-semibold">
+<span class="material-symbols-outlined text-[12px]">verified_user</span>
+            Verified Digest
+          </span>
+<span class="font-label-sm text-label-sm text-text-muted">09:40</span>
+</div>
+</div>
+<!-- Quote Body -->
+<blockquote class="mt-space-xs text-on-surface font-body-md text-body-md italic leading-relaxed pl-space-xs">
+        “Payments are processing again. Please continue monitoring while we confirm the recovery criteria.”
+      </blockquote>
+<div class="flex items-center justify-between pt-space-sm mt-space-xs border-t-0">
+<span class="font-label-sm text-label-sm text-text-muted">Author: Incident Commander (SecOps)</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">lock</span> Read-only sync
+        </span>
+</div>
+</div>
+<!-- Source & Access Governance Metadata Card -->
+<div class="mx-space-md mt-space-md p-space-md rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex items-center gap-1.5 mb-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">gavel</span>
+<h3 class="font-title-md text-title-md text-surface-slate font-bold">Source & Access Governance</h3>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- Row 1: Document Version -->
+<div class="flex items-center justify-between py-1 bg-surface-card px-space-sm rounded-lg shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted">Document Version</span>
+<span class="font-label-sm text-label-sm font-semibold text-surface-slate px-2 py-0.5 rounded bg-surface-container">demo-v1</span>
+</div>
+<!-- Row 2: Source Time -->
+<div class="flex items-center justify-between py-1 bg-surface-card px-space-sm rounded-lg shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted">Source Time</span>
+<span class="font-label-sm text-label-sm text-surface-slate font-medium">09:40 · Demo scenario</span>
+</div>
+<!-- Row 3: Indexed At -->
+<div class="flex items-center justify-between py-1 bg-surface-card px-space-sm rounded-lg shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted">Indexed At</span>
+<span class="font-label-sm text-label-sm text-surface-slate font-medium">10:00 · Demo scenario</span>
+</div>
+<!-- Row 4: Access Basis -->
+<div class="flex flex-col py-1.5 bg-surface-card px-space-sm rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-muted">Access Basis</span>
+<span class="material-symbols-outlined text-status-success text-[16px]">check_circle</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface mt-0.5 font-medium leading-snug">
+            Source ACL snapshot + local restrictions
+          </span>
+</div>
+<!-- Row 5: Live Source Status -->
+<div class="flex items-center justify-between py-1 bg-surface-card px-space-sm rounded-lg shadow-sm">
+<span class="font-label-sm text-label-sm text-text-muted">Live Source Status</span>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-status-success"></span>
+<span class="font-label-sm text-label-sm text-surface-slate font-semibold">Unknown / Synced</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Technical Details Collapsible Accordion -->
+<div class="mx-space-md mt-space-md rounded-xl bg-surface-container shadow-sm overflow-hidden transition-all">
+<button class="w-full flex items-center justify-between p-space-md text-left focus:outline-none" id="toggleTechDetails" type="button">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">terminal</span>
+<span class="font-label-md text-label-md text-surface-slate font-bold">Cryptographic Fingerprint & Payload</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[20px] transition-transform duration-200" id="techDetailsArrow">expand_more</span>
+</button>
+<div class="hidden px-space-md pb-space-md flex flex-col gap-space-xs" id="techDetailsContent">
+<div class="p-space-sm rounded-lg bg-surface-dark text-on-primary font-body-sm text-body-sm font-mono overflow-x-auto">
+<div class="flex items-center justify-between text-text-muted text-[11px] mb-1">
+<span>HASH: SHA-256</span>
+<span class="text-primary-container">Immutable</span>
+</div>
+<p class="text-[12px] text-primary-fixed break-all leading-tight">
+            e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          </p>
+</div>
+<div class="grid grid-cols-2 gap-space-xs text-[12px]">
+<div class="p-space-sm rounded bg-surface-card">
+<span class="text-text-muted block text-[11px]">Request ID</span>
+<span class="font-mono text-surface-slate font-medium text-[11px] truncate block">req_01HPX7K98MN</span>
+</div>
+<div class="p-space-sm rounded bg-surface-card">
+<span class="text-text-muted block text-[11px]">Chunk Fingerprint</span>
+<span class="font-mono text-surface-slate font-medium text-[11px] truncate block">chk_secops_894b</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Dual Mobile Action Buttons -->
+<div class="p-space-md mt-space-sm flex flex-col gap-space-xs">
+<!-- Dark Primary Action Button -->
+<button class="w-full h-12 rounded-full bg-surface-dark text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98] transition-all hover:bg-surface-slate" type="button">
+<span>Open original</span>
+<span class="material-symbols-outlined text-[18px]">north_east</span>
+</button>
+<!-- Light Outline Secondary Button -->
+<button class="w-full h-12 rounded-full bg-surface-card text-surface-slate font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all hover:bg-surface-container" id="backToJudgmentBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span>Back to judgment</span>
+</button>
+</div>
+<!-- Micro Safe Space Bottom Padding -->
+<div class="h-2"></div>
+</div>
+</div>
+<script>
+  // Technical details toggle micro-interaction
+  const toggleBtn = document.getElementById('toggleTechDetails');
+  const content = document.getElementById('techDetailsContent');
+  const arrow = document.getElementById('techDetailsArrow');
+
+  if (toggleBtn && content && arrow) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+
+  // Toast / dismissal trigger demo
+  const closeBtn = document.getElementById('closeDrawerBtn');
+  const backBtn = document.getElementById('backToJudgmentBtn');
+  
+  const handleDismiss = () => {
+    const parentDrawer = closeBtn.closest('.w-full.bg-surface-card');
+    if (parentDrawer) {
+      parentDrawer.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+      parentDrawer.style.transform = 'translateY(24px)';
+      parentDrawer.style.opacity = '0.4';
+      setTimeout(() => {
+        parentDrawer.style.transform = 'translateY(0)';
+        parentDrawer.style.opacity = '1';
+      }, 700);
+    }
+  };
+
+  if (closeBtn) closeBtn.addEventListener('click', handleDismiss);
+  if (backBtn) backBtn.addEventListener('click', handleDismiss);
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(13,23,23,0.04)]" data-active-classes="text-primary font-bold"><div class="flex justify-around items-center h-16 px-space-xs"><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="workspace" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Workspace</span></a><a aria-current="page" class="flex-1 flex flex-col items-center justify-center h-12 transition-colors text-primary font-bold" data-path="evidence" href="#"><span class="material-symbols-outlined text-[22px]">folder_supervised</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Evidence</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="security" href="#"><span class="material-symbols-outlined text-[22px]">verified_user</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Security</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="audit" href="#"><span class="material-symbols-outlined text-[22px]">history_toggle_off</span><span class="font-label-sm text-[11px] tracking-tight mt-0.5">Audit</span></a></div></nav></body></html>

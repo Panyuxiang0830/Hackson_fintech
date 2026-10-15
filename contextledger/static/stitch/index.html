@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="en"><head><title>ContextLedger · Stitch workspace</title><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type">
+<script defer src="/static/stitch/app.js?v=4"></script><link href="/static/stitch/fonts.css?v=4" rel="stylesheet"><link href="/static/stitch/design.css?v=4" rel="stylesheet"><link href="/static/stitch/responsive.css?v=4" rel="stylesheet"></head><body class="bg-canvas-bg font-body-md text-text-primary antialiased selection:bg-mint-badge-bg selection:text-status-success"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-card z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="px-6 py-5 flex items-center gap-3"><img alt="ContextLedger Logo" class="h-8 w-auto object-contain" src="/static/stitch/assets/081afda20739cb65562a.png"><div class="flex flex-col"><span class="font-title-md text-title-md text-text-primary font-bold tracking-tight">ContextLedger</span><span class="font-label-sm text-label-sm text-text-muted">Decision &amp; Compliance Intel</span></div></div><div class="px-4 py-2"><div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-canvas-bg"><span class="material-symbols-outlined text-text-muted text-[16px]">corporate_fare</span><span class="font-label-sm text-label-sm text-text-secondary truncate flex-1">OrgForge demo workspace</span><span class="w-2 h-2 rounded-full bg-status-success"></span></div></div><div class="px-6 pt-4 pb-2"><span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">Navigation</span></div><nav class="flex flex-col gap-1 px-3" data-active-classes="bg-text-primary text-on-primary font-semibold shadow-sm"><a data-nav="home" aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all bg-text-primary text-on-primary font-semibold shadow-sm" data-path="workspace" href="#home"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Workspace</span></a><a hidden data-role-required="audit" data-nav="audit" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-text-secondary font-label-md text-label-md hover:bg-canvas-bg hover:text-text-primary transition-all" data-path="audit-trail" href="#audit"><span class="material-symbols-outlined text-[20px]">verified</span><span>Audit Trail</span></a><a hidden data-role-required="admin" data-nav="security" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-text-secondary font-label-md text-label-md hover:bg-canvas-bg hover:text-text-primary transition-all" data-path="manage-permissions" href="#security"><span class="material-symbols-outlined text-[20px]">shield_person</span><span>Manage Permissions</span></a></nav></div><div class="p-4 flex flex-col gap-3"><div class="p-3.5 rounded-xl bg-canvas-bg flex flex-col gap-2"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-text-primary font-semibold">Source ACL snapshot</span><span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Offline</span></div><p class="font-label-sm text-label-sm text-text-muted">Offline source ACL snapshot. Live permission sync is not enabled.</p></div><div class="flex items-center justify-between px-2 pt-1"><span class="font-label-sm text-label-sm text-text-muted">ContextLedger · Demo</span><span class="font-label-sm text-label-sm text-text-muted">Offline scope</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-card/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-3"><div class="flex items-center gap-2"><span class="font-title-md text-title-md text-text-muted">ContextLedger</span><span class="text-text-muted font-body-sm text-body-sm">/</span><span data-slot="breadcrumb" class="font-title-md text-title-md text-text-primary font-semibold">Workspace</span></div><span class="px-2.5 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm flex items-center gap-1.5 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>Offline snapshot</span></div><div class="flex items-center gap-4"><div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-canvas-bg text-text-secondary"><span class="material-symbols-outlined text-[16px] text-text-muted">cloud_done</span><span class="font-label-sm text-label-sm">Source ACL snapshot</span></div><div class="h-6 w-px bg-border-divider hidden sm:block"></div><div class="flex items-center gap-2.5 bg-canvas-bg hover:bg-secondary-container transition-colors px-3 py-1.5 rounded-full cursor-pointer"><select data-slot="identity-select" aria-label="Current identity" class="bg-transparent font-label-sm text-label-sm outline-none max-w-[220px]"></select></div></div></header><div data-original-id="stitch-views" id="stitch-shell-stitch-views"><main data-page="home" class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div data-layout="workspace-banner" class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Evidence workspace</span><span class="font-body-sm text-body-sm text-text-muted">Current identity and source ACL snapshot apply.</span><span class="stitch-mobile-scope">Offline ACL snapshot</span></div></div><div class="flex items-center gap-2"></div></div><div class="flex flex-col w-full">
+<div class="flex flex-col max-w-7xl mx-auto w-full gap-8 pb-16">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full bg-mint-badge-bg text-primary font-label-sm text-label-sm uppercase tracking-wider font-bold">
+          KNOWLEDGE WORKSPACE
+        </span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-text-muted">Enterprise Query Engine</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary tracking-tight font-extrabold">
+        Answers backed by evidence.
+      </h1>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-2xl">
+        Ask a business question, follow its history, and inspect the evidence.
+      </p>
+</div>
+<!-- Section 1: Main Query Box -->
+<div data-layout="composer-card" class="relative bg-surface-card rounded-2xl shadow-[0_1px_4px_rgba(13,23,23,0.04)] hover:shadow-[0_8px_24px_rgba(13,23,23,0.06)] transition-all duration-300 p-6 flex flex-col gap-5 overflow-hidden">
+<div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-mint-glow/30 blur-2xl pointer-events-none"></div>
+<div data-layout="composer-heading" class="flex items-center justify-between z-10">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-title-md text-label-sm font-bold shadow-sm">
+            1
+          </div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold tracking-tight">
+            Ask across your authorised sources
+          </h2>
+</div>
+<div class="flex items-center gap-2">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-status-success"></span>
+</span>
+<span class="font-label-sm text-label-sm text-text-muted font-medium">Multi-tenant ACL enforced</span>
+</div>
+</div>
+<div class="relative z-10">
+<div class="relative rounded-xl bg-canvas-bg/70 p-4 transition-all focus-within:bg-surface-card focus-within:shadow-[0_0_0_3px_rgba(0,229,153,0.2)]">
+<textarea data-original-id="queryInput" data-slot="question" class="w-full bg-transparent font-title-md text-title-md text-text-primary placeholder:text-text-muted/60 resize-none outline-none focus:outline-none" id="stitch-home-queryInput" placeholder="Ask a business question…" rows="3"></textarea><div hidden data-slot="notice-host"></div>
+<div data-layout="query-toolbar" class="flex items-center justify-between pt-3 mt-2">
+<div class="flex flex-wrap items-center gap-2.5">
+<span class="font-label-sm text-label-sm text-text-muted font-medium">Dataset</span>
+<div class="relative inline-block">
+<select data-slot="corpus" class="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-card hover:bg-secondary-container transition-colors shadow-sm text-text-primary font-label-md text-label-md"></select>
+</div>
+<label class="stitch-planning"><span>Query planning</span><input type="checkbox" role="switch" aria-label="Query planning" data-slot="planning-toggle"><span class="stitch-switch-track" aria-hidden="true"></span><span data-slot="planning-label">Off</span></label>
+<div class="hidden sm:flex items-center gap-1 text-text-muted font-label-sm text-label-sm px-2">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span>Current access applies</span>
+</div>
+</div>
+<button data-action="ask" class="group relative inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-text-primary text-on-primary font-title-md text-title-md font-semibold hover:bg-surface-slate active:scale-[0.99] transition-all shadow-md hover:shadow-lg stitch-fit-action" type="button">
+<span data-slot="ask-label" class="stitch-action-label">Ask ContextLedger</span>
+<span data-slot="ask-icon" class="material-symbols-outlined text-[18px] group-hover:translate-x-1 text-primary-container transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Middle 2-Column Split -->
+<div data-layout="home-support" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+<!-- Section 2: How to explore an answer -->
+<div class="lg:col-span-7 bg-surface-card rounded-2xl p-6 shadow-[0_1px_4px_rgba(13,23,23,0.04)] flex flex-col justify-between gap-6 hover:shadow-[0_8px_24px_rgba(13,23,23,0.05)] transition-all stitch-home-guide">
+<div class="flex flex-col gap-5">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-title-md text-label-sm font-bold shadow-sm">
+              2
+            </div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold tracking-tight">
+              How to explore an answer
+            </h2>
+</div>
+<div class="rounded-xl overflow-hidden bg-canvas-bg/60 p-3 mb-2 flex flex-col gap-2.5">
+  <div class="relative w-full rounded-lg overflow-hidden shadow-xs bg-surface-card flex items-center justify-center">
+    <img src="/static/stitch/assets/vectorized.svg.svg" alt="Source records connected to a business judgment, timeline and Evidence Passport" class="w-full h-auto object-contain max-h-56 stitch-guide-image">
+  </div>
+  <div class="flex items-center justify-between px-1">
+    <div class="flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+      <span class="font-label-sm text-label-sm font-semibold text-text-primary tracking-tight">From Raw Records to Verifiable Evidence Ledger</span>
+    </div>
+    <span class="font-label-sm text-label-sm text-text-muted">4 source feeds → Evidence Passport</span>
+  </div>
+</div><div class="flex flex-col gap-3"><div class="group flex items-start gap-4 p-4 rounded-xl bg-canvas-bg/60 hover:bg-canvas-bg transition-colors">
+  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-card shadow-sm text-primary font-numerical-data text-numerical-data">
+    01
+  </div>
+  <div class="flex flex-col flex-1">
+    <div class="flex items-center justify-between gap-2">
+      <span class="font-title-md text-title-md text-text-primary font-semibold group-hover:text-primary transition-colors">
+        Read the current judgment and its limitations.
+      </span>
+      <span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>Synthesized
+      </span>
+    </div>
+    <span class="font-body-sm text-body-sm text-text-muted mt-0.5">Read the cited judgment and its explicit evidence limits.</span>
+  </div>
+</div>
+<div class="group flex items-start gap-4 p-4 rounded-xl bg-canvas-bg/60 hover:bg-canvas-bg transition-colors">
+  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-card shadow-sm text-primary font-numerical-data text-numerical-data">
+    02
+  </div>
+  <div class="flex flex-col flex-1">
+    <div class="flex items-center justify-between gap-2">
+      <span class="font-title-md text-title-md text-text-primary font-semibold group-hover:text-primary transition-colors">
+        Follow the timeline of source reports and records.
+      </span>
+      <span class="px-2 py-0.5 rounded-full bg-canvas-bg text-text-muted font-label-sm text-label-sm">
+        Tickets &amp; Commits
+      </span>
+    </div>
+    <span class="font-body-sm text-body-sm text-text-muted mt-0.5">
+      Observe status transitions chronologically as incident tickets, logs, and telemetry arrive.
+    </span>
+  </div>
+</div>
+<div class="group flex items-start gap-4 p-4 rounded-xl bg-canvas-bg/60 hover:bg-canvas-bg transition-colors">
+  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-card shadow-sm text-primary font-numerical-data text-numerical-data">
+    03
+  </div>
+  <div class="flex flex-col flex-1">
+    <div class="flex items-center justify-between gap-2">
+      <span class="font-title-md text-title-md text-text-primary font-semibold group-hover:text-primary transition-colors">
+        Open a citation to inspect original evidence.
+      </span>
+      <span class="px-2 py-0.5 rounded-full bg-canvas-bg text-primary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+        <span class="material-symbols-outlined text-[13px]">verified</span>Evidence Passport
+      </span>
+    </div>
+    <span class="font-body-sm text-body-sm text-text-muted mt-0.5">Inspect the source text, recorded versions and current access metadata.</span>
+  </div>
+</div></div>
+</div>
+<div class="pt-4 flex items-center gap-2.5 text-text-muted">
+<span class="material-symbols-outlined text-[18px] text-primary">policy</span>
+<p class="font-body-sm text-body-sm text-text-secondary">
+            Your current permissions apply to retrieval, original documents, and generated answers.
+          </p>
+</div>
+</div>
+<!-- Section 3: Try a demo question -->
+<div class="lg:col-span-5 bg-surface-card rounded-2xl p-6 shadow-[0_1px_4px_rgba(13,23,23,0.04)] flex flex-col justify-between gap-6 hover:shadow-[0_8px_24px_rgba(13,23,23,0.05)] transition-all stitch-home-examples">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-title-md text-label-sm font-bold shadow-sm">
+                3
+              </div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary font-semibold tracking-tight">
+                Try a demo question
+              </h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-canvas-bg text-text-muted font-label-sm text-label-sm font-semibold">
+              Live Prompts
+            </span>
+</div>
+<div class="flex flex-col gap-3">
+<button data-action="example" data-question="Has SG Batch Payments v2.3 fully recovered?" class="w-full text-left p-4 rounded-xl bg-canvas-bg hover:bg-mint-tint transition-all duration-200 group flex items-center justify-between shadow-xs hover:shadow-sm" type="button">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary group-hover:scale-125 transition-transform"></div>
+<span class="font-title-md text-title-md text-text-primary group-hover:text-primary font-medium transition-colors">
+                  Has SG Batch Payments v2.3 fully recovered?
+                </span>
+</div>
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[20px]">
+                north_east
+              </span>
+</button>
+<button data-action="example" data-question="What changed in the incident response plan?" class="w-full text-left p-4 rounded-xl bg-canvas-bg hover:bg-mint-tint transition-all duration-200 group flex items-center justify-between shadow-xs hover:shadow-sm" type="button">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-status-warning group-hover:scale-125 transition-transform"></div>
+<span class="font-title-md text-title-md text-text-primary group-hover:text-primary font-medium transition-colors">
+                  What changed in the incident response plan?
+                </span>
+</div>
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[20px]">
+                north_east
+              </span>
+</button>
+<button data-action="example" data-question="Which recovery conditions still need confirmation?" class="w-full text-left p-4 rounded-xl bg-canvas-bg hover:bg-mint-tint transition-all duration-200 group flex items-center justify-between shadow-xs hover:shadow-sm" type="button">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-status-danger group-hover:scale-125 transition-transform"></div>
+<span class="font-title-md text-title-md text-text-primary group-hover:text-primary font-medium transition-colors">
+                  Which recovery conditions still need confirmation?
+                </span>
+</div>
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-[20px]">
+                north_east
+              </span>
+</button>
+</div>
+</div>
+<div class="pt-4 flex items-center justify-between text-text-muted">
+<span class="font-body-sm text-body-sm text-text-muted italic">
+            Examples use synthetic records, not live company data.
+          </span>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm font-semibold text-primary cursor-pointer hover:underline">
+<span>More demos</span>
+<span class="material-symbols-outlined text-[14px]">arrow_right_alt</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Section 4: Authorised sources only Banner -->
+<div class="w-full p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(13,23,23,0.03)] flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-title-md text-label-sm font-bold shadow-sm">
+          4
+        </div>
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-md text-label-md font-semibold text-text-primary">
+            Authorised sources only
+          </span>
+<span class="text-text-muted font-body-sm text-body-sm">·</span>
+<span class="font-body-sm text-body-sm text-text-secondary">
+            Offline source ACL snapshot + current system restrictions
+          </span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span>Current session scope</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">Source scope applies</span>
+</div>
+</div>
+<!-- 4-Column Wireframe / Guide Reference Footer Notes -->
+
+</div>
+
+</div></div></main><main hidden data-page="radar" class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div data-layout="workspace-banner" class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Evidence workspace</span><span class="font-body-sm text-body-sm text-text-muted">Current identity and source ACL snapshot apply.</span><span class="stitch-mobile-scope">Offline ACL snapshot</span></div></div><div class="flex items-center gap-2"></div></div><div class="flex flex-col w-full">
+<!-- Query Bar -->
+<div data-layout="question-card" class="w-full bg-surface-card rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-xl bg-canvas-bg flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[22px]">psychology_alt</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted block">Active Regulatory Query</span>
+<h2 data-slot="query" class="font-title-md text-title-md text-text-primary font-bold">Submit a question to begin.</h2>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button data-action="edit" class="px-4 py-2 rounded-full bg-canvas-bg text-text-primary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-all flex items-center gap-1.5 shadow-sm stitch-fit-action">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span class="stitch-action-label">Edit question</span>
+</button>
+<button disabled class="w-9 h-9 rounded-full bg-canvas-bg text-text-muted hover:text-text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+</div>
+<!-- Primary Two-Column Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- Left Column: Decision Radar & Timeline (8 cols ~ 68%) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Decision Radar Main Box -->
+<div data-layout="judgment-card" class="bg-surface-card rounded-2xl p-7 shadow-sm relative overflow-hidden">
+<!-- Subtle ambient highlight behind header -->
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-mint-tint rounded-full blur-3xl pointer-events-none opacity-60"></div>
+<!-- Header & Top Metadata -->
+<div class="flex flex-wrap items-center justify-between gap-3 pb-5">
+<div class="flex items-center gap-2.5">
+<span class="w-6 h-6 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">1</span>
+<span class="font-headline-sm text-headline-sm text-text-primary font-bold tracking-tight">Decision Radar</span>
+</div>
+<span data-slot="verdict" class="px-3.5 py-1 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold flex items-center gap-1.5">Waiting for query</span>
+</div>
+<div class="pt-2">
+<span class="font-label-sm text-label-sm tracking-widest uppercase text-text-muted font-bold block mb-1.5">Current judgment</span>
+<h1 data-slot="headline" class="font-headline-md text-headline-md text-text-primary font-bold tracking-tight leading-tight mb-3">Your judgment will appear here.</h1>
+<p data-slot="explanation" class="font-body-md text-body-md text-text-secondary leading-relaxed max-w-3xl">Only evidence returned by the current request is shown.</p>
+<div hidden data-slot="notice-host"></div></div>
+<!-- Section 2: Business Timeline -->
+<div class="mt-8 pt-6">
+<div data-layout="timeline-heading" class="flex items-center gap-2.5 mb-6">
+<span class="w-6 h-6 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">2</span>
+<span class="font-title-md text-title-md text-text-primary font-bold">Business timeline</span>
+<span data-slot="event-count" class="font-label-sm text-label-sm text-text-muted ml-auto">0 source events</span>
+<button data-slot="timeline-toggle" data-action="toggle-timeline" aria-expanded="false" hidden class="stitch-text-action" type="button">Show all</button></div>
+<!-- Timeline Items -->
+<div data-slot="timeline" class="relative pl-6 flex flex-col gap-6 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-0.5 before:bg-secondary-container"></div>
+</div>
+<!-- Section 3: Needs confirmation highlight card -->
+<div hidden data-slot="needs" class="mt-8 p-5 rounded-xl bg-canvas-bg flex flex-col gap-3">
+<div class="flex items-center gap-2.5">
+<span class="w-6 h-6 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">3</span>
+<span class="font-title-md text-title-md text-text-primary font-bold">Needs confirmation</span>
+</div>
+<p data-slot="needs-content" class="font-body-md text-body-md text-text-secondary"></p>
+<div class="flex flex-wrap items-center gap-3 pt-2">
+<button disabled data-slot="pending-label" class="px-3.5 py-1.5 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold hover:brightness-95 transition-all">Pending evidence checks</button>
+<button data-action="open-first" class="px-4 py-1.5 rounded-full bg-text-primary text-on-primary font-label-sm text-label-sm font-semibold hover:bg-surface-slate transition-all flex items-center gap-1.5 stitch-fit-action">
+<span class="stitch-action-label">Inspect evidence</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Disclaimer bottom note -->
+<div class="mt-5 flex items-center justify-between text-text-muted font-body-sm text-body-sm">
+<span data-slot="coverage">Current authorised selection.</span>
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Security Lens & Supporting Evidence (4 cols ~ 32%) -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Section 4: Security Lens -->
+<div class="bg-surface-card rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="w-6 h-6 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">4</span>
+<span class="font-headline-sm text-headline-sm text-text-primary font-bold">Security Lens</span>
+</div>
+<img src="/static/stitch/assets/c3e26027d62664142ca8.png" alt="Security Shield" class="w-5 h-5 object-contain">
+</div>
+<div class="pt-1">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+            Authorised evidence only
+          </span>
+</div>
+<!-- Metadata Properties -->
+<div class="flex flex-col gap-3 py-2">
+<div class="flex items-center justify-between py-1">
+<span class="font-body-sm text-body-sm text-text-muted">Employee</span>
+<span data-slot="employee" class="font-title-md text-title-md font-semibold text-text-primary">—</span>
+</div>
+<div class="flex items-center justify-between py-1">
+<span class="font-body-sm text-body-sm text-text-muted">Permission version</span>
+<span data-slot="epoch" class="font-title-md text-title-md font-semibold text-text-primary">—</span>
+</div>
+</div>
+<!-- Notice Box -->
+<div class="p-3.5 rounded-xl bg-canvas-bg flex flex-col gap-2">
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Source ACL snapshot and current system restrictions apply to this answer.
+          </p>
+<div class="flex items-center gap-1.5 text-text-muted font-label-sm text-label-sm pt-1">
+<img src="/static/stitch/assets/2160b006d7a6980f4d66.png" alt="Timeline Sync" class="w-4 h-4 object-contain inline-block shrink-0">
+<span>Live source permission sync is not enabled.</span>
+</div>
+</div>
+</div>
+<!-- Supporting Evidence Section -->
+<div class="bg-surface-card rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary font-bold">Supporting evidence</h3>
+<span data-slot="evidence-caption" class="font-body-sm text-body-sm text-text-muted block mt-0.5">Current request evidence</span>
+</div>
+<!-- Evidence List Buttons -->
+<div data-slot="evidence-list" class="flex flex-col gap-2.5"></div>
+<!-- Open Evidence Passport Action -->
+<button data-action="open-first" class="w-full mt-2 py-3 px-4 rounded-xl bg-text-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-surface-slate transition-all flex items-center justify-center gap-2 shadow-sm stitch-fit-action">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+<span class="stitch-action-label">Open Evidence Passport</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Explanatory Strip matching wireframe footnote specifications -->
+
+</div></div></main><main hidden data-page="passport" class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div data-layout="workspace-banner" class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Evidence workspace</span><span class="font-body-sm text-body-sm text-text-muted">Current identity and source ACL snapshot apply.</span><span class="stitch-mobile-scope">Offline ACL snapshot</span></div></div><div class="flex items-center gap-2"></div></div><div class="flex flex-col w-full">
+<div data-layout="question-card" class="mb-5 flex items-center justify-between bg-surface-card p-4 rounded-xl shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-mint-badge-bg flex items-center justify-center text-status-success">
+<span class="material-symbols-outlined text-[18px]">contact_support</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-text-muted uppercase tracking-wider block">Target Audit Query</span>
+<span data-slot="query" class="font-title-md text-title-md text-text-primary font-bold">Current query</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span data-slot="verdict" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold">Waiting for query</span>
+
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<div data-layout="passport-context" class="xl:col-span-7 flex flex-col gap-6">
+<div class="bg-surface-card rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="inline-block w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted font-semibold">Workspace · Context Remains Visible</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-success font-semibold px-2 py-0.5 rounded bg-mint-badge-bg">Source context</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-text-muted uppercase tracking-widest block mb-1">State Evaluation</span>
+<h2 class="font-headline-md text-headline-md text-text-primary font-bold leading-tight">Decision Radar</h2>
+<div class="mt-2.5 flex items-center gap-2 text-status-danger bg-status-danger-bg/50 px-3 py-2 rounded-xl">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+<span data-slot="headline" class="font-title-md text-title-md font-bold">Your current judgment.</span>
+</div>
+<p data-slot="explanation" class="font-body-md text-body-md text-text-secondary mt-2"></p>
+</div>
+<div>
+<div data-layout="timeline-heading" class="flex items-center justify-between mb-3">
+<span class="font-title-md text-title-md font-bold text-text-primary">Business timeline</span>
+<span data-slot="event-count" class="font-label-sm text-label-sm text-text-muted">0 source events</span>
+<button data-slot="timeline-toggle" data-action="toggle-timeline" aria-expanded="false" hidden class="stitch-text-action" type="button">Show all</button></div>
+<div data-slot="timeline" class="relative pl-6 flex flex-col gap-5"></div>
+</div>
+<div hidden data-slot="needs" class="p-4 rounded-xl bg-status-warning-bg/40 flex flex-col gap-1.5">
+<div class="flex items-center gap-2 text-status-warning font-semibold">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span class="font-title-md text-title-md text-text-primary">Needs confirmation</span>
+</div>
+<p data-slot="needs-content" class="font-body-md text-body-md text-text-secondary"></p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-label-sm text-label-sm text-text-muted flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">touch_app</span>Select another available citation to inspect a different source.</span>
+
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+
+
+</div>
+</div>
+<div class="xl:col-span-5 flex flex-col gap-4">
+<div data-original-id="evidence-drawer" aria-label="Evidence Passport" tabindex="-1" data-slot="passport-panel" class="bg-surface-card rounded-2xl p-6 shadow-sm flex flex-col gap-5 transition-all" id="stitch-passport-evidence-drawer">
+<div class="flex items-center justify-between pb-4 bg-surface-card">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">1</span>
+<h3 data-slot="passport-heading" class="font-title-md text-title-md text-text-primary font-bold">Evidence Passport</h3>
+</div>
+<button aria-label="Close Evidence Passport" data-action="back-radar" class="w-7 h-7 rounded-lg hover:bg-canvas-bg text-text-muted hover:text-text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div><div hidden data-slot="notice-host"></div>
+<div class="flex flex-col gap-2">
+<span data-slot="source-heading" class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted font-semibold">Selected source</span>
+<div data-original-id="claim-title" data-slot="claim" class="font-headline-sm text-headline-sm text-text-primary font-bold" id="stitch-passport-claim-title">Select an evidence source.</div>
+<div class="flex flex-wrap items-center gap-2 mt-1">
+<span class="px-2.5 py-0.5 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm font-semibold">Cited source</span>
+<span data-slot="doc-access-status" class="px-2.5 py-0.5 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-label-sm font-semibold">Checking access</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-mint-badge-bg text-primary font-label-sm text-label-sm font-semibold"><img src="/static/stitch/assets/0ad00523a164b0837672.png" alt="Official Document" class="w-3.5 h-3.5 object-contain inline-block"><img src="/static/stitch/assets/347e95a19a9cb7b662b5.png" alt="Evidence Citation" class="w-3.5 h-3.5 object-contain inline-block"><span>Referenced source</span></span></div>
+<p data-original-id="claim-subtext" data-slot="claim-scope" class="font-body-sm text-body-sm text-text-muted mt-2" id="stitch-passport-claim-subtext">This passport shows the selected source and its current access metadata.</p>
+</div>
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">2</span>
+<span data-original-id="citation-source" data-slot="citation-source" class="font-title-md text-title-md font-bold text-text-primary" id="stitch-passport-citation-source">Source</span>
+</div>
+<span class="font-label-sm text-label-sm text-status-success font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>Source digest</span>
+</div>
+<blockquote data-original-id="citation-quote" data-slot="quote" class="italic text-text-primary font-body-md text-body-md pl-3 bg-surface-card p-3 rounded-lg" id="stitch-passport-citation-quote"></blockquote><div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-card border-subtle border border-dashed text-text-secondary"><div class="flex items-center gap-2"><img src="/static/stitch/assets/347e95a19a9cb7b662b5.png" alt="Evidence Citation" class="w-4 h-4 object-contain"><span class="font-label-sm text-label-sm font-semibold text-text-primary">Source reference</span></div><span class="font-mono text-[11px] text-status-success bg-mint-badge-bg px-2 py-0.5 rounded font-semibold">Recorded digest</span></div>
+<span class="font-label-sm text-label-sm text-text-muted">Original source text</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">3</span>
+<span class="font-title-md text-title-md font-bold text-text-primary">Source and access</span>
+</div>
+<div class="bg-canvas-bg rounded-xl p-4 flex flex-col gap-2.5 font-label-sm text-label-sm">
+<div class="flex items-center justify-between">
+<span class="text-text-muted">Document version</span>
+<span data-original-id="val-version" data-slot="doc-version" class="font-semibold text-text-primary font-mono" id="stitch-passport-val-version">—</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-text-muted">Source time</span>
+<span data-original-id="val-time" data-slot="doc-time" class="font-semibold text-text-primary font-mono" id="stitch-passport-val-time">—</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-text-muted">Indexed at</span>
+<span data-slot="doc-indexed" class="font-semibold text-text-primary font-mono">—</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-text-muted">Access basis</span>
+<span data-slot="doc-access" class="font-semibold text-text-primary text-right max-w-[210px] truncate">—</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-text-muted">Live source status</span>
+<span data-slot="doc-source-status" class="inline-flex items-center gap-1 font-semibold text-text-secondary">Unknown</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<button data-action="original" class="h-11 px-4 rounded-xl bg-text-primary text-on-primary font-title-md text-title-md font-semibold hover:bg-surface-slate transition-all flex items-center justify-center gap-1.5 stitch-fit-action">
+<span class="stitch-action-label">Open original</span>
+<span class="material-symbols-outlined text-[16px]">north_east</span>
+</button>
+<button data-action="back-radar" class="h-11 px-4 rounded-xl bg-canvas-bg text-text-primary font-title-md text-title-md font-semibold hover:bg-secondary-container transition-all flex items-center justify-center stitch-fit-action"><span class="stitch-action-label">Back to judgment</span></button>
+</div>
+</div>
+<div class="rounded-xl bg-canvas-bg overflow-hidden">
+<button aria-controls="stitch-passport-technical-panel" aria-expanded="false" data-action="technical" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-mint-tint/30 transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded-full bg-text-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">4</span>
+<span class="font-title-md text-title-md font-bold text-text-primary flex items-center gap-1.5">
+<span data-original-id="detail-arrow" class="material-symbols-outlined text-[16px] transition-transform" id="stitch-passport-detail-arrow">play_arrow</span>
+                Technical details · hash, request ID, chunk
+              </span>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted uppercase">SHA-256</span>
+</button>
+<div data-original-id="technical-panel" hidden data-slot="technical" class="px-4 pb-4 pt-1 flex flex-col gap-2 font-mono text-[11px] text-text-secondary" id="stitch-passport-technical-panel"></div>
+</div>
+
+</div>
+</div>
+</div>
+
+</div>
+</div></main><main hidden data-page="security" class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div data-layout="workspace-banner" class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Evidence workspace</span><span class="font-body-sm text-body-sm text-text-muted">Current identity and source ACL snapshot apply.</span><span class="stitch-mobile-scope">Offline ACL snapshot</span></div></div><div class="flex items-center gap-2"></div></div><div class="flex flex-col w-full">
+<div class="flex flex-col gap-6">
+<!-- Header Section with Security Metadata -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span class="font-label-sm text-label-sm tracking-wider uppercase text-text-muted">ADMINISTRATOR · ACCESS CONTROL</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary tracking-tight">Security Lens</h1>
+<p class="font-body-md text-text-muted">Demonstrate how a permission change affects the next request in real time.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="px-3 py-1.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+          Admin-only demonstration
+        </div>
+</div>
+</div>
+<!-- Section 1: Target Entity & Scenario Card -->
+<div data-layout="employee-toolbar" class="p-4 sm:p-5 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3.5">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">1</div>
+<span class="font-title-md text-title-md text-text-primary">Selected employee</span>
+<!-- Select dropdown trigger -->
+<div data-layout="employee-control" class="relative inline-flex items-center">
+<select data-slot="employee-select" class="flex items-center gap-2 bg-canvas-bg hover:bg-secondary-container transition-colors px-3 py-1.5 rounded-lg text-text-primary font-label-md text-label-md font-semibold cursor-pointer"></select>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm font-semibold">
+          Current permission version: <span data-original-id="currentVersionTag" data-slot="epoch" class="text-status-success font-bold" id="stitch-security-currentVersionTag">—</span>
+</span>
+</div>
+<div class="flex items-center gap-2 text-text-muted font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">folder_supervised</span>
+<span>Scenario:</span>
+<span class="font-numerical-data text-numerical-data text-text-primary font-bold">SG Batch Payments v2.3</span>
+</div>
+</div>
+<!-- Three-Column Comparison Workflow -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Column 1: Before Change -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">01 / BEFORE CHANGE</span>
+<span class="material-symbols-outlined text-text-muted text-[18px]">history</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Authorised selection</h2>
+<div class="flex items-baseline gap-2 mt-2">
+<span data-slot="before-count" class="font-display text-[44px] leading-none text-text-primary font-bold">—</span>
+<span class="font-body-sm text-body-sm text-text-muted">active source bindings</span>
+</div>
+</div>
+<!-- Document Record List -->
+<div data-slot="before-bindings" class="flex flex-col gap-2 pt-2"></div>
+</div>
+<div class="pt-6">
+<span data-slot="before-epoch" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-canvas-bg text-text-secondary font-label-sm text-label-sm">Permission version —</span>
+</div>
+</div>
+<!-- Column 2: Update Permission -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">02 / UPDATE PERMISSION →</span>
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">2</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Change access</h2>
+</div>
+<p data-slot="binding-description" class="font-body-sm text-body-sm text-text-muted">Change the selected employee source binding.</p>
+</div>
+<!-- Action Interactive Selector -->
+<div class="flex flex-col gap-3 pt-2">
+<div class="relative">
+<select data-slot="binding-select" class="w-full flex items-center justify-between px-3.5 py-2.5 bg-canvas-bg rounded-xl font-label-md text-label-md text-text-primary"></select>
+</div>
+<button data-original-id="revokeButton" data-action="binding" class="w-full py-2.5 px-4 rounded-xl bg-text-primary text-on-primary hover:bg-surface-slate transition-all font-label-md text-label-md font-semibold flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] cursor-pointer stitch-fit-action" id="stitch-security-revokeButton">
+<span class="material-symbols-outlined text-[18px]">link_off</span>
+<span data-original-id="revokeButtonText" class="stitch-action-label" data-slot="binding-label" id="stitch-security-revokeButtonText">Choose a binding</span>
+</button><div hidden data-slot="notice-host"></div>
+</div>
+<!-- Illustrative Saved State Banner -->
+<div data-original-id="statusBanner" data-slot="permission-feedback" class="p-4 rounded-xl bg-mint-badge-bg transition-all flex flex-col gap-1.5" id="stitch-security-statusBanner">Select an employee to inspect current permissions.</div>
+</div>
+<div class="pt-4 flex items-center gap-2 text-text-muted font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span>Next request uses current permissions</span>
+</div>
+</div>
+<!-- Column 3: Query Again -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col justify-between relative overflow-hidden group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+<div class="flex flex-col gap-5">
+<div class="flex items-center justify-between pb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">03 / QUERY AGAIN →</span>
+<span class="material-symbols-outlined text-status-success text-[18px]">autorenew</span>
+</div>
+<div>
+<div class="flex items-center gap-2.5 mb-1.5">
+<div class="w-6 h-6 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">3</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Updated selection</h2>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span data-original-id="recordsCount" data-slot="after-count" class="font-display text-[44px] leading-none text-text-primary font-bold" id="stitch-security-recordsCount">—</span>
+<span class="font-body-sm text-body-sm text-text-muted">active source bindings</span>
+</div>
+</div>
+<!-- Updated Document Record List -->
+<div data-slot="after-bindings" class="flex flex-col gap-2 pt-2"></div>
+<button data-original-id="runQueryBtn" data-action="query-employee" class="w-full py-2.5 px-4 rounded-xl bg-canvas-bg hover:bg-secondary-container transition-all font-label-md text-label-md text-text-primary font-semibold flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer stitch-fit-action" id="stitch-security-runQueryBtn">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+<span class="stitch-action-label">Run employee query again</span>
+</button>
+</div>
+<div class="pt-4">
+<p class="font-body-sm text-body-sm text-text-muted leading-relaxed">Counts show actual source bindings, not document search results.</p>
+</div>
+</div>
+</div>
+<!-- Section 4: Comprehensive Delivery Path Verification Panel -->
+<div class="p-6 rounded-2xl bg-surface-card shadow-[0_1px_6px_rgba(0,0,0,0.04)] flex flex-col gap-5">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-text-primary text-on-primary font-numerical-data text-label-sm flex items-center justify-center font-bold">4</div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Check every delivery path</h2>
+</div>
+<span class="px-3 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1.5 self-start sm:self-auto">
+<span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>Current access applies</span>
+</div>
+<!-- 3 Channels Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Channel 1: Search -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div data-layout="delivery-heading" class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">search</span>
+              Search
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Re-query</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Re-query using current access. Replace the old result selection entirely.
+          </p>
+</div>
+<!-- Channel 2: Original document -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div data-layout="delivery-heading" class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">draft</span>
+              Original document
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Protected</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Re-check access on open. Show a neutral unavailable state without exposing title.
+          </p>
+</div>
+<!-- Channel 3: Generated answer -->
+<div class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 hover:bg-secondary-container transition-colors">
+<div data-layout="delivery-heading" class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
+              Generated answer
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">Authorised evidence</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+            Use only currently authorised evidence. Clear stale protected tokens immediately.
+          </p>
+</div>
+</div>
+<div class="pt-2 flex items-center gap-2 text-text-muted font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span>Employee views never reveal restricted titles, content, or document existence.</span>
+</div>
+</div>
+<!-- Bottom Flow Step Reference Footer -->
+
+</div>
+</div>
+</div></main><main hidden data-page="audit" class="relative pt-16 bg-canvas-bg min-h-screen"><div class="w-full px-8 py-6"><div data-layout="workspace-banner" class="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-card shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-mint-badge-bg flex items-center justify-center"><span class="material-symbols-outlined text-status-success text-[20px]">verified_user</span></div><div><span class="font-label-md text-label-md font-semibold text-text-primary block">Evidence workspace</span><span class="font-body-sm text-body-sm text-text-muted">Current identity and source ACL snapshot apply.</span><span class="stitch-mobile-scope">Offline ACL snapshot</span></div></div><div class="flex items-center gap-2"></div></div><div class="flex flex-col w-full gap-6">
+<!-- Top Banner / Meta Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm tracking-widest uppercase text-text-muted">Governance · Current Access Checks Apply</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Local audit</span>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-text-primary tracking-tight">Audit Trail</h1>
+<p class="font-body-md text-text-secondary">Trace a request, its recorded evidence versions, and authorisation context with cryptographic provenance.</p>
+</div>
+<!-- Right Header Badges -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-ping"></span>
+<span class="material-symbols-outlined text-[16px] text-status-success">verified</span>
+<span data-slot="integrity">Audit chain not checked</span>
+</div>
+<div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-card text-text-secondary font-label-sm text-label-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted">lock</span>
+<span>Source scope applies</span>
+</div>
+</div>
+</div><div hidden data-slot="notice-host"></div>
+<!-- Section 1: Search & Filter Console -->
+<div class="stitch-audit-console"><form data-slot="audit-form" class="stitch-audit-filter"><div class="stitch-audit-scope"><span>1</span>Scope</div><label class="stitch-audit-field"><span>Keywords</span><input data-original-id="keyword-search" data-slot="audit-query" class="w-full h-11 pl-10 pr-4 rounded-xl bg-canvas-bg font-body-sm text-body-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:bg-surface-card focus:shadow-[0_0_0_2px_#00E599] transition-all" id="stitch-audit-keyword-search" placeholder="Question or event keywords..." type="text" value=""></label><label class="stitch-audit-field"><span>User ID</span><input data-slot="audit-user" class="bg-transparent outline-none min-w-0 w-full" placeholder="User ID (optional)" type="text"></label><label class="stitch-audit-field"><span>Request ID</span><input data-slot="audit-request" class="bg-transparent outline-none min-w-0 w-full" placeholder="Request ID (optional)" type="text"></label><span class="stitch-audit-range">All recorded times</span><button type="submit" data-action="audit-search" class="h-11 px-5 rounded-xl bg-surface-slate text-on-primary font-label-md text-label-md font-semibold hover:bg-text-primary transition-all flex items-center justify-center gap-2 shadow-sm stitch-fit-action">
+<span class="material-symbols-outlined text-[18px]">manage_search</span>
+<span class="stitch-action-label">Search audit</span>
+</button></form></div>
+<!-- Main Body: Two Columns (Asymmetric 4 / 8) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT COLUMN: Section 2 Events List (col-span-4) -->
+<div class="lg:col-span-4 flex flex-col gap-4">
+<div class="bg-surface-card rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+<!-- Header -->
+<div class="flex items-center justify-between pb-3 bg-canvas-bg/50 -mx-5 -mt-5 p-5 rounded-t-2xl">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-surface-slate text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">2</span>
+<span class="font-title-md text-title-md font-bold text-text-primary">Events</span>
+</div>
+<span data-slot="events-count" class="px-2 py-0.5 rounded-full bg-canvas-bg text-text-muted font-label-sm text-label-sm">0 found</span>
+</div>
+<p class="font-label-sm text-label-sm text-text-muted -mt-1">Filtered selection · not whole-period statistics</p>
+<!-- Event Cards Stream -->
+<div data-original-id="events-container" data-slot="events" class="flex flex-col gap-3" id="stitch-audit-events-container"></div>
+<!-- Helper Prompt Box -->
+<div class="p-3.5 rounded-xl bg-canvas-bg text-text-muted font-body-sm text-body-sm flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-text-muted mt-0.5">info</span>
+<p>Select a request from this list to inspect its recorded context, verification proofs, and currently visible evidence.</p>
+</div>
+<!-- Mini Sparkline Visualization -->
+
+</div>
+</div>
+<!-- RIGHT COLUMN: Section 3 Request Details (col-span-8) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<div data-slot="audit-detail" class="bg-surface-card rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+<!-- Header & Action -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 bg-canvas-bg/30 -mx-6 -mt-6 p-6 rounded-t-2xl">
+<div class="flex items-center gap-2.5">
+<span class="w-6 h-6 rounded-full bg-surface-slate text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">3</span>
+<h2 class="font-headline-sm text-headline-sm font-bold text-text-primary">Request Details</h2>
+<span data-slot="audit-id" class="font-mono text-label-sm px-2.5 py-0.5 rounded-full bg-canvas-bg text-text-secondary font-semibold">Request details</span>
+</div>
+<div class="flex items-center gap-2">
+<button data-action="audit-export" class="px-4 py-2 rounded-xl bg-canvas-bg hover:bg-secondary-container/60 text-text-primary font-label-sm text-label-sm font-semibold transition-all flex items-center gap-2 stitch-fit-action">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span class="stitch-action-label">Export redacted JSON</span>
+</button>
+<button disabled class="w-9 h-9 rounded-xl bg-canvas-bg hover:bg-secondary-container/60 text-text-secondary flex items-center justify-center transition-all" title="Share Ledger Node Link">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+</div>
+<!-- Metadata Grid: Request / employee, Recorded at, Permission / policy -->
+<div data-slot="audit-facts" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+<!-- Recorded Answer Panel -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-semibold text-text-muted uppercase tracking-wide">Recorded answer</span>
+<span data-slot="audit-mask" class="font-label-sm text-label-sm text-error flex items-center gap-1 font-semibold">Current access applies</span>
+</div>
+<div data-slot="audit-answer" class="p-4 rounded-xl bg-canvas-bg flex flex-col gap-2 relative overflow-hidden">Choose an event to view its released details.</div>
+</div>
+<!-- Recorded Evidence Table -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md font-bold text-text-primary flex items-center gap-2">
+<span>Recorded evidence and current visibility</span>
+<span data-slot="audit-evidence-count" class="px-2 py-0.5 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold">0 items</span>
+</h3>
+<span class="font-label-sm text-label-sm text-text-muted">Recorded evidence versions</span>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto rounded-xl bg-canvas-bg/40">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-canvas-bg text-text-muted font-label-sm text-label-sm uppercase">
+<th class="py-3 px-4 font-semibold">Evidence Name</th>
+<th class="py-3 px-4 font-semibold">Recorded Version</th>
+<th class="py-3 px-4 font-semibold text-right">Current Visibility</th>
+</tr>
+</thead>
+<tbody data-slot="audit-evidence" class="divide-y divide-canvas-bg font-body-sm text-body-sm text-text-primary"></tbody>
+</table>
+</div>
+</div>
+<!-- Section 4: Warning Callout & Explanation Box -->
+<div class="p-4 rounded-xl bg-status-warning-bg/40 flex items-start gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-slate text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold flex-shrink-0 mt-0.5">4</span>
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md font-bold text-text-primary">Regulatory &amp; Visibility Boundary Policy</span>
+<p class="font-body-sm text-body-sm text-text-secondary leading-relaxed">
+              Historical query, answer, and evidence details are redacted when current access or the recorded version cannot be verified. Table illustrates per-record visibility; current API may redact the complete event evidence list when operating in zero-trust isolation.
+            </p>
+</div>
+</div>
+<!-- Bottom Footer Meta / Validations -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-canvas-bg">
+<div class="flex flex-wrap items-center gap-2">
+<span data-slot="integrity" class="px-2.5 py-1 rounded-full bg-mint-badge-bg text-status-success font-label-sm text-label-sm font-semibold flex items-center gap-1.5">Audit chain not checked</span>
+<span class="px-2.5 py-1 rounded-full bg-canvas-bg text-text-muted font-label-sm text-label-sm font-medium">
+              Integrity ≠ answer correctness
+            </span>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">
+            Full model configuration replay is not represented by current audit response.
+          </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Architectural Reference Footer Notes (01-04) -->
+
+</div>
+</div></main></div></div>
+
+<template data-template="timeline"><div class="relative flex flex-col gap-1.5">
+<span class="absolute -left-6 top-1.5 w-3 h-3 rounded-full bg-text-muted ring-4 ring-surface-card"></span>
+<div class="flex flex-wrap items-center gap-2">
+<div class="flex items-center gap-1.5"><span data-slot="event-meta" class="font-label-sm text-label-sm font-bold text-text-muted uppercase">09:40 · SLACK</span></div>
+
+</div>
+<p data-slot="event-title" class="font-title-md text-title-md text-text-primary font-semibold">
+                Operations reported service recovery.
+                <span class="text-primary hover:underline cursor-pointer font-bold">[1]</span>
+</p>
+<p data-slot="event-quote" class="font-body-sm text-body-sm text-text-secondary">
+                A reported recovery does not establish every confirmation criterion.
+              </p>
+</div></template><div hidden role="status" id="stitch-notice"></div></body></html>

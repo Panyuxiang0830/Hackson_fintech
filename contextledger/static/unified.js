@@ -10,6 +10,8 @@ let queryBusy = false;
 let identityBusy = false;
 let adminPeople = [];
 let adminPrincipals = [];
+let securityBaseline = null;
+let securitySelectedId = null;
 let auditData = null;
 let auditBusy = false;
 let plannerConfigured = false;
@@ -28,6 +30,7 @@ const els = {
 
   datasetSelect: document.getElementById('dataset-select'),
   queryInput: document.getElementById('query-input'),
+  queryValidation: document.getElementById('query-validation'),
   btnAsk: document.getElementById('btn-ask'),
   btnSearch: document.getElementById('btn-search'),
   modeRadios: document.getElementsByName('search_mode'),
@@ -43,6 +46,15 @@ const els = {
 
   stateResults: document.getElementById('results-state'),
   resultStatus: document.getElementById('result-status'),
+  workspaceGrid: document.getElementById('workspace-grid'),
+  homeSupport: document.getElementById('home-support'),
+  homePermissionVersion: document.getElementById('home-permission-version'),
+  homeCorpusCount: document.getElementById('home-corpus-count'),
+  querySummary: document.getElementById('query-summary-text'),
+  securityName: document.getElementById('security-summary-name'),
+  securityRole: document.getElementById('security-summary-role'),
+  securityEpoch: document.getElementById('security-summary-epoch'),
+  securityEvidence: document.getElementById('security-summary-evidence'),
   queryPlanStatus: document.getElementById('query-plan-status'),
   answerBox: document.getElementById('answer-box'),
   evidenceList: document.getElementById('evidence-list'),
@@ -50,8 +62,11 @@ const els = {
   docReader: document.getElementById('document-reader'),
   docTitle: document.getElementById('doc-title'),
   docContent: document.getElementById('doc-content'),
+  docMetadata: document.getElementById('doc-metadata'),
   docSourceLink: document.getElementById('doc-source-link'),
   btnCloseDoc: document.getElementById('btn-close-doc'),
+  btnCloseDocSecondary: document.getElementById('btn-close-doc-secondary'),
+  securityDemoGuide: document.getElementById('security-demo-guide'),
 
   adminForm: document.getElementById('admin-mutate-form'),
   adminFeedback: document.getElementById('admin-mutate-feedback'),
@@ -131,16 +146,23 @@ async function sessionStatus() {
     if (currentUser) {
       currentEpoch = currentUser.epoch;
       els.identity.textContent = `${isDemoMode ? 'Demo identity · ' : ''}${currentUser.name} (${currentUser.role})`;
+      if (els.securityName) els.securityName.textContent = currentUser.name;
+      if (els.securityRole) els.securityRole.textContent = currentUser.role;
+      if (els.securityEpoch) els.securityEpoch.textContent = currentUser.epoch ?? '—';
+      if (els.homePermissionVersion) els.homePermissionVersion.textContent = currentUser.epoch ?? '—';
       if (els.logoutBtn) els.logoutBtn.classList.remove('hidden');
       if (els.loginBtn) els.loginBtn.classList.add('hidden');
 
       applyRolePermissions(currentUser.role);
+      els.securityDemoGuide?.classList.toggle('hidden', !isDemoMode || currentUser.role !== 'admin');
     } else {
       currentEpoch = null;
+      if (els.homePermissionVersion) els.homePermissionVersion.textContent = '—';
       els.identity.textContent = isDemoMode ? 'Select a demo identity' : 'Not signed in';
       if (els.logoutBtn) els.logoutBtn.classList.add('hidden');
       if (els.loginBtn) els.loginBtn.classList.remove('hidden');
       applyRolePermissions('none');
+      els.securityDemoGuide?.classList.add('hidden');
     }
 
     // Protection: clear if identity or epoch changes
@@ -243,6 +265,7 @@ async function selectDemoAccount(userId) {
 async function loadCorpora() {
   const previous = els.datasetSelect.value;
   els.datasetSelect.innerHTML = '<option value="" disabled selected>Select a dataset...</option>';
+  if (els.homeCorpusCount) els.homeCorpusCount.textContent = currentUser ? '0' : '—';
   if (!currentUser) return;
 
   try {
@@ -253,6 +276,7 @@ async function loadCorpora() {
       opt.textContent = c.label;
       els.datasetSelect.appendChild(opt);
     });
+    if (els.homeCorpusCount) els.homeCorpusCount.textContent = String(corpora.length);
     if (corpora.some(c => c.id === previous)) els.datasetSelect.value = previous;
     else if (corpora.length === 1) els.datasetSelect.value = corpora[0].id;
     if (!corpora.length) {
@@ -268,10 +292,15 @@ async function loadCorpora() {
 // 4. Evidence & UI Reset
 function clearEvidence() {
   requestGeneration++;
+  if (els.docReader.open) els.docReader.close();
   const radar = document.getElementById("radar");
   radar.classList.add("hidden");
   radar.open = false;
-  for (const id of ["radarcoverage", "radarconflicts", "radartimeline"]) document.getElementById(id).replaceChildren();
+  const fullAnswer = document.querySelector('.full-answer');
+  if (fullAnswer) fullAnswer.open = false;
+  for (const id of ["radarcoverage", "radarconflicts", "radartimeline", "radar-summary-citations", "radar-needs-list"]) document.getElementById(id).replaceChildren();
+  document.getElementById("radar-presentation").classList.add("hidden");
+  document.getElementById("radar-needs").classList.add("hidden");
   els.answerBox.textContent = '';
   els.answerBox.classList.add('hidden');
   els.evidenceList.innerHTML = '';
@@ -280,6 +309,8 @@ function clearEvidence() {
   els.docSourceLink.classList.add('hidden');
   els.docSourceLink.removeAttribute('href');
   els.resultStatus.textContent = '';
+  els.queryValidation?.classList.add('hidden');
+  if (els.queryValidation) els.queryValidation.textContent = '';
   els.queryPlanStatus.textContent = '';
   els.queryPlanStatus.classList.add('hidden');
   if (els.adminUsersList) els.adminUsersList.textContent = '';
@@ -295,10 +326,14 @@ function clearEvidence() {
 }
 
 function showState(elementToShow) {
-  [els.stateOnboarding, els.stateLoading, els.stateError, els.stateResults, els.docReader].forEach(el => {
+  [els.stateOnboarding, els.stateLoading, els.stateError, els.stateResults].forEach(el => {
     el.classList.add('hidden');
   });
   if (elementToShow) elementToShow.classList.remove('hidden');
+  const resultScreen = [els.stateLoading, els.stateError, els.stateResults].includes(elementToShow);
+  els.workspaceGrid?.classList.toggle('has-results', resultScreen);
+  els.homeSupport?.classList.toggle('hidden', resultScreen);
+  if (resultScreen && els.querySummary) els.querySummary.textContent = els.queryInput.value.trim();
 }
 
 function showError(title, msg) {
@@ -323,9 +358,12 @@ async function query(ask) {
   const planning = plannerConfigured && els.planningToggle.checked;
 
   if (!corpus || !q) {
-    showError('Input Required', 'Please select a dataset and enter a question.');
+    els.queryValidation.textContent = !corpus ? 'Select a dataset to continue.' : 'Enter a question to continue.';
+    els.queryValidation.classList.remove('hidden');
+    (!corpus ? els.datasetSelect : els.queryInput).focus();
     return;
   }
+  els.queryValidation.classList.add('hidden');
 
   clearEvidence();
   const generation = requestGeneration;
@@ -363,7 +401,10 @@ async function query(ask) {
 // 6. Rendering Results
 function renderResults(data, asked) {
   showState(els.stateResults);
+  const fullAnswer = document.querySelector('.full-answer');
+  fullAnswer?.classList.toggle('hidden', !(asked && data.answer));
   const items = data.evidence || data.hits || [];
+  if (els.securityEvidence) els.securityEvidence.textContent = `${items.length} authorised record${items.length === 1 ? '' : 's'}`;
   els.resultStatus.textContent = asked
     ? data.provider === 'mock_fallback' ? 'No reliable answer was generated. Authorised evidence remains below.'
       : data.decision === 'clarification_required' ? 'Clarification needed before answering.'
@@ -381,33 +422,84 @@ function renderResults(data, asked) {
   }
 
   renderHits(items, data.request_id);
-  if (asked) renderRadar(data.radar, items);
+  if (asked) renderRadar(data.radar, items, data.radar_presentation);
 }
 
-function renderRadar(radar, evidence) {
+function citationButton(id, evidence) {
+  const item = evidence.find(hit => hit.citation_id === id);
+  if (!item) return null;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'citation-ref';
+  button.textContent = `[${id}]`;
+  button.setAttribute('aria-label', `Open evidence ${id}`);
+  button.addEventListener('click', () => openDoc(item.corpus || els.datasetSelect.value, item.doc_id, item.title));
+  return button;
+}
+
+function renderRadar(radar, evidence, presentation) {
   if (!radar) return;
   const el = id => document.getElementById(id);
   el("radar").classList.remove("hidden");
+  el("radar").open = true;
+  el("radarconflicts").replaceChildren();
+  el("radartimeline").replaceChildren();
   const coverage=radar.coverage;
-  const reasonLabels={document_limit:"资料数量上限",related_scan_limit:"关联扫描范围或时间限制",expansion_round_limit:"关联展开轮数",relation_limit:"关系数量上限",time_budget:"查询时间预算"};
-  const reasons=(coverage.truncation_reasons || []).map(r=>reasonLabels[r] || "检索范围限制");
-  if(coverage.evidence_excerpts_truncated || coverage.model_input_truncated) reasons.push("模型只读取正文节选");
-  el("radarcoverage").textContent=`本次读取 ${coverage.documents} 条授权记录${reasons.length ? `；范围说明：${reasons.join("、")}` : ""}；未证明业务链完整。时间未知的记录单独列出。`;
+  const reasonLabels={document_limit:"document limit",related_scan_limit:"related search limit",expansion_round_limit:"expansion round limit",relation_limit:"relationship limit",time_budget:"time budget"};
+  const reasons=(coverage.truncation_reasons || []).map(r=>reasonLabels[r] || "search scope limit");
+  if(coverage.evidence_excerpts_truncated || coverage.model_input_truncated) reasons.push("evidence excerpt limit");
+  el("radarcoverage").textContent=`${coverage.documents} authorised records in this selection${reasons.length ? ` · Limited by ${reasons.join(", ")}` : ""}. Event times marked unknown remain unknown.`;
+
+  const presentationBox = el("radar-presentation");
+  presentationBox.classList.toggle("hidden", !presentation);
+  el("radar-needs").classList.toggle("hidden", !presentation || presentation.status !== "pending_confirmation");
+  if (presentation) {
+    el("radar-status").textContent = presentation.status === "confirmed" ? "Confirmed" : "Pending confirmation";
+    el("radar-status").className = `status-pill ${presentation.status === "confirmed" ? "status-confirmed" : "status-pending"}`;
+    el("radar-headline").textContent = presentation.headline;
+    el("radar-explanation").textContent = presentation.explanation;
+    for (const id of presentation.citation_ids) {
+      const button = citationButton(id, evidence);
+      if (button) el("radar-summary-citations").append(button);
+    }
+    for (const item of presentation.needs_confirmation) {
+      const li = document.createElement("li");
+      const text = document.createElement("span");
+      text.textContent = item.item;
+      li.append(text);
+      for (const id of item.citation_ids) {
+        const button = citationButton(id, evidence);
+        if (button) li.append(button);
+      }
+      el("radar-needs-list").append(li);
+    }
+  }
   for (const conflict of radar.disagreements) {
-    const p=document.createElement("p");
-    p.textContent=`待核对：${conflict.entity_id} 的 ${conflict.attribute} 出现不同报告值（${conflict.claims.map(c=>`${c.value} [${c.citation_id}]`).join(" / ")}），需要核对时间和适用范围。`;
-    el("radarconflicts").append(p);
+    const card=document.createElement("div"); card.className="radar-conflict";
+    const title=document.createElement("strong"); title.textContent=`Conflicting reports · ${conflict.entity_id} · ${conflict.attribute.replaceAll("_", " ")}`;
+    const detail=document.createElement("p"); detail.textContent="Different reported values need review against their time and scope.";
+    card.append(title,detail);
+    for (const claim of conflict.claims) {
+      const row=document.createElement("div"); row.className="conflict-claim";
+      row.textContent=`${claim.value} · `;
+      const quote=document.createElement("span"); quote.textContent=claim.quote;
+      row.append(quote);
+      const button=citationButton(claim.citation_id,evidence); if(button) row.append(button);
+      card.append(row);
+    }
+    el("radarconflicts").append(card);
   }
   for (const event of radar.event_candidates) {
-    const li=document.createElement("li"); const item=evidence.find(e=>e.citation_id===event.citation_id);
+    const li=document.createElement("li"); li.className="radar-event"; const item=evidence.find(e=>e.citation_id===event.citation_id);
     const status=radar.source_statuses.find(s=>s.citation_id===event.citation_id);
-    const labels={native_state:"来源系统状态",comment:"评论／评审",description:"来源描述",artifact:"来源材料"};
-    const label=labels[event.type] || "来源记录";
-    const button=document.createElement("button"); button.className="radarlink";
-    button.textContent=`${event.event_time || "事件时间未知"} · ${label}${status && status.native_status ? `：${status.native_status}` : ""} · ${event.historical ? "历史修订 · " : ""}${item ? item.title : event.doc_id} [${event.citation_id}]`;
+    const labels={native_state:"Source system state",comment:"Comment / review",description:"Source description",artifact:"Source record"};
+    const label=labels[event.type] || "Source record";
+    const button=document.createElement("button"); button.type="button"; button.className="radarlink";
+    button.textContent=`${event.event_time || "Event time unknown"} · ${label}${status && status.native_status ? ` · ${status.native_status}` : ""} · ${event.historical ? "Historical revision · " : ""}${item ? item.title : event.doc_id}`;
     if(item) button.onclick=()=>openDoc(item.corpus,item.doc_id);
     const quote=document.createElement("p"); quote.textContent=(event.historical ? `该修订观测于：${event.observed_at || "未知"}\n` : "") + event.quote;
-    li.append(button,quote); el("radartimeline").append(li);
+    const citation=citationButton(event.citation_id,evidence);
+    li.append(button,quote); if(citation) li.querySelector("button.radarlink").after(citation); el("radartimeline").append(li);
   }
 }
 
@@ -491,8 +583,10 @@ function renderHits(hits, requestId) {
 // 7. Document Reader
 async function openDoc(corpus, doc_id, titleText) {
   const generation = requestGeneration;
-  showState(els.stateLoading);
-  els.loadingText.textContent = 'Loading original document...';
+  els.docTitle.textContent = titleText || 'Loading evidence…';
+  els.docContent.textContent = 'Loading original document…';
+  els.docMetadata.replaceChildren();
+  if (!els.docReader.open) els.docReader.showModal();
 
   try {
     const params = new URLSearchParams({ corpus, doc_id });
@@ -513,12 +607,27 @@ async function openDoc(corpus, doc_id, titleText) {
           }
         } catch (_) {}
       }
-      showState(els.docReader);
+      const fields = [
+        ['Source', data.doc.source], ['Version', data.doc.version],
+        ['Source time', data.doc.ts || 'Unknown'], ['Indexed at', data.doc.indexed_at || 'Unknown'],
+        ['Access basis', data.doc.acl_basis || 'Current authorised session'],
+        ['Source status', data.doc.source_check || 'Unknown'],
+        ['Content fingerprint', data.doc.content_hash || 'Unavailable']
+      ];
+      for (const [label, value] of fields) {
+        const row = document.createElement('div'); row.className = 'passport-meta-row';
+        const key = document.createElement('span'); key.textContent = label;
+        const content = document.createElement('span'); content.textContent = value;
+        if (label === 'Content fingerprint') content.classList.add('hash-value');
+        row.append(key, content); els.docMetadata.append(row);
+      }
+      els.docContent.textContent = data.doc.text || 'No text available.';
     } else {
+      els.docReader.close();
       showError('Not Available', 'The original document is not available in the snapshot.');
     }
   } catch (e) {
-    if (generation === requestGeneration) showError('Document Error', e.message);
+    if (generation === requestGeneration) { if (els.docReader.open) els.docReader.close(); showError('Document Error', e.message); }
   }
 }
 
@@ -536,6 +645,10 @@ async function loadAdmin() {
     addOption(target, '', 'Choose an account');
     for (const person of adminPeople) addOption(target, person.id, `${person.name} · ${person.role}`);
     if (adminPeople.some(person => person.id === selected)) target.value = selected;
+    else {
+      const defaultEmployee = adminPeople.find(person => person.enabled && person.role === 'member');
+      if (defaultEmployee) target.value = defaultEmployee.id;
+    }
 
     const principal = document.getElementById('admin-principal');
     const selectedPrincipal = principal.value;
@@ -598,6 +711,10 @@ function renderAdminUsers() {
 function syncAdminSelected() {
   const person = adminPeople.find(item => item.id === document.getElementById('admin-user-id').value);
   if (!person) return;
+  if (securitySelectedId !== person.id) {
+    securitySelectedId = person.id;
+    securityBaseline = structuredClone(person);
+  }
   document.getElementById('admin-role').value = person.role;
   document.getElementById('admin-clearance').value = String(person.clearance ?? 1);
   document.getElementById('admin-enabled').value = String(Boolean(person.enabled));
@@ -608,6 +725,61 @@ function syncAdminSelected() {
     document.getElementById('admin-corpus').value = restriction.corpus;
     document.getElementById('admin-rule-kind').value = restriction.kind;
     document.getElementById('admin-rule-value').value = restriction.value;
+  }
+  renderSecurityStates(person);
+}
+
+function renderSecurityStates(person) {
+  const before = securityBaseline || person;
+  const labelFor = binding => {
+    const source = adminPrincipals.find(item => item.corpus === binding.corpus && item.principal_id === binding.principal_id);
+    return `${binding.corpus} · ${source?.name || binding.principal_id}`;
+  };
+  const renderBindings = (id, user) => {
+    const list = document.getElementById(id);
+    const bindings = user?.bindings || [];
+    const active = bindings.filter(binding => binding.enabled);
+    document.getElementById(id.replace('-bindings', '-count')).textContent = String(active.length);
+    list.replaceChildren();
+    if (!bindings.length) {
+      const empty = document.createElement('li');
+      empty.textContent = 'No source bindings are recorded for this account.';
+      list.appendChild(empty);
+      return;
+    }
+    for (const binding of bindings) {
+      const row = document.createElement('li');
+      row.className = binding.enabled ? '' : 'is-revoked';
+      const name = document.createElement('span');
+      name.textContent = labelFor(binding);
+      const state = document.createElement('strong');
+      state.textContent = binding.enabled ? 'Active' : 'Revoked';
+      row.append(name, state);
+      list.appendChild(row);
+    }
+  };
+  renderBindings('security-before-bindings', before);
+  renderBindings('security-after-bindings', person);
+  document.getElementById('security-before-version').textContent = String(before.epoch ?? '—');
+  document.getElementById('security-after-version').textContent = String(person.epoch ?? '—');
+  document.getElementById('security-current-version').textContent = String(person.epoch ?? '—');
+  const queryAgain = document.getElementById('security-run-query');
+  if (queryAgain) queryAgain.disabled = !isDemoMode || !person.enabled || person.role !== 'member';
+}
+
+async function queryAsSelectedEmployee() {
+  const person = adminPeople.find(item => item.id === document.getElementById('admin-user-id').value);
+  if (!person || !isDemoMode || !person.enabled) return;
+  try {
+    if (currentUser?.id !== person.id) await selectDemoAccount(person.id);
+    const workspaceTab = [...els.navTabs].find(tab => tab.dataset.view === 'workspace');
+    workspaceTab?.click();
+    if (!els.datasetSelect.value && els.datasetSelect.options.length > 1) els.datasetSelect.selectedIndex = 1;
+    els.queryInput.value = 'Has SG Batch Payments v2.3 fully recovered?';
+    await query(true);
+  } catch (error) {
+    els.adminFeedback.className = 'feedback-msg is-error';
+    els.adminFeedback.textContent = 'Could not run the employee query: ' + (error.message || 'request failed');
   }
 }
 
@@ -623,8 +795,8 @@ function renderAudit(data) {
   const events = Array.isArray(data.events) ? data.events : [];
   const summary = document.createElement('div');
   summary.className = 'audit-summary';
-  const integrity = data.integrity?.valid === true ? 'Audit chain verified' : 'Audit integrity needs review';
-  summary.textContent = `${events.length} event${events.length === 1 ? '' : 's'} · ${integrity}`;
+  const integrity = data.integrity?.valid === true ? 'Local audit chain · valid' : 'Audit integrity needs review';
+  summary.textContent = events.length + ' event' + (events.length === 1 ? '' : 's') + ' in this filtered selection · ' + integrity;
   els.auditResults.appendChild(summary);
   if (!events.length) {
     const empty = document.createElement('p');
@@ -632,24 +804,71 @@ function renderAudit(data) {
     empty.textContent = 'No matching events were returned.';
     els.auditResults.appendChild(empty);
   }
-  for (const event of events) {
-    const row = document.createElement('article');
-    row.className = 'audit-event';
-    const title = document.createElement('strong');
-    title.textContent = event.event_type || 'Audit event';
-    const meta = document.createElement('p');
-    meta.textContent = `${event.user_id || 'Unknown user'} · ${event.decision || 'Unknown decision'} · ${event.timestamp || 'Time unknown'}`;
-    const request = document.createElement('small');
-    request.textContent = `Request ${event.request_id || 'unknown'}`;
-    const details = document.createElement('details');
-    const detailsLabel = document.createElement('summary');
-    detailsLabel.textContent = 'View event details';
-    const raw = document.createElement('pre');
-    raw.textContent = JSON.stringify(event, null, 2);
-    details.append(detailsLabel, raw);
-    row.append(title, meta, request, details);
-    els.auditResults.appendChild(row);
+  const list = document.createElement('div'); list.className = 'audit-event-items';
+  events.forEach((event, index) => {
+    const row = document.createElement('button'); row.type = 'button';
+    row.className = 'audit-event' + (index === 0 ? ' selected' : '');
+    row.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
+    const title = document.createElement('strong'); title.textContent = (event.event_type || 'Audit event').replaceAll('_', ' ');
+    const meta = document.createElement('span'); meta.className = 'audit-meta';
+    meta.textContent = (event.user_name || event.user_id || 'Unknown user') + ' · ' + (event.timestamp || 'Time unknown');
+    const request = document.createElement('small'); request.textContent = (event.decision || 'Decision unavailable') + ' · ' + (event.request_id || 'No request ID');
+    row.append(title, meta, request);
+    row.addEventListener('click', () => {
+      for (const button of list.querySelectorAll('.audit-event')) {
+        const selected = button === row;
+        button.classList.toggle('selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      }
+      renderAuditDetail(event, data.integrity);
+    });
+    list.appendChild(row);
+  });
+  els.auditResults.appendChild(list);
+  if (events.length) renderAuditDetail(events[0], data.integrity);
+  else document.getElementById('audit-detail').textContent = 'No event details to display.';
+}
+
+function renderAuditDetail(event, integrity) {
+  const panel = document.getElementById('audit-detail'); panel.replaceChildren();
+  const eyebrow = document.createElement('span'); eyebrow.className = 'reader-label'; eyebrow.textContent = 'REQUEST DETAILS';
+  const heading = document.createElement('h3'); heading.textContent = event.event_type?.replaceAll('_', ' ') || 'Audit event';
+  const facts = document.createElement('div'); facts.className = 'audit-facts';
+  for (const [label, value] of [
+    ['Request ID', event.request_id], ['User', event.user_name || event.user_id],
+    ['Role', event.user_role], ['Recorded at', event.timestamp],
+    ['Permission version', event.permission_epoch], ['Policy version', event.policy_version],
+    ['Identity mode', event.identity_mode], ['Decision', event.decision]
+  ]) {
+    if (value === null || value === undefined || value === '') continue;
+    const key = document.createElement('span'); key.textContent = label;
+    const content = document.createElement('strong'); content.textContent = String(value);
+    facts.append(key, content);
   }
+  panel.append(eyebrow, heading, facts);
+  const answerHeading = document.createElement('h4'); answerHeading.textContent = 'Recorded answer'; panel.append(answerHeading);
+  const answer = document.createElement('p');
+  answer.className = event.redacted ? 'audit-redacted' : 'audit-recorded-answer';
+  answer.textContent = event.redacted ? 'Details are unavailable under the current access scope.' : (event.answer || 'No answer was recorded for this event.');
+  panel.append(answer);
+  if (!event.redacted && Array.isArray(event.evidence) && event.evidence.length) {
+    const evidenceHeading = document.createElement('h4'); evidenceHeading.textContent = 'Recorded evidence'; panel.append(evidenceHeading);
+    const evidenceList = document.createElement('ul'); evidenceList.className = 'audit-evidence-list';
+    for (const item of event.evidence) {
+      const li = document.createElement('li');
+      li.textContent = item.doc_id + ' · Version ' + item.version + ' · ' + (item.content_hash ? 'SHA-256 ' + item.content_hash.slice(0, 12) + '…' : 'Fingerprint unavailable');
+      evidenceList.appendChild(li);
+    }
+    panel.append(evidenceList);
+  }
+  if (!event.redacted && event.radar_presentation) {
+    const summary = document.createElement('p'); summary.className = 'audit-radar-summary';
+    summary.textContent = (event.radar_presentation.status === 'confirmed' ? 'Confirmed' : 'Pending confirmation') + ' · ' + event.radar_presentation.headline;
+    panel.append(summary);
+  }
+  const integrityNote = document.createElement('p'); integrityNote.className = 'audit-integrity-note';
+  integrityNote.textContent = integrity?.valid === true ? 'Local audit chain integrity check passed.' : 'Audit integrity check requires review.';
+  panel.append(integrityNote);
 }
 
 async function runAudit(generateAnswer) {
@@ -737,7 +956,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         v.classList.toggle('active', active);
         v.classList.toggle('hidden', !active);
       });
-      document.getElementById('current-view-label').textContent = view === 'admin' ? 'Administration' : view[0].toUpperCase() + view.slice(1);
+      document.getElementById('current-view-label').textContent = view === 'admin' ? 'Manage Permissions' : view === 'audit' ? 'Audit Trail' : 'Workspace';
       if (view === 'admin') loadAdmin();
     });
   });
@@ -745,7 +964,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Buttons
   els.btnAsk?.addEventListener('click', () => query(true));
   els.btnSearch?.addEventListener('click', () => query(false));
-  els.btnCloseDoc?.addEventListener('click', () => showState(els.stateResults));
+  const closePassport = () => { if (els.docReader.open) els.docReader.close(); };
+  els.btnCloseDoc?.addEventListener('click', closePassport);
+  els.btnCloseDocSecondary?.addEventListener('click', closePassport);
+  els.docReader?.addEventListener('click', event => { if (event.target === els.docReader) closePassport(); });
+  document.getElementById('btn-edit-query')?.addEventListener('click', () => clearEvidence());
+  document.querySelectorAll('[data-demo-question]').forEach(button => {
+    button.addEventListener('click', () => {
+      els.queryInput.value = button.dataset.demoQuestion || '';
+      els.queryInput.focus();
+      if (els.datasetSelect.value) query(true);
+    });
+  });
   els.datasetSelect?.addEventListener('change', clearEvidence);
   for (const radio of els.modeRadios) radio.addEventListener('change', clearEvidence);
   els.planningToggle?.addEventListener('change', clearEvidence);
@@ -803,6 +1033,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   els.btnLoadUsers?.addEventListener('click', loadAdmin);
   document.getElementById('admin-action')?.addEventListener('change', updateAdminAction);
   document.getElementById('admin-user-id')?.addEventListener('change', syncAdminSelected);
+  document.getElementById('security-run-query')?.addEventListener('click', queryAsSelectedEmployee);
 
   // Audit forms
   els.auditForm?.addEventListener('submit', (e) => { e.preventDefault(); runAudit(false); });

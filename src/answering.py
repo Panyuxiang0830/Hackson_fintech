@@ -16,9 +16,10 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v9-2026-10-11"
+PROMPT_VERSION = "answer-v10-2026-10-14"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
+_RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
 SYSTEM_PROMPT = (
     "You are a permission-aware enterprise knowledge assistant. The user message is JSON "
     "with original_question, caller_context, and authorised_evidence. Answer the exact "
@@ -120,6 +121,104 @@ def _validate_model_output(raw_content: str, evidence_count: int) -> tuple[str, 
     return answer.strip(), status
 
 
+def _validate_radar_presentation(payload, evidence_count, decision, radar):
+    """Validate the display contract without treating it as semantic proof."""
+    keys = {"status", "headline", "explanation", "citation_ids", "needs_confirmation"}
+    if not isinstance(payload, dict) or set(payload) != keys:
+        raise ValueError("invalid Radar presentation shape")
+    if payload["status"] not in {"confirmed", "pending_confirmation"}:
+        raise ValueError("invalid Radar business status")
+    for key, limit in (("headline", 240), ("explanation", 800)):
+        value = payload[key]
+        if not isinstance(value, str) or not value.strip() or len(value) > limit:
+            raise ValueError("invalid Radar presentation text")
+
+    allowed = set(range(1, evidence_count + 1))
+    citation_ids = payload["citation_ids"]
+    if (not isinstance(citation_ids, list) or len(citation_ids) > evidence_count
+            or any(type(item) is not int or item not in allowed for item in citation_ids)):
+        raise ValueError("invalid Radar presentation citations")
+    for key in ("headline", "explanation"):
+        markers = {int(value) for value in _CITATION_PATTERN.findall(payload[key])}
+        if not markers.issubset(set(citation_ids)):
+            raise ValueError("Radar presentation text cites an unlisted item")
+    needs = payload["needs_confirmation"]
+    if not isinstance(needs, list) or len(needs) > 5:
+        raise ValueError("invalid Radar confirmation items")
+    for item in needs:
+        if not isinstance(item, dict) or set(item) != {"item", "citation_ids"}:
+            raise ValueError("invalid Radar confirmation item shape")
+        if not isinstance(item["item"], str) or not item["item"].strip() or len(item["item"]) > 300:
+            raise ValueError("invalid Radar confirmation text")
+        refs = item["citation_ids"]
+        if (not isinstance(refs, list) or len(refs) > evidence_count
+                or any(type(ref) is not int or ref not in allowed for ref in refs)):
+            raise ValueError("invalid Radar confirmation citations")
+        markers = {int(value) for value in _CITATION_PATTERN.findall(item["item"])}
+        if not markers.issubset(set(refs)):
+            raise ValueError("Radar confirmation cites an unlisted item")
+
+    coverage = radar.get("coverage") or {}
+    incomplete = any(coverage.get(key) for key in
+                     ("truncated", "evidence_excerpts_truncated", "model_input_truncated"))
+    disagreements = radar.get("disagreements") or []
+    status, headline, explanation = payload["status"], payload["headline"].strip(), payload["explanation"].strip()
+
+    # Never let a model's positive label override server-visible conflicts,
+    # truncation, or an insufficient answer. Convert those cases to a useful
+    # pending card from the bounded report itself.
+    forced_pending = decision != "answered" or not citation_ids or incomplete or bool(disagreements) or bool(needs)
+    if forced_pending and status == "confirmed":
+        status = "pending_confirmation"
+        if disagreements:
+            headline = "Conflicting reports need review."
+            explanation = "The authorised records contain differing reports; compare their time and scope before confirming an outcome."
+            needs = []
+            for conflict in disagreements[:5]:
+                refs = list(dict.fromkeys(
+                    claim.get("citation_id") for claim in conflict.get("claims", [])
+                    if type(claim.get("citation_id")) is int and claim["citation_id"] in allowed
+                ))
+                item = f"Review the differing {conflict.get('attribute', 'reported')} values for {conflict.get('entity_id', 'this item')} and confirm their time and scope."
+                needs.append({"item": item, "citation_ids": refs})
+                citation_ids.extend(refs)
+        else:
+            headline = "The available evidence does not confirm this outcome."
+            explanation = "The current authorised selection needs further confirmation before this business outcome can be confirmed."
+            if incomplete:
+                needs.append({"item": "Review the records omitted by the bounded evidence selection.", "citation_ids": []})
+            elif decision != "answered" or not citation_ids:
+                needs.append({"item": "Find authorised evidence that establishes the requested business outcome.", "citation_ids": []})
+            else:
+                needs.extend(payload["needs_confirmation"])
+    elif status == "pending_confirmation" and not needs:
+        if disagreements:
+            headline = "Conflicting reports need review."
+            explanation = "The authorised records contain differing reports; compare their time and scope before confirming an outcome."
+            needs = []
+            for conflict in disagreements[:5]:
+                refs = list(dict.fromkeys(
+                    claim.get("citation_id") for claim in conflict.get("claims", [])
+                    if type(claim.get("citation_id")) is int and claim["citation_id"] in allowed
+                ))
+                needs.append({"item": f"Review the differing {conflict.get('attribute', 'reported')} values and confirm their time and scope.", "citation_ids": refs})
+                citation_ids.extend(refs)
+        else:
+            raise ValueError("pending Radar status requires confirmation items")
+
+    needs = needs[:5]
+    return {
+        "status": status, "headline": headline,
+        "explanation": explanation,
+        "citation_ids": list(dict.fromkeys(citation_ids)),
+        "needs_confirmation": [
+            {"item": entry["item"].strip(),
+             "citation_ids": list(dict.fromkeys(entry["citation_ids"]))}
+            for entry in needs
+        ],
+    }
+
+
 class AnswerService:
     def __init__(self) -> None:
         api_key_configured = bool(os.getenv("LLM_API_KEY", "").strip())
@@ -142,11 +241,17 @@ class AnswerService:
         # Request-local: concurrent users must not inherit another request's error.
         return dict(_DIAGNOSTICS.get() or {})
 
+    @property
+    def last_radar_presentation(self):
+        value = _RADAR_PRESENTATION.get()
+        return dict(value) if isinstance(value, dict) else None
+
     def answer(self, user: User, question: str, evidence: list[Evidence], *, before_call=None, tool_handler=None) -> tuple[str, str, str]:
         _DIAGNOSTICS.set({"prompt_version": PROMPT_VERSION,
                           "attempts": 0, "failures": [],
                           "model": self.model, "max_tokens": ANSWER_MAX_TOKENS, "temperature": 0,
                           "reasoning_effort": self.reasoning_effort, "timeout_seconds": 30})
+        _RADAR_PRESENTATION.set(None)
         chinese = bool(re.search(r"[\u4e00-\u9fff]", question))
         if not evidence:
             return (
@@ -295,7 +400,16 @@ class AnswerService:
                 before_call()
             return self._openai_compatible(user, question, evidence, tool_handler=tool_handler,
                                           tool_state=tool_state, before_call=before_call)
-        return _validate_model_output(raw_content, len(evidence))
+        answer, decision = _validate_model_output(raw_content, len(evidence))
+        if tool_handler is not None and tool_state["called"]:
+            parsed = _completion_json(raw_content)
+            if set(parsed) != {"status", "answer", "citation_ids", "uncertainty", "radar_presentation"}:
+                raise ValueError("invalid final Radar answer fields")
+            presentation = _validate_radar_presentation(
+                parsed.get("radar_presentation"), len(evidence), decision,
+                tool_state["result"])
+            _RADAR_PRESENTATION.set(presentation)
+        return answer, decision
 
     def _completion(self, system, payload):
         api_key = os.getenv("LLM_API_KEY", "").strip()

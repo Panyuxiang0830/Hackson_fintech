@@ -22,7 +22,7 @@
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `planned` | — | — |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/filtered_index.py`<br>`contextledger/search.py`<br>`contextledger/unified_service.py` | `tests/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/web.py`<br>`contextledger/integration.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_oidc.py` |
-| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml`<br>`contextledger/static/onboarding.svg` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py`<br>`tests/test_llm_integration.py` |
+| REQ-017 | Part A 与安全问答服务统一集成 | `team_decision` | `in_progress` | `contextledger/unified_service.py`<br>`contextledger/web.py`<br>`contextledger/identity_store.py`<br>`contextledger/demo_identity.py`<br>`contextledger/filtered_index.py`<br>`contextledger/audit_store.py`<br>`contextledger/source_permissions.py`<br>`contextledger/templates/unified.html`<br>`contextledger/static/unified.js`<br>`contextledger/static/unified.css`<br>`contextledger/integration.py`<br>`contextledger/demo_app.py`<br>`contextledger/pipeline.py`<br>`contextledger/rechunk.py`<br>`scripts/integration.sh`<br>`scripts/prepare_integration_preview.py`<br>`scripts/verify_unified_snapshot.py`<br>`scripts/sync_preview_config.py`<br>`requirements-integration.txt`<br>`.github/workflows/ci.yml`<br>`contextledger/static/onboarding.svg`<br>`src/answering.py`<br>`contextledger/radar_protocol.py` | `tests/test_integration.py`<br>`tests/test_demo_identity.py`<br>`tests/test_preview_config.py`<br>`tests/test_prepare_preview.py`<br>`tests/test_oidc.py`<br>`tests/test_integration_dependencies.py`<br>`tests_part_a/test_supplemental.py`<br>`tests_part_a/conftest.py`<br>`tests/test_llm_integration.py`<br>`tests/test_radar_synthesis.py`<br>`tests/test_radar_integration.py` |
 | REQ-018 | 端到端质量、安全与性能评测 | `team_decision` | `in_progress` | `contextledger/evaluation.py`<br>`contextledger/eval_scenarios.py`<br>`contextledger/benchmark_quality.py`<br>`scripts/refine_part_a_retrieval.py`<br>`scripts/tune_part_a_retrieval.py`<br>`scripts/part_a.sh`<br>`contextledger/freshness_eval.py`<br>`contextledger/freshness_workload.py`<br>`contextledger/freshness_replay.py`<br>`scripts/freshness_eval.sh` | `tests/test_part_a_evaluation.py`<br>`tests/test_part_a_refinement.py`<br>`tests/test_part_a_tuning.py`<br>`tests/test_llm_workflows.py`<br>`tests/test_llm_integration.py`<br>`tests/test_freshness_eval.py` |
 | REQ-019 | 回答 Prompt 的管理与质量评测 | `team_decision` | `in_progress` | `src/answering.py`<br>`contextledger/llm_workflows.py`<br>`contextledger/unified_service.py` | `tests/test_answering.py`<br>`tests/test_llm_workflows.py` |
 | REQ-020 | 面向上游 Agent 的权限感知工具接口 | `team_decision` | `planned` | `contextledger/unified_service.py`<br>`contextledger/identity_store.py`<br>`contextledger/filtered_index.py`<br>`contextledger/web.py` | `tests/test_integration.py` |
@@ -329,6 +329,7 @@
 - 验收标准：
 
   - 用户只需在现有问答入口提问，默认自动；LLM 可直接回答或请求 decision_radar，前端无普通/自动/Radar 切换、工具按钮或专用入口
+  - Radar 综合回答额外返回受限结构化展示摘要：只有证据足以支持所问业务结果、授权检索未截断且没有未解决重要分歧时才可标为 Confirmed；其余不可判定情况标为 Pending confirmation 并列出具体待核实条件；该状态与 answered/insufficient 回答状态分离
   - 复用 /api/ask 与 UnifiedService，旧请求无新增必填字段，旧 answer/evidence/request_id 等字段兼容；需要时可附 radar 结构化过程，普通搜索与原文契约保留
   - 系统提示词与严格工具契约定义可调用能力；原生工具格式或结构化 action 由服务端执行同一验证，模型不能传身份/权限、任意 SQL、网络地址或数据库路径
   - 单请求最多一次内部 Radar 调用、内部最多两轮补查；实体来自原问题或实际授权证据，保持原问题约束；未知/多义实体不编造或静默合并，预算超限报告范围
@@ -372,6 +373,30 @@
   - 代码：`src/answering.py`, `contextledger/radar_protocol.py`, `scripts/sync_preview_config.py`, `.env.example`, `.env.integration.example`
   - 测试：`tests/test_radar_synthesis.py`, `tests/test_preview_config.py`, `tests/test_audit_time_parser.py`
   - 文档：`docs/architecture/radar-reasoning-comparison.md`
+
+### 功能扩展 · Radar 状态摘要与 Aspire 响应式界面
+
+- 扩展键：`radar_presentation_ui`
+- 来源：user design handoff and explicit status rule confirmed 2026-10-14
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`implemented`
+- 说明：在 Radar 工具综合回答后返回有界业务状态摘要与待确认事项，按 Aspire Financial Modern 设计改造现有应用的 Radar、证据、权限和审计展示。Confirmed 必须有可用授权证据、回答充分、无工具检测到的未决分歧且结果未被截断；其余情况标记 Pending confirmation 并提供具体待核实项。复用当前引用与权限 API，不宣称逐句语义验证或用模型自报置信度百分比。
+- 验收标准：
+
+  - Radar 响应中仅在工具综合阶段附加 presentation 字段；包含 confirmed/pending_confirmation、简短判断、说明、授权引用编号和待确认列表；旧字段与非 Radar 请求保持兼容
+  - 服务端验证字段形状、文本边界与所有引用均属于本次授权证据；confirmed 必须 answered、至少有引用、无未决分歧且资料未截断；pending_confirmation 必须列出具体待核实事项
+  - 前端只在 confirmed 时显示 Confirmed，只在 pending_confirmation 时显示 Pending confirmation 和 Needs confirmation；普通回答或格式降级失败时不猜测业务状态
+  - 证据护照从现有引用打开原文并显示版本、时间、访问依据和内容指纹；不展示未经校准置信度、实时 p95 或外部签章能力
+  - 隔离 Demo 的管理员可用现有权限接口撤销员工来源绑定，员工切换身份后重查；普通员工页面不泄漏受限标题或受限资料是否存在
+  - 审计页面展示请求字段和当前可见证据；事件被整体脱敏时同时隐藏 Radar presentation
+  - Desktop、tablet 与 320px 以上 mobile 使用同一组页面结构自适应，手机端保留顶部横向角色受控导航，资料 Passport 为全屏对话框
+  - 页面遵循用户提供的 Stitch 结构：搜索首页为全宽提问区加双栏引导／示例；Radar 为问题横幅加判断／时间线主栏与 Security Lens／证据侧栏；权限页为员工选择条与变更前／权限操作／变更后三栏；审计页为顶部筛选与下方事件列表／请求详情。权限状态来自现有用户／绑定 API，不用合成统计冒充证据数量
+
+- 影响范围：
+
+  - 代码：`src/answering.py`, `contextledger/radar_protocol.py`, `contextledger/unified_service.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`
+  - 测试：`tests/test_radar_synthesis.py`, `tests/test_radar_integration.py`, `tests/test_llm_integration.py`, `tests/test_demo_identity.py`
+  - 文档：`docs/architecture/decision-radar-v1.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`
 
 ## REQ-012 · 项目内容统一入库与 Git 协作
 
@@ -526,12 +551,40 @@
   - 本次集成在独立工作分支实施；2026-10-08 用户授权在修复审查问题、补齐依赖并完成真实索引重建与验证后，通过 Pull Request 合并到 main；条件未满足时不得合并
   - 重新分块后旧 Qdrant 快照明确失效；元数据主键、授权过滤字段与分块变化进入变更检查；新向量与新 collection 校验通过后才发布，旧 collection、身份权限与审计保留；副本链接指向实际原始数据位置，目录切换不能产生循环链接；不把整快照重建冒充高可用增量同步
   - 2026-10-13 用户明确授权合并 feat/REQ-017-team-ui-integration 到 main；DashKit 页面保留当前后端及自动 Radar 的覆盖说明、分歧与证据原文入口，普通模式不自动选择身份
+  - 2026-10-14 按 Aspire Financial Modern 设计改造统一问答、Radar、证据护照、权限和审计页面；桌面与移动端自适应，手机保留顶部横向导航；权限演示复用隔离 Demo 的真实权限服务，页面只显示接口提供的证据和审计状态
 
 - 影响范围：
 
-  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `contextledger/rechunk.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `scripts/sync_preview_config.py`, `requirements-integration.txt`, `.github/workflows/ci.yml`, `contextledger/static/onboarding.svg`
-  - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`, `tests/test_llm_integration.py`
-  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/product/frontend-team-integration.md`
+  - 代码：`contextledger/unified_service.py`, `contextledger/web.py`, `contextledger/identity_store.py`, `contextledger/demo_identity.py`, `contextledger/filtered_index.py`, `contextledger/audit_store.py`, `contextledger/source_permissions.py`, `contextledger/templates/unified.html`, `contextledger/static/unified.js`, `contextledger/static/unified.css`, `contextledger/integration.py`, `contextledger/demo_app.py`, `contextledger/pipeline.py`, `contextledger/rechunk.py`, `scripts/integration.sh`, `scripts/prepare_integration_preview.py`, `scripts/verify_unified_snapshot.py`, `scripts/sync_preview_config.py`, `requirements-integration.txt`, `.github/workflows/ci.yml`, `contextledger/static/onboarding.svg`, `src/answering.py`, `contextledger/radar_protocol.py`
+  - 测试：`tests/test_integration.py`, `tests/test_demo_identity.py`, `tests/test_preview_config.py`, `tests/test_prepare_preview.py`, `tests/test_oidc.py`, `tests/test_integration_dependencies.py`, `tests_part_a/test_supplemental.py`, `tests_part_a/conftest.py`, `tests/test_llm_integration.py`, `tests/test_radar_synthesis.py`, `tests/test_radar_integration.py`
+  - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/product/engineering-challenges.md`, `docs/architecture/unified-integration.md`, `docs/product/part-a-integration-review.md`, `docs/product/demo-acceptance.md`, `docs/product/tool-entry-scope.md`, `QUICKSTART.md`, `README.md`, `docs/product/roadmap.md`, `docs/product/workload.md`, `docs/architecture/decision-radar-v1.md`, `docs/product/frontend-team-integration.md`, `docs/product/prompt-and-login-walkthrough.md`
+
+### 功能扩展 · 直接使用 Stitch HTML 的独立前端
+
+- 扩展键：`stitch_independent_frontend`
+- 来源：user explicitly requested a separate frontend preserving the existing version on 2026-10-14
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`implemented`
+- 说明：直接导入用户五张桌面设计页的 HTML，保留原始文件并编译本地样式、字体与素材；新版作为唯一默认首页复用现有身份、问答、证据、权限和审计 API。原 unified 前端仅备份，不提供切换入口。
+- 验收标准：
+
+  - 原 unified.html、unified.css、unified.js 保留本轮开始时的版本并备份；新版使用独立文件并作为默认首页，不与原版集成
+  - 保留用户 HTML 的页面 DOM、Tailwind 配置和组件类，不用原前端样式重新绘制；原文件哈希纳入来源清单
+  - 本地编译样式并整理字体和图片，不加载原设计里的模拟交互脚本；业务数据只来自现有 API，未知／示意指标不作为已验证结果
+  - 搜索、Radar、证据护照、管理员撤权和审计使用当前会话、CSRF 与授权检查；身份／权限变化或页面隐藏时清理旧结果
+  - 桌面保留设计稿布局，移动端使用顶部横向导航并堆叠多栏内容
+  - 2026-10-15 显示审查修复：Passport 清除全部原稿示例节点与固定版本／事件数；技术详情可实际展开、折叠并提供正确的可访问状态
+  - 320–1600px 包括 768/820/900px 平板断点的页面与顶栏控件无横向溢出；紧凑视口直接聚焦证据面板，支持关闭、键盘返回及恢复引用焦点
+  - 手机首页压缩重复信息并将示例问题放在使用引导之前；长标题与时间线使用可展开的有界显示，证据总数保留且列表可滚动
+  - 审计标识缩略展示并支持复制完整值；时间明确标注时区且完整原值保留；手机交互目标约44px，加载状态在按钮内，错误提示置于对应页面内容中
+  - 2026-10-15 新版作为唯一默认首页，原版前端按文件备份且不显示切换入口；删除中文设计说明，演示身份显示英文；Query planning 可切换且不会被会话轮询覆盖；操作按钮自动调整字号保持单行；Audit 筛选自适应网格；使用用户提供的 vectorized.svg.svg 引导图
+  - 2026-10-15 问题卡使用独立配色与结论分层；移除 Isolated demo 视觉标签；搜索区数据集、规划和提交控件统一高度；下拉菜单圆角与主题绿色选中态；参考 emilkowalski/skills 的动效原则实现 Radar 与 Passport 的焦点转移和短时切换，支持 reduced motion 与快速返回，权限清理不等待动画
+
+- 影响范围：
+
+  - 代码：`frontend/stitch/build.cjs`, `frontend/stitch/package.json`, `frontend/stitch/package-lock.json`, `frontend/stitch/source/01_search_home.html`, `frontend/stitch/source/02_decision_radar.html`, `frontend/stitch/source/03_evidence_passport.html`, `frontend/stitch/source/04_security_lens.html`, `frontend/stitch/source/05_audit_trail.html`, `contextledger/static/stitch/index.html`, `contextledger/static/stitch/app.js`, `contextledger/static/stitch/design.css`, `contextledger/static/stitch/responsive.css`, `contextledger/static/stitch/fonts.css`, `contextledger/static/stitch/source-manifest.json`, `contextledger/web.py`, `contextledger/static/stitch/assets/vectorized.svg.svg`, `frontend/legacy-backup/2026-10-15`
+  - 测试：`tests/test_stitch_frontend.py`, `frontend/stitch/verify.cjs`
+  - 文档：`docs/product/stitch-independent-frontend.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
 

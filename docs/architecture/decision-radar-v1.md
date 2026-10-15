@@ -196,6 +196,12 @@ facts、ground_truth、causal_chain、recurrence_of 等评测元数据不进入�
 
 ## 10. 影响范围和当前状态
 
+### 2026-10-14 展示状态契约
+
+Radar 工具运行后的最终回答可附加结构化 presentation：业务状态、标题、解释、授权引用和待确认事项。业务状态与 answered/insufficient 分离：只有回答充分、有引用、工具未标记未决分歧且覆盖未截断时，服务端才接受 confirmed；所有不能确认的情况使用 pending_confirmation 并列出具体待核事项。未执行 Radar 的普通回答沿用旧接口，不需要新增字段。
+
+服务端只验证结构、枚举、长度和引用编号属于本次授权证据，不做模型语义复核。无效摘要触发既有一次格式重试；仍无效则不返回展示状态，旧答案和安全降级保持可用。审计记录保存该展示摘要，但只有当前访问校验通过时才随事件返回。
+
 实际接入：src/answering.py、contextledger/unified_service.py、filtered_index.py、search.py、templates/unified.html、static/unified.js/css。保留 PR #7 的 QueryPlanner、请求字段、原文入口和 HTTP delivery fence；没有改造原始 QueryPlanner 协议。
 
 新增：radar_protocol.py（结构化 action 与提示词）、radar_tool.py（补查与事实来源指引）、radar_data.py（业务材料适配／回放裁剪）、radar_store.py（不可变观测修订）、scripts/radar_demo.py（隔离发布与实测）。普通数据仍照常存，未增加强制 LLM 入库标签或实体图谱。

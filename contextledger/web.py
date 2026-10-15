@@ -235,8 +235,7 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
 
     @app.get("/")
     def index_page():
-        return render_template("unified.html", browser_login_enabled=browser_login_enabled, demo_mode=demo_mode,
-                               demo_auto_entry=demo_mode and app.config.get("DEMO_AUTO_ENTRY") is True)
+        return app.send_static_file("stitch/index.html")
 
     @app.get("/api/session")
     def status():

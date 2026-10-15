@@ -9,3 +9,4 @@ runtime/*.jsonl
 runtime/*.head.json
 runtime/**
 !runtime/.gitkeep
+frontend/stitch/node_modules/
