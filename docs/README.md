@@ -40,6 +40,7 @@
 - `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
+- `docs/product/natural-question-validation-20261016.md`：不带工单编号的自然提问真实对照及英文短回答误拒修复；
 - `docs/product/security-lens-demo-3d.md`：约60秒的Security Lens撤权前后录制流程及2026-10-16逐题线上复测结果；
 - `docs/product/curated-demo-permissions.md`：ENG-195/PR-135四份白名单资料的人工演示权限、执行预检和录制步骤；
 - `docs/product/permission-demo-handoff-2026-10-15.md`：权限改进交接，包含代码、分支、真实线上状态、部署待办及报告边界；

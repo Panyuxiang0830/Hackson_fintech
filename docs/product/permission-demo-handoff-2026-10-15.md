@@ -4,6 +4,8 @@
 
 > **2026-10-16 更新：第8节步骤1–8的技术部分已完成。** 线上已切换至 `curated-demo-permissions-20261015`（提交 `ca0886b2`，PID 775226），4份标注已应用，真实GLM验收、撤权/密级/部门对照、浏览器 Security Lens/Passport 及服务器完整测试均通过；详见 [curated-demo-permissions.md](curated-demo-permissions.md) 的"服务器部署与真实验收"。下文第1节及之后保留交接时的原状态描述。仍待：用户人工验收；是否修复"点名编号时Jira正文无自身编号而不被检索"的既有检索问题；未经同意不合并main。部署使用复制的 `BASE/contextledger_curated_logo_deploy.py`（仅改预期提交号与备份目录名）。
 
+> **后续自然问法更新：** 线上已进一步切至 `releases/natural-question-20261016`（26d9a0d0，PID783815），修复英文短回答格式误拒并完成不带编号问题的撤权前后验证；见 [自然问法验证](natural-question-validation-20261016.md)。旧交接状态仅作历史记录。
+
 ## 1. 最重要的当前状态
 
 - **线上仍是基础权限修复版**：`resource-permissions-20261015`，提交 `be69fa23`，PID `754260`。撤权后数据库保持可选、后端控制读取等已部署。

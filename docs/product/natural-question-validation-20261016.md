@@ -12,4 +12,9 @@
 
 ## 线上验证状态
 
-代码修复后的完整测试、部署及自然问题撤权前后结果待完成后补充。旧版自然问题检索探测与模型失败不是完成证据。
+- 本地完整379 unittest通过；服务器完整387 pytest + 156 subtests通过，项目同步检查通过。
+- 新release `releases/natural-question-20261016`，代码26d9a0d0，PID783815；仍为17866入口。代码切换前后身份、绑定、限制一致，备份在 `backups/before-natural-question-20261015T164732Z`（目录时间为UTC）。不修改内容库标注或来源ACL。
+- 实测原问题：`What did the GitHub review say about the SwiftUI dashboard's UIKit timers?`。真实GLM正常回答，一次调用、无格式失败，引用仅为已标注公开评审记录；不是固定答案。请求ID `6fb631ff-5d1e-4ed4-84ea-dece265a63bf`。
+- 撤销SwiftUI演示项目后，同句keyword/vector/hybrid均为空，回答模型attempts=0、原文404、orgforge仍可选择；请求ID `9bb62d58-0bbc-4e1f-92a8-6b9ffee41ebe`。
+- 恢复项目后同句真实模型再次正常回答，结束Jax项目允许、Confidential(2)、权限版本27，审计链有效。
+- 详细结果留服务器 `demo-permission-annotations/natural-question-20261016.json`，不提交运行时日志。用户录制和人工验收待完成，不合并main。

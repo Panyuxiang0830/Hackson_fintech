@@ -1,16 +1,16 @@
 # 3D：Security Lens——撤权前后对照（约60秒）
 
-2026-10-16；REQ-016/resource_access_controls。线上17866实际复测通过，用户人工录制待完成。
+2026-10-16；REQ-016/resource_access_controls、REQ-019。线上17866自然问法实际复测通过，用户人工录制待完成。
 
 ## 录制前准备
 
 - 页面刷新至当前版本。身份 Jax，dataset `orgforge`，Query planning Off，默认混合检索。
-- Jax 当前为 Engineering_Backend、Confidential(2)，自身绑定启用、SwiftUI项目允许；本轮复测结束权限版本25。
+- Jax 当前为 Engineering_Backend、Confidential(2)，自身绑定启用、SwiftUI项目允许；本轮自然问法复测结束权限版本27。
 - 先提交下方问题，等真实回答完成再开始录制。等待模型的时间可以剪短。
 - 本段演示项目撤权。保留来源开关和 Allow dataset reading，不删除员工绑定。
 
 ```text
-What changed during the ENG-195 / PR-135 SwiftUI telemetry dashboard review, and has it been released yet?
+What did the GitHub review say about the SwiftUI dashboard's UIKit timers?
 ```
 
 ## 操作与时间
@@ -40,10 +40,12 @@ What changed during the ENG-195 / PR-135 SwiftUI telemetry dashboard review, and
 - Alex同为Confidential，因部门不匹配三题×三模式均零证据；Jax原本不能读的私聊仍404。
 - 测试后恢复Jax项目允许、密级2；审计链有效。原始详细结果留服务器 `previews/aspire-ui-20261015/demo-permission-annotations/recheck-20261016.json`，不提交运行时日志。
 
-## 问题范围说明
+## 当前自然问法验证
 
-使用上述带ENG-195/PR-135的完整问题。旧版宽泛问题 `What can I monitor in the telemetry dashboard?` 实测召回5份其他Confluence资料；仅增加SwiftUI但不点编号的旧问题还召回两份其他Slack。它们沿用原ACL、未加本次人工项目标签，因此撤销这个项目不应使其他授权资料全部消失。
+录制使用文首原句，不要求员工输入工单或PR编号。已用Jax / orgforge / planning Off真实提交，模型正常回答Chloe提出的后台UI更新和UIKit计时器问题，以及Miki的回复，引用为已标注的公开评审记录。
 
-不为得到空结果而批量标注这些无关资料。首页已使用三道明确问题；若视频前段用了旧问题，本段应重新展示并提交明确问题，不能把两道不同问题剪成“同题重问”。
+2026-10-16线上修复为 `26d9a0d0` / answer-v13，PID783815。撤权前请求 `6fb631ff-5d1e-4ed4-84ea-dece265a63bf`，真实GLM一次成功、无格式失败；项目撤权后请求 `9bb62d58-0bbc-4e1f-92a8-6b9ffee41ebe`，零证据、零模型调用，数据库仍可选，原文404。恢复项目后同句真实模型再次正常回答；结束Jax密级2、项目允许、权限版本27，审计链有效。keyword/vector/hybrid撤权检查均为空。
 
-本次未改业务代码或重新应用数据标注。真实模型答案仍遵循已知限制：有评审/合并记录不代表已发布，现有选中Slack标题有截断，不能补造完整指标。
+旧版带编号三题的复测结果保留在上节作为历史证据。本次自然问法使用已有4份标注，不新增或改写正文/ACL。较宽泛的“telemetry dashboard”仍可能召回其他项目的授权资料，不能承诺所有宽泛问题在撤此项目后都完全无结果。
+
+原始结果：服务器 `previews/aspire-ui-20261015/demo-permission-annotations/natural-question-20261016.json`。完整修复与测试说明见 [自然问法验证](natural-question-validation-20261016.md)。
