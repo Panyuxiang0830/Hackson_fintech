@@ -40,3 +40,13 @@
 - 操作结束已恢复预览副本原有绑定与限制；权限版本按真实操作增加。原服务权限库未修改。
 
 更新例题和显示文案后再次运行：361项 unittest、369项pytest、142个subtests通过；生成前端构建和JS语法检查通过。CI及最终浏览器交付另核对。
+
+## 最终交付状态
+
+- gpushare 独立预览部署业务版本 5ebce039，地址经本机 SSH 隧道访问 http://127.0.0.1:17866/；原工具服务17864和Qdrant6335保留。内容为原45565篇文档的SQLite备份，Qdrant复用同一已发布真实384维MiniLM快照。
+- 最终浏览器确认 Source-based answer 文案生效，Passport可打开真实原文；同一明确多状态问题第二次也自动触发Radar并返回Pending confirmation及两条来源事件，没有模型失败。
+- 开启规划的简短评审问题发生 invalid_plan，安全回退原问题后 answered，但模型选择直接回答，没有调用Radar。本轮不把该回退计为规划质量通过，也不承诺每个问题都触发工具。
+- PR #19 的代码版本5ebce039已获GitHub validate成功、CLEAN/MERGEABLE；main仍为9ad487e，未合并。
+- 本机实际运行报告及截图位于忽略目录 runtime/aspire-ui-validation；服务器日志和复制的权限/审计状态位于独立 previews/aspire-ui-20261015。
+
+收尾时检测到同分支新增 bb2ebb78 / fd5b0a2b，包含 Full answer 展开区和提交材料；已保留并同步静态资源，后端业务代码未变化。fd5b0a2b 的 GitHub validate 亦通过。此记录提交只补充验证文档。
