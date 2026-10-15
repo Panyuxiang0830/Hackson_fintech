@@ -26,3 +26,8 @@
 - 测试结束恢复用户原先的三个来源全关状态，Jax保留原初始三个项目、密级2，权限版本67；审计链有效。详细结果在运行数据的 `project-permissions/verification.json`。
 - 本地383 unittest、391 pytest + 156 subtests通过；服务器391 pytest + 156 subtests通过。项目同步及两份JS语法检查通过。
 - 用户人工录制/验收待完成，不合并main。
+
+
+### 前端走查完成
+
+修复对照卡项目名称变量后，线上切至 `releases/project-permissions-ui-20261016` / `58ffc6ef`，PID789262，JS v11、CSS v7。后端项目规则与0dd92112一致，切换不改身份与权限。真实Chrome界面搜索Firebase→添加项目卡片→自动保存版本68→移除卡片→自动保存版本69，三张原项目卡片及三个来源全关状态恢复；原截图中的配置/部门说明不再显示，密级保留。运行身份库及审计链只读复核通过。截图在本地 `/tmp/contextledger-project-permissions.png`，不作为业务源码提交。
