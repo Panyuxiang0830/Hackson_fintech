@@ -222,6 +222,29 @@
             "docs/decisions/ADR-0005-source-adapters-and-mcp.md",
             "docs/architecture/index-and-freshness.md"
           ]
+        },
+        {
+          "key": "permission_provider_contract_v2",
+          "title": "多模式确定性权限接入接口 v2 设计",
+          "source": "user requested on 2026-10-15: preserve current dataset ACL; design native Slack, project/classification/department and POSIX rwx permission integrations without requiring live dataset use",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "本轮交付接口设计和报告可用表述，不接入或替换现有数据集 ACL。统一快照、原生平台、企业属性策略、POSIX DAC/ACL及外部PDP五种模式；标明现有适配子集与新设计能力，不以设计稿冒充实现或真实企业验收。",
+          "acceptance_criteria": [
+            "权限解析和执行不依赖LLM；身份、组、项目、部门、密级来自已配置的可信来源，正文不能自行授予权限",
+            "每份资源配置一种主授权依据，可叠加必须满足的属性和本地撤权规则；不同模式不得任意取并集或在失败时降级放行",
+            "统一接口记录稳定身份、资源、权限版本、观察时间、过期时间、完整性与授权依据，明确unknown/unsupported和缺失字段语义",
+            "分别规定Slack范围/成员/线程继承、项目与密级及允许部门组合、Linux UID/GID/父目录搜索/访问ACL及mask的确定性处理和边界",
+            "权限条件在SQL/FTS/Qdrant检索前应用，生成和交付重查当前权限；外部PDP仅能单资源check但无法提供安全候选范围时不开放该检索模式",
+            "当前离线ACL及服务器演示保持原状；报告区分已实现、受控测试、设计扩展、真实平台未验证，附后续验收矩阵"
+          ],
+          "code": [],
+          "tests": [],
+          "docs": [
+            "docs/architecture/permission-interfaces-v2.md",
+            "docs/decisions/ADR-0007-permission-provider-contract.md",
+            "docs/README.md"
+          ]
         }
       ],
       "acceptance_criteria": [

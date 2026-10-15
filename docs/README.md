@@ -45,6 +45,8 @@
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
 - `docs/product/tool-entry-scope.md`：历史 Tool 设想、可信上游身份边界及2026-10-14获准实现的阶段更新，不阻塞当前前端验收；
+- `docs/architecture/permission-interfaces-v2.md`：五种确定性权限接入模式、统一契约、Slack／项目／密级／部门／POSIX处理及报告草稿；新增部分为设计，现有数据ACL保持原状；
+- `docs/decisions/ADR-0007-permission-provider-contract.md`：多模式权限接入的Proposed架构决策；
 - `docs/architecture/source-and-agent-interfaces.md`：四平台只读API/来源权限快照、宿主优先与可选内部模型路线、个人工具凭据、MCP stdio及三客户端模板；2026-10-14 已配置用户Codex并验证stdio/授权检索，桌面真人问答及真实来源/其他客户端待验收；
 - `docs/decisions/ADR-0005-source-adapters-and-mcp.md`：用户确认的来源适配、宿主模型优先MCP及凭据/快照边界，浏览器登录继续延期；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；
