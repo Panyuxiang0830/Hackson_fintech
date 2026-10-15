@@ -1134,7 +1134,7 @@
         "tests/answering/test_radar_synthesis.py",
         "tests/radar/test_radar_integration.py"
       ],
-      "docs": ["docs/evaluation/aspire-server-20261015.md", 
+      "docs": ["docs/evaluation/aspire-server-20261015.md",
         "docs/architecture/integration-plan.md",
         "docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md",
         "docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md",

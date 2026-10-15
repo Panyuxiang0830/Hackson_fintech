@@ -122,6 +122,7 @@ function preparePassport(main) {
   for (const n of [...main.querySelectorAll('*')].filter(n=>n.children.length===0 && /9f8a|FIN-SLA|Immutable \(4 Nodes\)|SOC2|Section 4\.12/.test(n.textContent))) n.textContent='Current source scope';
 }
 function prepareSecurity(main) {
+  leaf(main,'SG Batch Payments v2.3').textContent='Source binding change';
   const selector = main.querySelector('#employeeSelectorBtn');
   const select = document.createElement('select'); select.className=selector.className; slot(select,'employee-select'); selector.replaceWith(select);
   select.parentElement.setAttribute('data-layout','employee-control');
@@ -200,7 +201,8 @@ for (const [name, doc] of Object.entries(documents)) {
       const badge=[...guide.querySelectorAll('span.rounded-full')].find(node=>norm(node.textContent).includes(text));
       if(badge){badge.classList.add('stitch-guide-step-badge');badge.parentElement.classList.add('stitch-guide-step-heading');}
     }
-    for(const b of main.querySelectorAll('button[onclick^="populatePrompt"]')){const m=b.getAttribute('onclick').match(/populatePrompt\(['"](.+?)['"]\)/); if(m){b.dataset.question=m[1];action(b,'example');}}
+    const demoQuestions=['What is TitanDB used for?','What happened during the ENG-195 / PR-135 review?','Which parts of the ENG-195 / PR-135 outcome remain unconfirmed?'];
+    for(const [index,b] of [...main.querySelectorAll('button[onclick^="populatePrompt"]')].entries()){const m=b.getAttribute('onclick').match(/populatePrompt\(['"](.+?)['"]\)/); if(m){const question=demoQuestions[index]||m[1];leaf(b,m[1]).textContent=question;b.dataset.question=question;action(b,'example');}}
     const planning=leaf(main,'Query planning enabled');
     if(planning){const control=document.createElement('label');control.className='stitch-planning';control.innerHTML='<span>Query planning</span><input type="checkbox" role="switch" aria-label="Query planning" data-slot="planning-toggle"><span class="stitch-switch-track" aria-hidden="true"></span><span data-slot="planning-label">Off</span>';planning.parentElement.replaceWith(control);}
     const illustration=guide.querySelector('img');illustration.src='/static/stitch/assets/vectorized.svg.svg';illustration.alt='Source records connected to a business judgment, timeline and Evidence Passport';illustration.classList.add('stitch-guide-image');

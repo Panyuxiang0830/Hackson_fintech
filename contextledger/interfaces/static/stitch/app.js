@@ -249,8 +249,10 @@ function renderJudgment(page,data) {
   put(page,'headline',p?.headline||(data.decision==='insufficient'?'Evidence is insufficient to confirm this question.':'Answer from the current authorised selection'));
   put(page,'explanation',p?.explanation||data.answer||'No reliable answer was generated.');
   if(one(page,'verdict')){
-    put(page,'verdict',p?.status==='confirmed'?'Confirmed':p?.status==='pending_confirmation'?'Pending confirmation':'Business confirmation unavailable');
-    const badge=one(page,'verdict');badge.classList.toggle('bg-status-warning-bg',p?.status!=='confirmed');badge.classList.toggle('text-status-warning',p?.status!=='confirmed');badge.classList.toggle('bg-mint-badge-bg',p?.status==='confirmed');badge.classList.toggle('text-status-success',p?.status==='confirmed');
+    const label=p?.status==='confirmed'?'Confirmed':p?.status==='pending_confirmation'?'Pending confirmation':data.provider==='mock_fallback'?'Model answer unavailable':data.decision==='insufficient'?'Insufficient evidence':'Source-based answer';
+    put(page,'verdict',label);
+    const warning=p?.status==='pending_confirmation'||data.provider==='mock_fallback'||data.decision==='insufficient';
+    const badge=one(page,'verdict');badge.classList.toggle('bg-status-warning-bg',warning);badge.classList.toggle('text-status-warning',warning);badge.classList.toggle('bg-mint-badge-bg',p?.status==='confirmed');badge.classList.toggle('text-status-success',p?.status==='confirmed');badge.classList.toggle('bg-canvas-bg',!p&&!warning);badge.classList.toggle('text-text-muted',!p&&!warning);
   }
   const needs=one(page,'needs');if(needs){needs.hidden=p?.status!=='pending_confirmation';
     put(page,'pending-label',data.radar?.disagreements?.length?'Source differences require review':'Pending evidence checks');
@@ -360,7 +362,7 @@ async function changeBinding() {
 
 async function runEmployeeQuery() {
   const userId=state.selectedUser;if(!userId||!state.demo)return;
-  const question=state.question||'Has SG Batch Payments v2.3 fully recovered?';
+  const question=state.question||pages.home.querySelector('[data-action="example"]')?.dataset.question||'What is TitanDB used for?';
   await switchIdentity(userId);one('home','question').value=question;await ask();
 }
 
