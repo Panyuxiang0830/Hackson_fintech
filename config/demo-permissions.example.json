@@ -6,9 +6,7 @@
   "project": "demo:swiftui-telemetry",
   "department": "Engineering_Mobile",
   "allowed_departments": [
-    "Engineering_Backend",
-    "Engineering_Mobile",
-    "Product"
+    "Engineering_Backend"
   ],
   "classification": "confidential",
   "employee_source_principal": "orgforge:Jax",
@@ -42,6 +40,12 @@
       "expected_content_hash": "97d86d69809ac5fb0e7e7f02a008633b7eb177a21c3884ed5318075ecf4e7489",
       "grant_employee": false,
       "purpose": "Private discussion; retain original participant ACL"
+    }
+  ],
+  "comparison_employees": [
+    {
+      "source_principal": "orgforge:Alex",
+      "clearance": 2
     }
   ]
 }

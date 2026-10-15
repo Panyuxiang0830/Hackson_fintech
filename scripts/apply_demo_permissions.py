@@ -53,6 +53,12 @@ def main():
             raise RuntimeError('finish existing document updates before applying the demo fixture')
     bodies = plan_annotations(manifest, rows)
     employee = next(item for item in roster['accounts'] if (item.get('source') or {}).get('principal_id') == manifest['employee_source_principal'])
+    comparisons = []
+    for entry in manifest.get('comparison_employees', []):
+        if type(entry.get('clearance')) is not int or not 0 <= entry['clearance'] <= 3:
+            raise ValueError('invalid comparison clearance')
+        account = next(item for item in roster['accounts'] if (item.get('source') or {}).get('principal_id') == entry['source_principal'])
+        comparisons.append((account['id'], entry['clearance']))
     selected = {entry['doc_id'] for entry in manifest['documents']}
     before = other_documents_digest(db_path, manifest['corpus'], selected)
     print(json.dumps({'dry_run': not args.apply, 'documents': [b['doc_id'] for b in bodies], 'project': manifest['project']}), flush=True)
@@ -99,6 +105,9 @@ def main():
         post('/api/admin/permissions', {'action':'binding','user_id':employee['id'],'corpus':manifest['corpus'], 'principal_id':manifest['employee_source_principal'],'enabled':True})
     if user['clearance'] != manifest['employee_clearance']:
         post('/api/admin/permissions', {'action':'account','user_id':employee['id'],'clearance':manifest['employee_clearance']})
+    for user_id, clearance in comparisons:
+        if identities.get(user_id).clearance != clearance:
+            post('/api/admin/permissions', {'action':'account','user_id':user_id,'clearance':clearance})
     if other_documents_digest(db_path, manifest['corpus'], selected) != before:
         raise RuntimeError('a document outside the explicit allowlist changed')
     result = {'scenario_id':manifest['scenario_id'],'updated_documents':[b['doc_id'] for b in bodies], 'jobs':jobs,'other_documents_unchanged':True,'backup':str(backup)}

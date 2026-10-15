@@ -14,11 +14,11 @@
 
 - 人工演示项目：`demo:swiftui-telemetry`。
 - 人工归类部门：`Engineering_Mobile`。
-- 允许部门：`Engineering_Backend`、`Engineering_Mobile`、`Product`。
+- 允许部门：`Engineering_Backend`；这是人工演示策略，不是声称原始资料天然仅归后端读取。
 - 资料密级：`confidential`，员工上限至少2。
 - 新字段`permission_annotation`明确标为`manual_demo`和`team_decision`；这是演示策略，不是原平台权限自动同步或模型判断。
 - Slack原始人员ACL保持不变，私聊不给Jax新增访问权。只对ENG-195显式添加Jax作为本次获准演示的读取者；旧ACL及来源依据进入既有文档版本历史，当前ACL依据标为管理员调整。
-- Jax仅恢复原本的`orgforge:Jax`映射并设密级上限2，不增加其他人的身份映射，不给其配置覆盖全语料的项目白名单。
+- Jax仅恢复原本的`orgforge:Jax`映射并设密级上限2；Alex保留自己的映射并设同样的密级上限2，作为来源ACL允许但部门不匹配的对照，不增加其他人的身份映射，不给其配置覆盖全语料的项目白名单。
 
 ## 执行与检查
 
@@ -34,7 +34,7 @@
 2. Passport显示Manually configured demo policy、项目、密级和允许部门。
 3. 管理员进入Security Lens选Jax，可取消SwiftUI项目访问；切回员工同题重问，相关项目证据和旧原文不可交付。
 4. 恢复项目，再将员工密级从Confidential降为Internal；同题重问验证confidential资料被过滤；恢复后可再次回答。
-5. 部门由员工的真实来源身份与当前部门参与检查，页面显示该员工部门和允许部门。部门过滤通过隔离测试验证，不通过把Jax随意改绑成别人的身份演示。
+5. 部门由员工的真实来源身份与当前部门参与检查，页面显示该员工部门和允许部门。Jax的后端部门匹配，Alex的移动部门不匹配；两者均为Confidential上限，切换到Alex可观察部门拒绝，再切回Jax。不通过把Jax随意改绑成别人的身份演示。
 6. 原来的来源开关和整库读取开关继续可用，撤权不隐藏orgforge入口。
 
 项目开关是现有本地项目拒绝规则，不宣称已经接通企业项目成员目录或权限接口v2。未标注的其他文档保留现有ACL/属性行为；同一来源不相关资料不因本次项目撤权被批量改写。
