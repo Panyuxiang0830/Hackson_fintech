@@ -25,6 +25,7 @@ npm run build
 - 身份与数据集使用 `/api/session`、隔离 Demo 身份接口和 `/api/corpora`。
 - 提问复用 `/api/ask`，内部 Radar 仍由后端自动决定；普通回答或格式降级不推测业务 Confirmed 状态。
 - 2026-10-16：未运行 Radar 的普通 answered 回答，大字 Current judgment 取回答自身的第一句（去掉引用编号），其余内容作说明；只有一句时说明显示其引用来源。不额外调用模型、不改写或概括回答；首行以冒号引出列表、证据不足或模型降级时仍用原有固定提示。Radar presentation 存在时仍优先使用其 headline。
+  - 2026-10-16 部署：gpushare 17866 切换至 `releases/plain-headline-20261016`（9b0acc03，PID 799330，切换前备份 `backups/before-plain-headline-20261015T182405Z`，身份/绑定/拒绝规则不变）。浏览器以 Jax 提问 "What's TracePay's daily transfer limit?"：真实 glm-5.3-flash answered、无 Radar；大字为回答首句 "TracePay's current daily transfer limit is CNY 50,000 per customer, effective immediately per the policy document."，说明为其余句子并保留 [1]，标签 Source-based answer。首句依赖既有回答 Prompt 的“先直接回答”要求，不是格式保证；未新增 Prompt 字段。
 - Confirmed / Pending confirmation 读取服务端 `radar_presentation`。只有 pending 时显示待确认卡；未知事件时间仍写 Unknown。
 - 证据在当前页面内切换到 Passport，调用 `/api/doc` 重新检查授权；文本使用 `textContent`，原文外链仅允许 HTTP(S)。不可访问时清理旧来源与回答，显示中性提示。
 - 管理员页面复用用户、来源主体和权限修改接口；前后计数表示实际来源绑定数，不是命中证据数。不会执行原 HTML 中模拟撤权的脚本。
