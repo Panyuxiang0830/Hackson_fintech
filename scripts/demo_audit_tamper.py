@@ -11,7 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.audit import AuditService  # noqa: E402
+from contextledger.audit.store import AuditStore  # noqa: E402
+from contextledger.evaluation.audit_fixture import tamper  # noqa: E402
 
 
 def sample_record(request_id: str) -> dict:
@@ -31,18 +32,13 @@ def sample_record(request_id: str) -> dict:
 
 def main() -> int:
     with tempfile.TemporaryDirectory() as directory:
-        path = Path(directory) / "audit.jsonl"
-        audit = AuditService(path)
+        path = Path(directory) / "audit.sqlite"
+        audit = AuditStore(path)
         audit.append(sample_record("demo-1"))
         audit.append(sample_record("demo-2"))
         before = audit.verify()
 
-        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-        records[0]["final_answer"] = "tampered answer"
-        path.write_text(
-            "\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n",
-            encoding="utf-8",
-        )
+        tamper(audit, "modify")
         after = audit.verify()
 
         print(f"BEFORE_TAMPER valid={before.valid} events={before.event_count}")

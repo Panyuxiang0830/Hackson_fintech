@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { parseHTML } = require('linkedom');
 const root = path.resolve(__dirname, '../..');
-const out = path.join(root, 'contextledger/static/stitch');
+const out = path.join(root, 'contextledger/interfaces/static/stitch');
 const source = path.join(__dirname, 'source');
 const pages = {home:'01_search_home',radar:'02_decision_radar',passport:'03_evidence_passport',security:'04_security_lens',audit:'05_audit_trail'};
 const norm = value => value.replace(/\s+/g, ' ').trim();

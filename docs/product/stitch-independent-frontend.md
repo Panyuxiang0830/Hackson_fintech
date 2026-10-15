@@ -4,7 +4,7 @@
 
 ## 原稿与构建
 
-`frontend/stitch/source/` 保留用户 `stitch_aspire_fintech_landing_page v2` 文件夹里的原始 `code.html`，文件名对应原页面文件夹。桌面五页的原始 HTML SHA-256 保存在 `contextledger/static/stitch/source-manifest.json`；原稿文件和生成入口同时入库，便于核对来源。
+`frontend/stitch/source/` 保留用户 `stitch_aspire_fintech_landing_page v2` 文件夹里的原始 `code.html`，文件名对应原页面文件夹。桌面五页的原始 HTML SHA-256 保存在 `contextledger/interfaces/static/stitch/source-manifest.json`；原稿文件和生成入口同时入库，便于核对来源。
 
 `frontend/stitch/build.cjs` 直接导入搜索首页、Decision Radar、Evidence Passport、Security Lens 和 Audit Trail 的 `<main>`，沿用原稿 DOM 与 Tailwind 类。共用原首页的侧栏和顶部栏，页面之间在同一前端内切换；ID 增加页面前缀，避免冲突。生成的 UI 不加载旧前端样式。原稿字体、Material Symbols 和图片整理成本地资源；Tailwind 使用原 HTML 内的配置编译，符合应用既有 `script-src 'self' / style-src 'self'` 约束。
 
@@ -20,7 +20,7 @@ npm run build
 
 ## API 接入
 
-`contextledger/static/stitch/app.js` 只负责将真实数据填入原稿的数据位置：
+`contextledger/interfaces/static/stitch/app.js` 只负责将真实数据填入原稿的数据位置：
 
 - 身份与数据集使用 `/api/session`、隔离 Demo 身份接口和 `/api/corpora`。
 - 提问复用 `/api/ask`，内部 Radar 仍由后端自动决定；普通回答或格式降级不推测业务 Confirmed 状态。
@@ -34,7 +34,7 @@ npm run build
 ## 检查
 
 ```powershell
-python -m unittest tests.test_stitch_frontend -v
+python -m unittest tests.interfaces.test_stitch_frontend -v
 cd frontend/stitch
 npm run verify
 ```
@@ -72,3 +72,15 @@ Audit Trail 筛选控制台使用容器宽度驱动的网格，字段含英文�
 动效参考 [Emil Kowalski animate Skill](https://github.com/emilkowalski/skills/blob/main/skills/animate/SKILL.md) 及其 RECIPES。用已有浏览器 WAAPI，只动画 transform 和 opacity。进入 Radar 使用200ms strong ease-out 淡入上移，Passport 使用250ms drawer 曲线从右侧短距离滑入；返回 Radar 从左侧短距离淡入。Passport 背景判断降低强调，桌面自动把证据面板带入阅读位置并转移焦点；移动端保持全屏证据和键盘焦点约束。按钮按下反馈120ms。
 
 切换取消未完成动画，权限清理和返回即时执行，不延迟内容隐藏，也不保存旧页面图像。reduced motion 只保留100ms轻微淡入；键盘触发直接切换。浏览器验证覆盖搜索区高度、问题与回答配色差异、两种页面动画、焦点转移、减少动态效果和快速关闭，并复用13个屏幕宽度回归。截图保存于工作区 output/contextledger-polish-20261015，仅为受控示意数据。
+
+## 2026-10-15 合并最新 main 并适配功能分包
+
+用户已确认当前视觉版本定稿。合并前本地检查点为 b9186fa，纳入的 main 为 9ad487e（PR #18），当前工作分支仍为 feat/REQ-017-aspire-responsive-ui，不推送或部署远端。
+
+静态资源整体迁到 contextledger/interfaces/static/stitch，构建输出、测试和文档按新路径更新；根路由由 interfaces/web.py 提供同一新版页面。HTTP /static/stitch 与现有 API 路由保持兼容；旧前端归档仍在 frontend/legacy-backup/2026-10-15。保留 main 的功能包、来源故障隔离、ACL 当前依据与历史区分、MCP 工具和语言/工具参数校验。冲突合并保留 radar_presentation 展示结构，并将综合提示词与主分支的因果/时间/工具约束合并，Prompt 版本记为 answer-v11-2026-10-15。
+
+/api/session 新增可选布尔 demo_auto_entry，前端只在服务器显式开启且为隔离 Demo 时自动选择员工；普通模式不自动进入身份。证据折叠技术详情显示当前 ACL provenance、来源观察时间、来源修订和未验证的人工来源引用，历史依据不会冒充当前依据。关闭来源或切换身份后，迟到的请求错误不能清掉新结果。引用原稿和旧版本快照关闭 Git 换行归一化，以便跨平台保持已有 SHA-256。
+
+验证范围：57项相关 Python 检查通过（回答、Radar综合/集成、身份边界、新前端文件和工具API）；另3项新 Flask 契约检查通过（默认入口/资源、实际搜索问答/原文、撤权和审计脱敏）。浏览器通过13个宽度、动效/焦点、减少动态效果、规划开关、ACL追溯字段、迟到409、复制和脱敏导出检查；这些使用受控fixture，不调用付费模型或同步真实来源。
+
+更大范围回归在 Windows 遇到既有平台限制：resource 模块、os.O_NOFOLLOW，以及原生 fcntl。临时本地预览/检查启动器使用 portalocker 提供文件锁兼容，测试清理前收集未释放的SQLite连接；不把该环境替代当作Linux同步安全验收，也不跳过失败测试来报告全量通过。生产Linux全量测试和真实模型质量未由本轮代替。
