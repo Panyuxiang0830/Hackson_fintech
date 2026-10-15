@@ -26,3 +26,7 @@
 - 统一快照接口、可信发布通道、策略编译器、来源实测与性能验证尚未实现；默认关闭新增模式。
 
 完整方案、契约示例、来源依据、后续验收矩阵和报告草稿见[权限接口v2](../architecture/permission-interfaces-v2.md)。
+
+## 2026-10-16 局部实施补充
+
+用户后续确认的项目成员资格与未标项目语义已在本地策略层实施，见[项目权限](../product/project-permissions.md)。这不改变本ADR的Proposed状态：统一PermissionProvider、企业目录、POSIX和PDP接入仍待实施。来源ACL和其他强制约束继续取交集。

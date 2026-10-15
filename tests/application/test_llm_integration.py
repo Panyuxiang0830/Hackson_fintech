@@ -293,6 +293,7 @@ class LLMIntegrationTests(unittest.TestCase):
         self.assertTrue(self.audit.verify().valid)
 
     def test_audit_revocation_and_version_change_during_models_and_http_delivery(self):
+        self.ids.update(self.admin.id, projects=["payments"])
         self.enable_workflows()
         normal = self.ask()
         self.ids.bind(self.admin.id, "alpha", "alpha:a", True)

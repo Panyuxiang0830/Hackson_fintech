@@ -111,6 +111,8 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(self.get("/api/search?corpus=alpha&q=TitanDB&principal=alpha:b").status_code, 400)
 
     def test_search_answer_audit_and_admin_revocation_share_real_services(self):
+        self.ids.update(self.alice, projects=["payments"])
+        self.ids.update(self.bob, projects=["payments"])
         self.select(self.alice)
         first = self.get("/api/search?corpus=alpha&q=TitanDB").json
         self.assertEqual({hit["doc_id"] for hit in first["hits"]}, {"doc-0", "doc-1"})

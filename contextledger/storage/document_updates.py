@@ -81,7 +81,7 @@ class DocumentUpdates:
 
     def _document(self, db, body, version, *, source_refresh=False):
         allowed = {"corpus", "doc_id", "source", "title", "text", "expected_version", "acl",
-                   "department", "project", "classification", "allowed_roles", "allowed_departments",
+                   "department", "project", "project_name", "classification", "allowed_roles", "allowed_departments",
                    "source_updated_at", "source_metadata", "permission_annotation"}
         if not isinstance(body, dict) or set(body) - allowed or "expected_version" not in body:
             raise ValueError("document fields and expected_version are required")
@@ -113,12 +113,14 @@ class DocumentUpdates:
             annotation = body["permission_annotation"]
             if (not isinstance(annotation, dict)
                     or set(annotation) != {"kind", "scenario_id", "authority"}
-                    or annotation.get("kind") != "manual_demo"
+                    or annotation.get("kind") not in {"manual_demo", "administrator_policy"}
                     or annotation.get("authority") != "team_decision"
                     or not isinstance(annotation.get("scenario_id"), str)
                     or not 1 <= len(annotation["scenario_id"]) <= 120):
                 raise ValueError("invalid manual permission annotation")
             extra["permission_annotation"] = annotation
+        if "project_name" in body:
+            extra["project_name"] = self._text(body["project_name"], "project_name", 120)
         for name in ("project", "classification", "allowed_roles", "allowed_departments"):
             if name in body:
                 value = body[name]
@@ -128,7 +130,7 @@ class DocumentUpdates:
                 elif name == "classification":
                     if not isinstance(value, str) or value not in {"public", "internal", "confidential", "restricted"}:
                         raise ValueError("invalid classification")
-                else:
+                elif not (name == "project" and value == ""):
                     self._text(value, name)
                 extra[name] = value
         source_time = old["ts"] if old else None

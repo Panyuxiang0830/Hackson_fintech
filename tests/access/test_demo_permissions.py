@@ -54,7 +54,7 @@ class DemoPermissionTests(unittest.TestCase):
                 actor = self.f.ids.get(self.f.alice.id)
                 hits,_ = self.f.index.search(self.f.index.scope(actor,'alpha'),'TitanDB',mode=mode)
                 self.assertEqual(hits, [])  # Internal clearance cannot read confidential material.
-        self.f.ids.update(self.f.alice.id, clearance=2)
+        self.f.ids.update(self.f.alice.id, clearance=2, projects=["demo:payments"])
         for mode in ('keyword','vector','hybrid'):
             actor = self.f.ids.get(self.f.alice.id)
             hits,_ = self.f.index.search(self.f.index.scope(actor,'alpha'),'TitanDB',mode=mode)

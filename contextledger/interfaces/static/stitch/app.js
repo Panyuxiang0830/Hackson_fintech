@@ -22,7 +22,7 @@ function displayName(value,id) {
   const name=String(value||'').replace(/（演示员工）/g,'').trim().replace('ContextLedger 管理员','ContextLedger Administrator');
   return /\p{Script=Han}/u.test(name)?`Account ${shortId(id)}`:name||shortId(id);
 }
-function projectLabel(value){return value==='demo:swiftui-telemetry'?'SwiftUI telemetry dashboard (demo)':value;}
+function projectLabel(value){return state.contentScopes.flatMap(c=>c.project_catalog||[]).find(p=>p.id===value)?.name||String(value).split(':').at(-1).replaceAll('-',' ');}
 state.planningChoice=null;
 try{const saved=localStorage.getItem('contextledger.stitch.planning');if(saved==='on'||saved==='off')state.planningChoice=saved==='on';}catch(error){/* Storage is optional. */}
 function renderPlanning() {
@@ -322,7 +322,7 @@ async function openPassport(hit) {
     put('passport','citation-source',`[${hit.citation_id}] ${data.doc.source||hit.source||'Source'} · Original text`);
     put('passport','quote',data.doc.text||'No source text was returned.');put('passport','doc-version',data.doc.version);put('passport','doc-time',data.doc.ts||'Unknown');put('passport','doc-indexed',data.doc.indexed_at||'Unknown');put('passport','doc-access',data.doc.acl_basis||'Current session access');
     const metadata=data.doc.metadata||{};
-    put('passport','doc-policy',metadata.permission_annotation?.kind==='manual_demo'?`Manually configured demo policy · ${projectLabel(metadata.project)} · ${metadata.classification} · Eligible departments: ${(metadata.allowed_departments||[]).join(', ')}`:'');
+    put('passport','doc-policy',metadata.project?`${metadata.project_name||projectLabel(metadata.project)} · ${metadata.classification||'Internal'}`:'');
     put('passport','technical',JSON.stringify({request_id:state.result.request_id,document_id:hit.doc_id,version:data.doc.version,content_hash:data.doc.content_hash||null,source_check:data.doc.source_check||'Unknown',freshness:data.doc.freshness||'Unknown',current_acl_basis:data.doc.acl_basis||null,acl_provenance:metadata.acl_provenance||null,current_source_acl_basis:metadata.source_acl_basis||null,current_source_acl_observed_at:metadata.source_acl_observed_at||null,unverified_source_acl_reference:metadata.source_acl_reference||null,source_revision:metadata.source_revision||null},null,2));
     notice('');
   } catch(error){if(docRequest!==state.docGeneration&&!error.accessChanged)return;if(error.status===404){clearProtected();notice(error.message,'error');}else if(generation===state.generation){put('passport','claim','Source unavailable');put('passport','quote','The source cannot be opened under the current access scope.');put('passport','doc-access-status','Unavailable');state.doc=null;notice(error.message,'error');}else if(error.accessChanged)notice(error.message,'error');}
@@ -386,14 +386,9 @@ function renderContentAccess() {
     const name=({slack:'Slack',jira:'Jira',confluence:'Confluence',google_drive:'Google Drive'})[source]||source;
     label.append(input,element('span','',name));controls.append(label);
   }
-  const attributes=state.contentScopes.find(c=>c.id===state.controlCorpus)?.attribute_controls;
-  one('security','attribute-controls').hidden=!attributes;
-  const projects=one('security','project-controls');projects.replaceChildren();
-  if(attributes){
-    for(const project of attributes.projects){const label=element('label','stitch-access-row');const input=element('input');input.type='checkbox';input.dataset.projectPermission=project;input.checked=current.bound&&!current.blocked&&!current.rules.some(r=>r.kind==='project'&&(r.value===project||r.value==='*'));input.disabled=!current.bound||current.blocked||current.globalRule;label.append(input,element('span','',`Read project: ${projectLabel(project)}`));projects.append(label);}
-    one('security','clearance-select').value=String(person.clearance);
-    put('security','department-policy',`Employee department: ${person.department||'Unassigned'}. Demo evidence allows: ${attributes.allowed_departments.join(', ')}.`);
-  }
+  one('security','attribute-controls').hidden=false;
+  one('security','clearance-select').value=String(person.clearance);
+  renderProjects(person);
   const documents=one('security','document-rules');documents.replaceChildren();
   for(const rule of current.rules.filter(r=>r.kind==='document')){
     const row=element('div','stitch-access-row');row.append(element('span','stitch-wrap',rule.value));
@@ -404,12 +399,31 @@ function renderContentAccess() {
   for(const [prefix,user] of [['before',state.baseline],['after',person]]){
     const access=contentState(user);const list=one('security',prefix+'-bindings');list.replaceChildren();put('security',prefix+'-count',access.allowed.length);
     for(const source of access.sources){const row=element('div','stitch-access-row');row.append(element('span','',source),element('span',access.allowed.includes(source)?'text-status-success':'text-text-muted',access.allowed.includes(source)?'Allowed':'Blocked'));list.append(row);}
-    if(attributes)list.append(element('p','font-body-sm text-text-muted',`Clearance: ${['Public','Internal','Confidential','Restricted'][user.clearance]}. ${attributes.projects.map(project=>projectLabel(project)+': '+(access.rules.some(r=>r.kind==='project'&&(r.value===project||r.value==='*'))?'Blocked':'Allowed')).join('; ')}`));
+    list.append(element('p','font-body-sm text-text-muted',`Clearance: ${['Public','Internal','Confidential','Restricted'][user.clearance]}`));
+    const names=(state.contentScopes.find(c=>c.id===corpus)?.project_catalog||[]).filter(p=>(user.projects||[]).includes(p.id)).map(p=>p.name);
+    if(names.length)list.append(element('p','font-body-sm text-text-muted',`Projects: ${names.join(', ')}`));
     if(access.rules.some(r=>r.kind==='document'))list.append(element('p','font-body-sm text-text-muted',`${access.rules.filter(r=>r.kind==='document').length} document restriction(s).`));
     if(!access.bound)list.append(element('p','font-body-sm text-text-muted','Mapped source identity is disabled.'));
   }
   put('security','before-epoch',`Permission version ${state.baseline.epoch}`);
-  put('security','permission-feedback',`Permission version ${state.baseline.epoch} → ${person.epoch}. ${current.globalRule?'A global restriction also applies. ':''}The dataset stays selectable; every employee query uses these saved permissions.`);
+  put('security','permission-feedback',`Permission version ${state.baseline.epoch} → ${person.epoch}`);
+}
+
+function renderProjects(person) {
+  const catalog=state.contentScopes.find(c=>c.id===state.controlCorpus)?.project_catalog||[];
+  const selected=one('security','project-controls');selected.replaceChildren();
+  for(const project of catalog.filter(p=>(person.projects||[]).includes(p.id))){
+    const chip=element('div','stitch-project-chip');
+    const remove=element('button','stitch-project-remove','×');remove.type='button';remove.dataset.removeProject=project.id;remove.setAttribute('aria-label',`Remove project ${project.name}`);
+    chip.append(element('span','',project.name),remove);selected.append(chip);
+  }
+  if(!selected.children.length)selected.append(element('span','font-body-sm text-text-muted','No projects assigned'));
+  const query=one('security','project-search').value.trim().toLocaleLowerCase();
+  const results=one('security','project-results');results.replaceChildren();
+  const available=catalog.filter(p=>!(person.projects||[]).includes(p.id)&&p.name.toLocaleLowerCase().includes(query));
+  if(query)for(const project of available){const button=element('button','stitch-project-option',`+ ${project.name}`);button.type='button';button.dataset.addProject=project.id;results.append(button);}
+  if(query&&!available.length)results.append(element('span','font-body-sm text-text-muted','No matching projects'));
+  results.hidden=!query;
 }
 
 async function saveContentPermission(fields) {
@@ -511,7 +525,9 @@ one('security','employee-select').addEventListener('change',event=>selectEmploye
 one('security','content-corpus').addEventListener('change',event=>{state.controlCorpus=event.target.value;renderContentAccess();});
 one('security','dataset-access').addEventListener('change',event=>saveContentPermission({action:'restriction',kind:'corpus',value:state.controlCorpus,denied:!event.target.checked}));
 one('security','source-controls').addEventListener('change',event=>{if(event.target.dataset.sourcePermission)saveContentPermission({action:'restriction',kind:'source',value:event.target.dataset.sourcePermission,denied:!event.target.checked});});
-one('security','project-controls').addEventListener('change',event=>{if(event.target.dataset.projectPermission)saveContentPermission({action:'restriction',kind:'project',value:event.target.dataset.projectPermission,denied:!event.target.checked});});
+one('security','project-search').addEventListener('input',()=>{const person=state.people.find(p=>p.id===state.selectedUser);if(person)renderProjects(person);});
+one('security','project-controls').addEventListener('click',event=>{const button=event.target.closest('[data-remove-project]');if(button)saveContentPermission({action:'project_membership',project:button.dataset.removeProject,enabled:false});});
+one('security','project-results').addEventListener('click',event=>{const button=event.target.closest('[data-add-project]');if(button)saveContentPermission({action:'project_membership',project:button.dataset.addProject,enabled:true});});
 one('security','clearance-select').addEventListener('change',event=>saveContentPermission({action:'account',clearance:Number(event.target.value)}));
 one('security','document-rules').addEventListener('click',event=>{const button=event.target.closest('[data-restore-document]');if(button)saveContentPermission({action:'restriction',kind:'document',value:button.dataset.restoreDocument,denied:false});});
 pages.security.querySelector('[data-action="deny-document"]').addEventListener('click',()=>{const id=one('security','document-id').value.trim();if(id)saveContentPermission({action:'restriction',kind:'document',value:id,denied:true});else notice('Enter a document ID from Evidence Passport.','error');});

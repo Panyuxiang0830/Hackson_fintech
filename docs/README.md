@@ -44,6 +44,7 @@
 - `docs/product/security-lens-demo-3d.md`：约60秒的Security Lens撤权前后录制流程及2026-10-16逐题线上复测结果；
 - `docs/product/curated-demo-permissions.md`：ENG-195/PR-135四份白名单资料的人工演示权限、执行预检和录制步骤；
 - `docs/product/permission-demo-handoff-2026-10-15.md`：权限改进交接，包含代码、分支、真实线上状态、部署待办及报告边界；
+- `docs/product/project-permissions.md`：项目搜索与成员卡片、六个项目的白名单标注及未标项目语义；
 - `docs/product/resource-permissions.md`：数据集目录保留、来源／文档读取控制及2026-10-15服务器演示重试步骤；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；

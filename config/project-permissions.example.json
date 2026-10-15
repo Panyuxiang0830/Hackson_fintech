@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "authority": "team_decision",
+  "corpus": "orgforge",
+  "projects": [
+    {
+      "id": "orgforge:swiftui-telemetry",
+      "name": "SwiftUI Telemetry Dashboard",
+      "documents": [
+        {
+          "doc_id": "ENG-195",
+          "expected_content_hash": "e74876d43b5bd6460f6e3ae37ce4b49cac50834079fef31601d022d71fe69d78"
+        },
+        {
+          "doc_id": "slack_engineering_2026-02-17T09:37:07",
+          "expected_content_hash": "1db4543ee52ce044ba1bba388b148df58915aa6ed02ed10a4899e534f869d11d"
+        },
+        {
+          "doc_id": "slack_engineering_2026-02-18T09:38:43",
+          "expected_content_hash": "d7db8fbb45ec7579e3ddb04701af08ced547bd91eddd0d70de49646718723629"
+        },
+        {
+          "doc_id": "slack_dm_miki_raj_2026-02-17T15:09:55.860671",
+          "expected_content_hash": "97d86d69809ac5fb0e7e7f02a008633b7eb177a21c3884ed5318075ecf4e7489"
+        }
+      ],
+      "previous_project": "demo:swiftui-telemetry"
+    },
+    {
+      "id": "orgforge:marathon-pacing",
+      "name": "Marathon Pacing Dashboard",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-019",
+          "expected_content_hash": "7c1904a6211a3452644f70bde7deb214b143d2ae32afa94adb87d0fc7fdc614c"
+        },
+        {
+          "doc_id": "ENG-104",
+          "expected_content_hash": "43d8904679f4d1cf80d1b37810038b4ef9e2342749319b948a8fa12bddee857f"
+        }
+      ]
+    },
+    {
+      "id": "orgforge:mobile-analytics",
+      "name": "Firebase Mobile Analytics",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-049",
+          "expected_content_hash": "1dfa798c0e1d59586ac24173502c05587bfbec943588f5a13e714f7acc8031b7"
+        },
+        {
+          "doc_id": "CONF-ENG-305",
+          "expected_content_hash": "8df88dc395718756ad0c0dc18d0167c48cdfb9adbd23e8dcb420c609d9815556"
+        }
+      ]
+    },
+    {
+      "id": "orgforge:cloudwatch-monitoring",
+      "name": "CloudWatch Monitoring",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-205",
+          "expected_content_hash": "280b42d1501d54ae85b01059e86662f1f00511c53e7bfd479e52071292f6262a"
+        },
+        {
+          "doc_id": "ENG-218",
+          "expected_content_hash": "35ce3ad2dcdcaaf14083382facab84255f970b26ea0ab236d78fb0880ec62fd1"
+        }
+      ]
+    },
+    {
+      "id": "orgforge:pipeline-alerts",
+      "name": "Pipeline Failure Alerts",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-251",
+          "expected_content_hash": "68f5aa63e944cf25196c957184f291f684f9ae72d2d191e8d79a0acf373a6756"
+        },
+        {
+          "doc_id": "DES-174",
+          "expected_content_hash": "2de3d77d2340515b304f6539875cac27eff8aa7c7ab069b4ea7516773482f525"
+        }
+      ]
+    },
+    {
+      "id": "orgforge:telemetry-reliability",
+      "name": "Telemetry Pipeline Reliability",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-242",
+          "expected_content_hash": "a4d501e6feae30edd45e17b8cb484f01f1f7a20b2f06b065c70a704cc2c26470"
+        },
+        {
+          "doc_id": "ENG-148",
+          "expected_content_hash": "d240a5d2eaa69c25093128a7af302715af590dffa6ad3a636846e1f964477902"
+        }
+      ]
+    }
+  ],
+  "initial_memberships": [
+    {
+      "principal_id": "orgforge:Jax",
+      "projects": [
+        "orgforge:swiftui-telemetry",
+        "orgforge:cloudwatch-monitoring",
+        "orgforge:telemetry-reliability"
+      ]
+    },
+    {
+      "principal_id": "orgforge:Alex",
+      "projects": [
+        "orgforge:marathon-pacing",
+        "orgforge:mobile-analytics",
+        "orgforge:pipeline-alerts"
+      ]
+    }
+  ]
+}

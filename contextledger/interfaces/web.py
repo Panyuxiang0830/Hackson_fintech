@@ -359,6 +359,9 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
             result = []
             for corpus, sources in catalog.items():
                 item = {"id": corpus, "sources": sources}
+                catalog_projects = service.identities.projects(corpus)
+                if catalog_projects:
+                    item["project_catalog"] = catalog_projects
                 annotated = db.execute("""SELECT DISTINCT m.project,m.department,m.classification,m.departments_json
                     FROM cl_metadata m JOIN documents d ON d.corpus=m.corpus AND d.doc_id=m.doc_id
                     WHERE m.corpus=? AND json_extract(d.extra_json,'$.permission_annotation.kind')='manual_demo'
@@ -460,8 +463,19 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
         action = body.get("action")
         service.fence(g.actor)
         # An intent survives if a later write/audit step fails; no false success event.
-        detail = {k: body.get(k) for k in ("user_id", "action", "corpus", "principal_id", "kind", "value", "enabled", "denied", "role")}
-        if action == "binding":
+        detail = {k: body.get(k) for k in ("user_id", "action", "corpus", "principal_id", "kind", "value", "enabled", "denied", "role", "project", "name")}
+        if action == "project_catalog":
+            with connect(db_path) as db:
+                if not db.execute("SELECT 1 FROM documents WHERE corpus=? LIMIT 1", (body.get("corpus"),)).fetchone():
+                    raise ValueError("unknown corpus")
+            service.record(g.actor, "permission_change_intent", change=detail)
+            service.identities.register_project(body.get("corpus"), body.get("project"), body.get("name"))
+        elif action == "project_membership":
+            if body.get("corpus") not in service.identities.associated_corpora(target):
+                raise ValueError("employee is not associated with this dataset")
+            service.record(g.actor, "permission_change_intent", change=detail)
+            service.identities.project_membership(target, body.get("corpus"), body.get("project"), body.get("enabled"))
+        elif action == "binding":
             with connect(db_path) as db:
                 if not db.execute("SELECT 1 FROM principals WHERE corpus=? AND principal_id=?", (body.get("corpus"), body.get("principal_id"))).fetchone():
                     raise ValueError("source principal does not exist in this corpus")

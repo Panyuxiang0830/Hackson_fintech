@@ -233,3 +233,14 @@ select option:checked{background:#E6F9F2;color:#006c46}
 .stitch-access-row:has(input){justify-content:flex-start;cursor:pointer}
 .stitch-access-row input:disabled{cursor:not-allowed}
 [data-slot=document-id]{box-sizing:border-box;max-width:100%;font-size:12px}
+
+/* Project membership controls. */
+.stitch-project-chips{display:flex;flex-wrap:wrap;gap:8px}
+.stitch-project-chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:8px 12px;background:#edf5f0;border:1px solid #d9e8df;border-radius:10px;font-size:13px;color:#203d31}
+.stitch-project-chip>span{overflow-wrap:anywhere}
+.stitch-project-remove{flex:none;width:24px;height:24px;border-radius:50%;font-size:19px;line-height:1;background:transparent;cursor:pointer}
+.stitch-project-remove:hover{background:#dbe9e0}
+.stitch-project-results{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto;border:1px solid #e1e8e3;border-radius:10px;padding:6px}
+.stitch-project-results[hidden]{display:none}
+.stitch-project-option{padding:9px 10px;text-align:left;border-radius:7px;background:transparent;font-size:13px;cursor:pointer}
+.stitch-project-option:hover{background:#edf5f0}
