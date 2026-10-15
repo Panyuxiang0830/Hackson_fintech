@@ -155,7 +155,7 @@ Answer Replay & The recorded question, answer, evidence versions, permission sna
 \end{tabularx}
 
 \begin{noteBox}
-\textbf{Illustrative demo sequence.} At 09:40, a Slack message reports recovery. At 09:47, the Jira incident remains open. At 09:50, a runbook record states that monitoring validation is required before formal confirmation. The useful result is \emph{``Full recovery is not yet confirmed: check monitoring validation and reconcile the incident state.''} An open ticket could reflect a delayed update; it does not, by itself, prove an outage. 
+\textbf{Illustrative demo sequence.} At 09:40, a Slack message reports recovery. At 09:47, the Jira incident remains open. At 09:50, a runbook record states that monitoring validation is required before formal confirmation. The useful result is \emph{``Full recovery is not yet confirmed: check monitoring validation and reconcile the incident state.''} An open ticket could reflect a delayed update; it does not, by itself, prove an outage.
 \end{noteBox}
 
 The prototype supports bounded internal evidence expansion, revision references, event candidates and source-difference reporting. The new frontend presents a timeline and a pending/confirmed summary. The summary describes the selected records; live service health requires operational evidence. Complete cross-source authority rules and semantic conflict detection remain unvalidated. Answer Replay uses the audit record; it does not deterministically rerun a historical model or restore revoked access.
