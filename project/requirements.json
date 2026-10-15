@@ -720,7 +720,7 @@
         {
           "title": "Radar 来源记录时间映射与排序修复",
           "authority": "team_decision",
-          "status": "in_progress",
+          "status": "validated",
           "description": "2026-10-15 用户授权修复、PR并合并：读取授权检索结果 ts，区分来源记录时间与实际操作时间；保留无时区及 date/day/timestamp 差异，修正可比较记录的时间排序并把时间依据传递给同次综合模型。",
           "acceptance_criteria": [
             "ENG-195/PR-135 两条 Slack 记录按来源 ts 排序，原始无时区时间不转换为 SGT",
@@ -737,6 +737,7 @@
             "frontend/stitch/build.cjs"
           ],
           "tests": [
+            "tests/radar/test_radar.py",
             "tests/radar/test_radar_timing.py",
             "tests/radar/test_radar_integration.py",
             "frontend/stitch/verify.cjs"
