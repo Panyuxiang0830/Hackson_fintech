@@ -2,6 +2,14 @@
 
 2026-10-16；REQ-016/resource_access_controls、REQ-019。线上17866自然问法实际复测通过，用户人工录制待完成。
 
+## 当前录制方式（2026-10-16更新）
+
+按用户最新选择，本段可直接关闭Jax的Slack、Jira、Confluence三个来源来演示，不删除绑定。项目管理现已改成可搜索、添加/移除的成员卡片；界面不再出现Configured demo permissions或demo项目勾选框。自然问题仍用下文原句。
+
+当前Jax三个来源已全部关闭，测试后保留该状态。录制正常回答前先在管理员页面勾回三个来源；拿到正常回答后开录，再依次关掉三个来源并Run employee query again。实测仍可选择orgforge、零证据且零回答模型调用。
+
+下方旧项目勾选步骤仅作历史记录；新版如演示项目单独撤权，移除SwiftUI项目卡片即可，通过搜索添加可恢复。详见[项目权限](project-permissions.md)。
+
 ## 录制前准备
 
 - 页面刷新至当前版本。身份 Jax，dataset `orgforge`，Query planning Off，默认混合检索。

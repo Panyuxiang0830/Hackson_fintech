@@ -400,7 +400,7 @@ function renderContentAccess() {
     const access=contentState(user);const list=one('security',prefix+'-bindings');list.replaceChildren();put('security',prefix+'-count',access.allowed.length);
     for(const source of access.sources){const row=element('div','stitch-access-row');row.append(element('span','',source),element('span',access.allowed.includes(source)?'text-status-success':'text-text-muted',access.allowed.includes(source)?'Allowed':'Blocked'));list.append(row);}
     list.append(element('p','font-body-sm text-text-muted',`Clearance: ${['Public','Internal','Confidential','Restricted'][user.clearance]}`));
-    const names=(state.contentScopes.find(c=>c.id===corpus)?.project_catalog||[]).filter(p=>(user.projects||[]).includes(p.id)).map(p=>p.name);
+    const names=(state.contentScopes.find(c=>c.id===state.controlCorpus)?.project_catalog||[]).filter(p=>(user.projects||[]).includes(p.id)).map(p=>p.name);
     if(names.length)list.append(element('p','font-body-sm text-text-muted',`Projects: ${names.join(', ')}`));
     if(access.rules.some(r=>r.kind==='document'))list.append(element('p','font-body-sm text-text-muted',`${access.rules.filter(r=>r.kind==='document').length} document restriction(s).`));
     if(!access.bound)list.append(element('p','font-body-sm text-text-muted','Mapped source identity is disabled.'));
