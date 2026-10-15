@@ -22,4 +22,12 @@
 
 ## 验证记录
 
-本地和服务器回归、当前索引隔离验证以及浏览器验收结果在部署完成后补充。测试不重写导入 ACL，不重建向量索引，不重置七账号或审计库。
+- 实现提交 `be69fa23` 已部署到 gpushare `/hy-tmp/data_pyx/contextledger-integration/releases/resource-permissions-20261015`，仍使用回环17866和原有 SSH 转发入口。没有合并 main。
+- 本地：unittest 373项通过；pytest 381项、149个subtests通过；需求同步和两份前端JS语法检查通过。
+- 浏览器受控夹具：关闭Jira后只返回Confluence证据；关闭整个数据集读取后返回零证据、安全提示；返回问题表单仍可选择数据集。服务器浏览器已确认Jax、OrgForge及当前权限版本13。
+- 真实OrgForge索引、复制权限/审计的隔离验证：初始TitanDB Top-K为Confluence；禁止Confluence后返回5条Slack证据；单文档阻止/恢复及旧原文拒绝通过；整库撤权返回0证据、0模型调用；恢复后provider为`openai_compatible/glm-5.3-flash`且decision为answered，审计链有效。这些临时变更不写入当前演示权限库。
+- 当前演示HTTP验证：Jax仍为版本13、原映射保持撤销，`/api/corpora`包含orgforge；相同问题返回insufficient、0证据、0模型调用。请求ID `4a012ad0-4b56-4459-8e1b-0c730d22c44c`。
+- 切换前使用SQLite backup保存身份库和审计库。切换后逐项比较账号状态、权限版本、绑定和本地限制，与切换前完全一致；保留原始数据、向量索引、七账号和审计记录。
+- 服务器原服务环境缺可选MCP SDK，全量检查最初有2项依赖失败；在独立test-deps目录补齐SDK并建立测试解释器，不更改在线服务venv。最终在该隔离测试解释器下：unittest 373项全部通过，pytest 381项和149个subtests全部通过。
+
+原地址刷新即可重试。Jax当前保持撤权；若要先展示正常读取，管理员需明确恢复其已有`orgforge:Jax`映射，再选择读取范围。没有恢复Alex映射或新增跨员工绑定。

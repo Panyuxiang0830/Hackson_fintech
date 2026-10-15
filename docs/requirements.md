@@ -637,8 +637,8 @@
 - 扩展键：`resource_access_controls`
 - 来源：user confirmed on 2026-10-15 for submission demo; preserve imported ACL and focus OrgForge
 - 权威级别：`team_decision`（独立于基础需求）
-- 状态：`in_progress`
-- 说明：所属数据集目录与内容读取分开；Security Lens 管理数据集、来源和单篇文档本地读取限制，保留来源 ACL，不用借用其他员工来源身份授予权限。
+- 状态：`implemented`
+- 说明：已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。
 - 验收标准：
 
   - 撤销数据集或全部来源读取权后，员工仍能选择已有映射的数据集；无证据时不调用模型并返回安全提示
@@ -650,7 +650,7 @@
 
   - 代码：`contextledger/interfaces/web.py`, `contextledger/access/identity_store.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/answering/service.py`
   - 测试：`tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_answering.py`
-  - 文档：`docs/product/resource-permissions.md`
+  - 文档：`docs/product/resource-permissions.md`, `docs/README.md`
 
 ## REQ-017 · Part A 与安全问答服务统一集成
 

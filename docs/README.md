@@ -40,6 +40,7 @@
 - `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
+- `docs/product/resource-permissions.md`：数据集目录保留、来源／文档读取控制及2026-10-15服务器演示重试步骤；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
