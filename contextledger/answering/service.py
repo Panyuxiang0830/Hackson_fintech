@@ -72,10 +72,10 @@ def _sentences(text: str) -> list[str]:
 
 
 def empty_evidence_answer(question: str, output_language=None) -> str:
-    return ("本次未检索到足够的可用依据，暂时无法回答这个问题。你可以补充具体信息，或换一种问法。"
+    return ("当前权限范围内未检索到足够的可用依据，暂时无法回答这个问题。请检查资料读取权限，或补充具体信息。"
             if output_language != "en" and re.search(r"[\u4e00-\u9fff]", question) else
-            "This request found insufficient usable evidence to answer the question. "
-            "You can add more detail or rephrase your question.")
+            "This request found insufficient usable evidence within your current access permissions. "
+            "Please check your reading permissions or add more detail to the question.")
 
 
 def reasoning_parameters(base_url, effort):

@@ -226,3 +226,10 @@ select option:checked{background:#E6F9F2;color:#006c46}
 .stitch-full-answer{margin-top:16px;border-top:1px solid #E5E9E8;padding-top:12px}
 .stitch-full-answer summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;color:#006c46;font-weight:600}
 .stitch-full-answer p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:#475569}
+
+/* Saved content permissions use the existing mint/surface design tokens. */
+.stitch-access-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:var(--color-canvas-bg,#f3f7f4);font-size:13px;min-width:0}
+.stitch-access-row input[type=checkbox]{width:18px;height:18px;accent-color:#006c46;flex-shrink:0}
+.stitch-access-row:has(input){justify-content:flex-start;cursor:pointer}
+.stitch-access-row input:disabled{cursor:not-allowed}
+[data-slot=document-id]{box-sizing:border-box;max-width:100%;font-size:12px}

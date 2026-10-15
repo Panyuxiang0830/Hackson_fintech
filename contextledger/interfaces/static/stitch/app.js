@@ -1,7 +1,7 @@
 'use strict';
 // The supplied page DOM is retained. This adapter fills its marked data slots.
 const pages = Object.fromEntries([...document.querySelectorAll('main[data-page]')].map(node => [node.dataset.page,node]));
-const state = {user:null,csrf:null,demo:false,accounts:[],corpora:[],question:'',corpus:'',result:null,doc:null,audit:null,people:[],principals:[],baseline:null,selectedUser:null,generation:0,docGeneration:0,busy:false,changingIdentity:false,timelineExpanded:{radar:false,passport:false},passportOpener:null};
+const state = {user:null,csrf:null,demo:false,accounts:[],corpora:[],question:'',corpus:'',result:null,doc:null,audit:null,people:[],principals:[],baseline:null,selectedUser:null,contentScopes:[],controlCorpus:'',generation:0,docGeneration:0,busy:false,changingIdentity:false,timelineExpanded:{radar:false,passport:false},passportOpener:null};
 const one = (page,name) => pages[page]?.querySelector(`[data-slot="${name}"]`);
 const all = (page,name) => [...(pages[page]?.querySelectorAll(`[data-slot="${name}"]`) || [])];
 const put = (page,name,value) => all(page,name).forEach(node=>{node.textContent=String(value ?? '—');});
@@ -181,12 +181,13 @@ async function refreshSession() {
   state.planningConfigured=Boolean(data.workflows?.planner_configured);
   if(state.planningChoice===null)state.planningChoice=Boolean(data.workflows?.planner_enabled);
   renderPlanning();
-  for(const page of ['radar','security'])put(page,'epoch',state.user?.epoch??'—');
+  put('radar','epoch',state.user?.epoch??'—');
   put('radar','employee',state.user?displayName(state.user.name,state.user.id):'No identity');
   for(const link of document.querySelectorAll('[data-role-required]'))link.hidden=link.dataset.roleRequired==='admin'?state.user?.role!=='admin':!['admin','compliance'].includes(state.user?.role);
   if(!permitted(document.body.dataset.activePage))show('home');
   if(!state.user||state.user.role!=='admin'){
-    state.people=[];state.principals=[];state.baseline=null;state.selectedUser=null;
+    state.people=[];state.principals=[];state.baseline=null;state.selectedUser=null;state.contentScopes=[];state.controlCorpus='';
+    one('security','source-controls').replaceChildren();one('security','document-rules').replaceChildren();one('security','content-corpus').replaceChildren();
     for(const name of ['employee-select','binding-select','before-bindings','after-bindings'])one('security',name)?.replaceChildren();
     put('security','before-count','—');put('security','after-count','—');put('security','permission-feedback','Administrator access required.');
   }
@@ -209,6 +210,7 @@ async function loadCorpora() {
   state.corpora=state.user?await api('/api/corpora'):[];
   for(const corpus of state.corpora){const option=element('option','',corpus.label);option.value=corpus.id;selector.append(option);}
   if(state.corpora.some(item=>item.id===state.corpus))selector.value=state.corpus;
+  else if(state.corpora.some(item=>item.id==='orgforge'))selector.value='orgforge';
   else if(state.corpora.length===1)selector.value=state.corpora[0].id;
   state.corpus=selector.value;
 }
@@ -327,54 +329,99 @@ async function openPassport(hit) {
 async function loadSecurity() {
   if(state.user?.role!=='admin')return;
   const generation=state.generation;
-  const [people,principals]=await Promise.all([api('/api/admin/users'),api('/api/admin/principals')]);if(generation!==state.generation)return;
-  state.people=people;state.principals=principals;
+  const people=await api('/api/admin/users');if(generation!==state.generation)return;
+  state.people=people;
   const selector=one('security','employee-select');const prior=state.selectedUser;selector.replaceChildren();
   for(const person of people.filter(p=>p.role==='member')){const option=element('option','',`${displayName(person.name,person.id)} · ${displayName(person.department||person.role,person.id)}`);option.value=person.id;option.disabled=!person.enabled;selector.append(option);}
-  selector.value=people.some(p=>p.id===prior)?prior:(people.find(p=>p.enabled&&p.role==='member')?.id||'');
-  selectEmployee(selector.value);
+  selector.value=people.some(p=>p.id===prior&&p.role==='member')?prior:(people.find(p=>p.enabled&&p.role==='member')?.id||'');
+  await selectEmployee(selector.value);
 }
 
-function selectEmployee(userId) {
+async function selectEmployee(userId) {
   const person=state.people.find(p=>p.id===userId);if(!person)return;
   if(state.selectedUser!==userId||!state.baseline)state.baseline=structuredClone(person);
-  state.selectedUser=userId;put('security','epoch',person.epoch);
-  put('security','binding-description',`Change ${displayName(person.name,person.id)}'s selected source binding in the isolated demo.`);
-  const select=one('security','binding-select');const previous=select.value;select.replaceChildren();
-  for(const principal of state.principals){const binding=(person.bindings||[]).find(b=>b.corpus===principal.corpus&&b.principal_id===principal.principal_id);const option=element('option','',`${principal.corpus} · ${principal.name||principal.principal_id}${binding?.enabled?' · Active':' · Unbound'}`);option.value=JSON.stringify([principal.corpus,principal.principal_id]);select.append(option);}
-  if([...select.options].some(o=>o.value===previous))select.value=previous;
-  else{const binding=(person.bindings||[]).find(b=>b.enabled)||(person.bindings||[])[0];if(binding)select.value=JSON.stringify([binding.corpus,binding.principal_id]);}
-  renderBindingCards(person);bindingLabel();
+  state.selectedUser=userId;const generation=state.generation;
+  setPermissionBusy(true);
+  try {
+    const catalog=await api('/api/admin/content-scopes?'+new URLSearchParams({user_id:userId}));
+    if(generation!==state.generation||state.selectedUser!==userId)return;
+    state.contentScopes=catalog;
+    const selector=one('security','content-corpus');selector.replaceChildren();
+    for(const item of catalog){const option=element('option','',item.id);option.value=item.id;selector.append(option);}
+    selector.value=catalog.some(item=>item.id===state.controlCorpus)?state.controlCorpus:catalog.some(item=>item.id==='orgforge')?'orgforge':catalog[0]?.id||'';
+    state.controlCorpus=selector.value;renderContentAccess();
+  } finally {setPermissionBusy(false);}
 }
 
-function renderBindingCards(person) {
+function contentState(person) {
+  const corpus=state.controlCorpus;
+  const rules=(person.restrictions||[]).filter(r=>r.corpus===corpus||r.corpus==='*');
+  const bound=(person.bindings||[]).some(b=>b.corpus===corpus&&b.enabled);
+  const globalRule=rules.some(r=>r.corpus==='*');
+  const blocked=rules.some(r=>r.kind==='corpus'&&(r.value===corpus||r.value==='*'))||rules.some(r=>['source','project','department','document'].includes(r.kind)&&r.value==='*');
+  const sources=state.contentScopes.find(c=>c.id===corpus)?.sources||[];
+  return {rules,bound,blocked,globalRule,sources,allowed:sources.filter(source=>bound&&!blocked&&!rules.some(r=>r.kind==='source'&&r.value===source))};
+}
+
+function setPermissionBusy(busy) {
+  for(const node of pages.security.querySelectorAll('input,select,button'))node.disabled=busy;
+  if(!busy&&state.selectedUser)renderContentAccess();
+}
+
+function renderContentAccess() {
+  const person=state.people.find(p=>p.id===state.selectedUser);if(!person)return;
+  const current=contentState(person);put('security','epoch',person.epoch);
+  put('security','binding-description',`Choose which ${state.controlCorpus||'dataset'} sources ${displayName(person.name,person.id)} may read. Imported source ACLs still apply.`);
+  const mapped=(person.bindings||[]).filter(b=>b.corpus===state.controlCorpus);
+  const select=one('security','binding-select');select.replaceChildren();
+  for(const binding of mapped){const option=element('option','',`${binding.principal_id} · ${binding.enabled?'Linked':'Disabled'}`);option.value=JSON.stringify([binding.corpus,binding.principal_id]);select.append(option);}
+  const restore=pages.security.querySelector('[data-action="binding"]');restore.hidden=current.bound||!mapped.length;
+  put('security','binding-label','Restore this mapped identity');select.hidden=current.bound||!mapped.length;
+  const enabled=one('security','dataset-access');enabled.checked=current.bound&&!current.blocked;enabled.disabled=!current.bound||!state.controlCorpus||current.globalRule;
+  const controls=one('security','source-controls');controls.replaceChildren();
+  for(const source of current.sources){
+    const label=element('label','stitch-access-row');const input=element('input');input.type='checkbox';input.dataset.sourcePermission=source;input.checked=current.allowed.includes(source);input.disabled=!current.bound||current.blocked||current.globalRule;
+    const name=({slack:'Slack',jira:'Jira',confluence:'Confluence',google_drive:'Google Drive'})[source]||source;
+    label.append(input,element('span','',name));controls.append(label);
+  }
+  const documents=one('security','document-rules');documents.replaceChildren();
+  for(const rule of current.rules.filter(r=>r.kind==='document')){
+    const row=element('div','stitch-access-row');row.append(element('span','stitch-wrap',rule.value));
+    const button=element('button','stitch-copy-control','Restore');button.type='button';button.dataset.restoreDocument=rule.value;button.disabled=rule.corpus==='*'||rule.value==='*';row.append(button);documents.append(row);
+  }
+  one('security','document-id').disabled=!state.controlCorpus||current.globalRule;
+  pages.security.querySelector('[data-action="deny-document"]').disabled=!state.controlCorpus||current.globalRule;
   for(const [prefix,user] of [['before',state.baseline],['after',person]]){
-    const list=one('security',prefix+'-bindings');list.replaceChildren();const bindings=user.bindings||[];put('security',prefix+'-count',bindings.filter(b=>b.enabled).length);
-    for(const binding of bindings){const principal=state.principals.find(p=>p.corpus===binding.corpus&&p.principal_id===binding.principal_id);const row=element('div','p-3 rounded-xl bg-canvas-bg flex items-center justify-between');row.append(element('span','font-body-sm text-body-sm text-text-primary',`${binding.corpus} · ${principal?.name||binding.principal_id}`));row.append(element('span',binding.enabled?'text-status-success font-label-sm text-label-sm':'text-text-muted font-label-sm text-label-sm',binding.enabled?'Active':'Revoked'));list.append(row);}
-    if(!bindings.length)list.append(element('p','text-text-muted font-body-sm text-body-sm','No source bindings.'));
+    const access=contentState(user);const list=one('security',prefix+'-bindings');list.replaceChildren();put('security',prefix+'-count',access.allowed.length);
+    for(const source of access.sources){const row=element('div','stitch-access-row');row.append(element('span','',source),element('span',access.allowed.includes(source)?'text-status-success':'text-text-muted',access.allowed.includes(source)?'Allowed':'Blocked'));list.append(row);}
+    if(access.rules.some(r=>r.kind==='document'))list.append(element('p','font-body-sm text-text-muted',`${access.rules.filter(r=>r.kind==='document').length} document restriction(s).`));
+    if(!access.bound)list.append(element('p','font-body-sm text-text-muted','Mapped source identity is disabled.'));
   }
   put('security','before-epoch',`Permission version ${state.baseline.epoch}`);
-  put('security','permission-feedback',`Permission version ${state.baseline.epoch} → ${person.epoch}. The next employee request uses current access.`);
+  put('security','permission-feedback',`Permission version ${state.baseline.epoch} → ${person.epoch}. ${current.globalRule?'A global restriction also applies. ':''}The dataset stays selectable; every employee query uses these saved permissions.`);
 }
 
-function bindingLabel() {
-  const person=state.people.find(p=>p.id===state.selectedUser);let value;try{value=JSON.parse(one('security','binding-select').value);}catch(error){return;}
-  const binding=person?.bindings?.find(b=>b.corpus===value[0]&&b.principal_id===value[1]);
-  put('security','binding-label',binding?.enabled?'Remove binding':'Restore binding');
+async function saveContentPermission(fields) {
+  if(state.busy||state.user?.role!=='admin')return;state.busy=true;setPermissionBusy(true);
+  try {
+    const person=state.people.find(p=>p.id===state.selectedUser);
+    await api('/api/admin/permissions',{user_id:person.id,corpus:state.controlCorpus,...fields});
+    clearProtected();show('security');await loadSecurity();notice('Reading permissions saved. The dataset remains selectable.');
+  } catch(error){notice(error.message,'error');}
+  finally{state.busy=false;setPermissionBusy(false);}
 }
 
 async function changeBinding() {
-  if(state.busy||state.user?.role!=='admin')return;state.busy=true;
-  try {const person=state.people.find(p=>p.id===state.selectedUser);const [corpus,principal_id]=JSON.parse(one('security','binding-select').value);const binding=person.bindings?.find(b=>b.corpus===corpus&&b.principal_id===principal_id);
-    await api('/api/admin/permissions',{action:'binding',user_id:person.id,corpus,principal_id,enabled:!binding?.enabled});
-    clearProtected();show('security');await loadSecurity();notice('Permission change saved.');
-  }catch(error){notice(error.message,'error');}finally{state.busy=false;}
+  const person=state.people.find(p=>p.id===state.selectedUser);let selected;
+  try{selected=JSON.parse(one('security','binding-select').value);}catch(error){return;}
+  if(!person?.bindings?.some(b=>b.corpus===selected[0]&&b.principal_id===selected[1]&&!b.enabled))return;
+  await saveContentPermission({action:'binding',corpus:selected[0],principal_id:selected[1],enabled:true});
 }
 
 async function runEmployeeQuery() {
   const userId=state.selectedUser;if(!userId||!state.demo)return;
   const question=state.question||pages.home.querySelector('[data-action="example"]')?.dataset.question||'What is TitanDB used for?';
-  await switchIdentity(userId);one('home','question').value=question;await ask();
+  const corpus=state.controlCorpus;await switchIdentity(userId);if(state.corpora.some(c=>c.id===corpus)){state.corpus=corpus;one('home','corpus').value=corpus;}one('home','question').value=question;await ask();
 }
 
 async function loadAudit() {
@@ -449,8 +496,12 @@ document.addEventListener('click',event=>{
   const button=event.target.closest('[data-action]');if(button){event.preventDefault();Promise.resolve(dispatch(button.dataset.action,button)).catch(error=>notice(error.message,'error'));}
 });
 document.querySelector('[data-slot="identity-select"]').addEventListener('change',event=>switchIdentity(event.target.value).catch(error=>notice(error.message,'error')));
-one('security','employee-select').addEventListener('change',event=>selectEmployee(event.target.value));
-one('security','binding-select').addEventListener('change',bindingLabel);
+one('security','employee-select').addEventListener('change',event=>selectEmployee(event.target.value).catch(error=>notice(error.message,'error')));
+one('security','content-corpus').addEventListener('change',event=>{state.controlCorpus=event.target.value;renderContentAccess();});
+one('security','dataset-access').addEventListener('change',event=>saveContentPermission({action:'restriction',kind:'corpus',value:state.controlCorpus,denied:!event.target.checked}));
+one('security','source-controls').addEventListener('change',event=>{if(event.target.dataset.sourcePermission)saveContentPermission({action:'restriction',kind:'source',value:event.target.dataset.sourcePermission,denied:!event.target.checked});});
+one('security','document-rules').addEventListener('click',event=>{const button=event.target.closest('[data-restore-document]');if(button)saveContentPermission({action:'restriction',kind:'document',value:button.dataset.restoreDocument,denied:false});});
+pages.security.querySelector('[data-action="deny-document"]').addEventListener('click',()=>{const id=one('security','document-id').value.trim();if(id)saveContentPermission({action:'restriction',kind:'document',value:id,denied:true});else notice('Enter a document ID from Evidence Passport.','error');});
 one('home','corpus').addEventListener('change',()=>{state.corpus=one('home','corpus').value;clearProtected();});
 one('home','planning-toggle').addEventListener('change',event=>{state.planningChoice=event.target.checked;try{localStorage.setItem('contextledger.stitch.planning',state.planningChoice?'on':'off');}catch(error){/* Storage is optional. */}renderPlanning();});
 one('audit','audit-form').addEventListener('submit',event=>{event.preventDefault();loadAudit().catch(error=>notice(error.message,'error'));});

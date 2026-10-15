@@ -66,6 +66,13 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertIn('data-slot="binding-select"', self.html)
         self.assertIn('data-slot="needs"', self.html)
 
+    def test_security_lens_controls_resources_instead_of_arbitrary_identity_binding(self):
+        for slot in ('content-corpus', 'dataset-access', 'source-controls', 'document-id', 'document-rules'):
+            self.assertIn('data-slot="' + slot + '"', self.html)
+        self.assertIn('allowed source categories', self.html)
+        self.assertNotIn('active source bindings', self.html)
+        self.assertIn('Turning reading off keeps the dataset available', self.html)
+
     def test_passport_has_no_fixed_demo_nodes_and_accordion_uses_one_visibility_mechanism(self):
         for placeholder in ("item-timeline-1", "item-timeline-2", "item-timeline-3", "Rev 04-B", "3 events synchronized", "INC-84920 awaiting", "FIN-SLA-99.95", "9f8a...31c2"):
             self.assertNotIn(placeholder, self.html)

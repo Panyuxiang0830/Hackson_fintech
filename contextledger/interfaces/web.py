@@ -335,12 +335,28 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     @app.get("/api/corpora")
     def corpora():
         found = []
+        associated = service.identities.associated_corpora(g.actor.id)
         with connect(db_path) as db:
             for (corpus,) in db.execute("SELECT DISTINCT corpus FROM documents ORDER BY corpus"):
-                scope = service.index.scope(g.actor, corpus)
-                if scope.principals:
+                if corpus in associated:
                     found.append({"id": corpus, "label": corpus, "scope": "Offline source ACL snapshot + current system permissions"})
         return jsonify(found)
+
+    @app.get("/api/admin/content-scopes")
+    @role("admin")
+    def content_scopes():
+        target = request.args.get("user_id", "")
+        if not service.identities.get(target):
+            raise ValueError("unknown user")
+        # Administrators receive source categories only, never document titles/text.
+        associated = service.identities.associated_corpora(target)
+        with connect(db_path) as db:
+            rows = db.execute("SELECT DISTINCT corpus,source FROM documents ORDER BY corpus,source")
+            catalog = {}
+            for corpus, source in rows:
+                if corpus in associated:
+                    catalog.setdefault(corpus, []).append(source)
+        return jsonify([{"id": corpus, "sources": sources} for corpus, sources in catalog.items()])
 
     @app.get("/api/search")
     def search():

@@ -164,6 +164,15 @@ class IdentityStore:
                 restrictions.setdefault(row[0], []).append(row[1])
             return bindings, restrictions
 
+    def associated_corpora(self, user_id: str) -> set[str]:
+        """Directory membership survives revocation of a mapped source identity.
+
+        This only discovers a dataset name; it never grants content access.
+        """
+        with self.db() as db:
+            return {row[0] for row in db.execute(
+                "SELECT DISTINCT corpus FROM bindings WHERE user_id=?", (user_id,))}
+
     def new_session(self, actor: Actor, expires_at: float) -> str:
         sid = secrets.token_urlsafe(32)
         with self.db() as db:

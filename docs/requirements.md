@@ -632,6 +632,26 @@
   - 测试：`tests/application/test_integration.py`, `tests/access/test_demo_identity.py`, `tests/operations/test_preview_config.py`, `tests/access/test_oidc.py`
   - 文档：`docs/architecture/integration-plan.md`, `docs/decisions/ADR-0002-unified-entry-and-trusted-identity.md`, `docs/decisions/ADR-0003-tool-first-and-deferred-browser-login.md`, `docs/architecture/unified-integration.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/product/tool-entry-scope.md`, `docs/product/workload.md`
 
+### 功能扩展 · 所属数据集保持可选与资料范围授权
+
+- 扩展键：`resource_access_controls`
+- 来源：user confirmed on 2026-10-15 for submission demo; preserve imported ACL and focus OrgForge
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：所属数据集目录与内容读取分开；Security Lens 管理数据集、来源和单篇文档本地读取限制，保留来源 ACL，不用借用其他员工来源身份授予权限。
+- 验收标准：
+
+  - 撤销数据集或全部来源读取权后，员工仍能选择已有映射的数据集；无证据时不调用模型并返回安全提示
+  - 管理员按数据集、来源和文档调整本地限制，恢复不能绕过原始来源 ACL；普通员工无法调用管理接口
+  - 同一员工部分撤权后仅返回剩余授权来源，全部撤权后旧原文不可读，权限版本与审计记录同步更新
+  - 历史撤销的身份绑定不自动恢复；页面仅提供员工已绑定来源身份的明确恢复入口，不展示其他员工身份作为授权选项
+
+- 影响范围：
+
+  - 代码：`contextledger/interfaces/web.py`, `contextledger/access/identity_store.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/answering/service.py`
+  - 测试：`tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_answering.py`
+  - 文档：`docs/product/resource-permissions.md`
+
 ## REQ-017 · Part A 与安全问答服务统一集成
 
 - 来源：team integration discussion confirmed on 2026-10-05

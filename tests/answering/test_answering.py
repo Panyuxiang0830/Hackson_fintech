@@ -350,8 +350,9 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertEqual(decision, "insufficient")
         self.assertEqual(provider, "deterministic")
         self.assertIn("insufficient usable evidence", answer)
-        self.assertNotIn("access scope", answer)
-        self.assertNotIn("permission", answer)
+        self.assertIn("current access permissions", answer)
+        for disclosure in ("permission denied", "restricted document", "document exists"):
+            self.assertNotIn(disclosure, answer.lower())
         urlopen.assert_not_called()
 
 

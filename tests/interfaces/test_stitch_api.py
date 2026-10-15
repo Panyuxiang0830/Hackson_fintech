@@ -1,6 +1,9 @@
 """Exercise the approved UI contract against the refactored Flask application."""
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+
+from contextledger.access.identity_store import IdentityStore
 
 from tests.application import test_integration as integration_fixture
 
@@ -91,6 +94,83 @@ class StitchAPIContractTests(unittest.TestCase):
         self.assertNotRegex(result.json['answer'],r'[\u4e00-\u9fff]')
         result=self.fixture.post('/api/ask',{'q':'TitanDB','corpus':'alpha','output_language':'invalid'})
         self.assertEqual(result.status_code,400)
+
+    def test_dataset_directory_survives_content_and_mapping_revocation(self):
+        f = self.fixture
+        self.assertEqual([c['id'] for c in self.client.get('/api/corpora').json], ['alpha'])
+        f.ids.restrict(f.alice.id, 'alpha', 'corpus', 'alpha', True)
+        self.assertEqual([c['id'] for c in self.client.get('/api/corpora').json], ['alpha'])
+        f.ids.bind(f.alice.id, 'alpha', 'alpha:a', False)
+        reopened = IdentityStore(f.ids.path)
+        self.assertEqual(reopened.associated_corpora(f.alice.id), {'alpha'})
+        self.assertEqual([c['id'] for c in self.client.get('/api/corpora').json], ['alpha'])
+        self.assertEqual(self.client.get('/api/doc?corpus=alpha&doc_id=doc-0').status_code, 404)
+        self.assertEqual(self.client.get('/api/search?corpus=beta&q=TitanDB').json['hits'], [])
+
+    def test_source_and_document_permissions_change_actual_retrieval(self):
+        f = self.fixture
+        def change(kind, value, denied):
+            f.login(f.admin)
+            response = f.post('/api/admin/permissions', {'user_id': f.alice.id,
+                'action': 'restriction', 'corpus': 'alpha', 'kind': kind,
+                'value': value, 'denied': denied})
+            self.assertEqual(response.status_code, 200, response.json)
+            f.login(f.alice)
+        original_epoch = f.ids.get(f.alice.id).epoch
+        change('source', 'jira', True)
+        for mode in ('keyword', 'vector', 'hybrid'):
+            response = self.client.get('/api/search', query_string={
+                'corpus': 'alpha', 'q': 'TitanDB', 'mode': mode, 'planning': 'false'})
+            self.assertEqual({h['doc_id'] for h in response.json['hits']}, {'doc-0'})
+        self.assertEqual(self.client.get('/api/doc?corpus=alpha&doc_id=doc-1').status_code, 404)
+        change('document', 'doc-0', True)
+        self.assertEqual(self.client.get('/api/search?corpus=alpha&q=TitanDB').json['hits'], [])
+        change('document', 'doc-0', False)
+        change('source', 'jira', False)
+        response = self.client.get('/api/search?corpus=alpha&q=TitanDB').json
+        self.assertEqual({h['doc_id'] for h in response['hits']}, {'doc-0', 'doc-1'})
+        # Restoring local permissions cannot grant Bob's Slack document to Alice.
+        self.assertEqual(self.client.get('/api/doc?corpus=alpha&doc_id=doc-2').status_code, 404)
+        self.assertGreater(f.ids.get(f.alice.id).epoch, original_epoch)
+        events = [e for e in f.audit.query(limit=100) if e['event_type'] == 'permission_change']
+        self.assertEqual(len(events), 4)
+        self.assertTrue(f.audit.verify().valid)
+
+    def test_all_reading_revoked_keeps_dataset_and_never_calls_models(self):
+        f = self.fixture
+        unknown = f.post('/api/ask', {'corpus': 'alpha', 'q': 'CompletelyUnknownEntity',
+                                      'planning': False, 'output_language': 'en'}).json
+        f.login(f.admin)
+        changed = f.post('/api/admin/permissions', {'user_id': f.alice.id,
+            'action': 'restriction', 'corpus': 'alpha', 'kind': 'corpus',
+            'value': 'alpha', 'denied': True})
+        self.assertEqual(changed.status_code, 200)
+        f.login(f.alice)
+        with patch.object(f.service.planner, 'plan', side_effect=AssertionError('planner called')), \
+                patch.object(f.service.answer, 'answer', side_effect=AssertionError('answer model called')):
+            answer = f.post('/api/ask', {'corpus': 'alpha', 'q': 'TitanDB', 'planning': True,
+                                       'output_language': 'en'})
+        self.assertEqual(answer.status_code, 200, answer.json)
+        self.assertEqual(answer.json['decision'], 'insufficient')
+        self.assertEqual(answer.json['evidence'], [])
+        self.assertEqual(answer.json['answer'], unknown['answer'])  # No permission/existence oracle.
+        self.assertEqual(answer.json['llm_diagnostics']['attempts'], 0)
+        self.assertEqual([c['id'] for c in self.client.get('/api/corpora').json], ['alpha'])
+        self.assertEqual(self.client.get('/api/doc?corpus=alpha&doc_id=doc-0').status_code, 404)
+
+    def test_content_scope_catalog_is_admin_only_and_contains_no_business_details(self):
+        f = self.fixture
+        endpoint = '/api/admin/content-scopes?user_id=' + f.alice.id
+        self.assertEqual(self.client.get(endpoint).status_code, 403)
+        f.login(f.admin)
+        response = self.client.get(endpoint)
+        self.assertEqual(response.json, [{'id': 'alpha', 'sources': ['confluence', 'jira', 'slack']}])
+        self.assertNotIn('Title', response.get_data(as_text=True))
+        self.assertEqual(self.client.get('/api/admin/content-scopes?user_id=unknown').status_code, 400)
+        f.login(f.alice)
+        self.assertEqual(f.post('/api/admin/permissions', {'action': 'restriction',
+            'user_id': f.alice.id, 'corpus': 'alpha', 'kind': 'source',
+            'value': 'jira', 'denied': False}).status_code, 403)
 
 
 if __name__ == "__main__":
