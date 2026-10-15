@@ -853,7 +853,7 @@
 - 来源：user requested recording answer prompt design on 2026-10-06
 - 权威级别：`team_decision`
 - 状态：`in_progress`
-- 说明：将回答阶段的系统指令、原用户问题与授权证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 已实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，本次扩充自然表达、术语解释、分段和问题相关性要求，避免机械抄写或无关细节；完整质量和成本评测仍待完成。
+- 说明：将回答阶段的系统指令、原用户问题与授权证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 已实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，本次扩充自然表达、术语解释、分段和问题相关性要求，避免机械抄写或无关细节；完整质量和成本评测仍待完成。 2026-10-16：自然英文演示提问实测暴露200字符分段阈值误拒简短回答；调整为按CJK字符/英文词数区分长文，保留权限、引用与长文分段校验，并验证真实撤权前后回答。
 - 验收标准：
 
   - 记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料
@@ -863,12 +863,13 @@
   - 通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明
   - Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持
   - 审计回答、检索规划及零证据提示模板单独记录版本、输入边界、输出格式和预算；answer-v9 移除已取消的引用复核和反馈重答上下文，保留原问题与授权证据；旧部署记录不能充当本次验证
+  - 简短英文单段回答不因超过200个字符被格式拒绝；超过80词的英文及超过200字符的CJK长回答仍要求分段，引用和权限校验不变
 
 - 影响范围：
 
   - 代码：`contextledger/answering/service.py`, `contextledger/answering/workflows.py`, `contextledger/application/service.py`
   - 测试：`tests/answering/test_answering.py`, `tests/answering/test_llm_workflows.py`
-  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/architecture/decision-radar-v1.md`
+  - 文档：`docs/product/prompt-and-login-walkthrough.md`, `docs/product/demo-acceptance.md`, `docs/architecture/query-planning.md`, `docs/evaluation/model-selection.md`, `docs/product/workload.md`, `docs/product/llm-feature-plan.md`, `docs/architecture/decision-radar-v1.md`, `docs/product/security-lens-demo-3d.md`, `docs/product/natural-question-validation-20261016.md`
 
 ## REQ-020 · 面向上游 Agent 的权限感知工具接口
 

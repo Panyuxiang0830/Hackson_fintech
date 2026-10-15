@@ -17,7 +17,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v12-2026-10-15"
+PROMPT_VERSION = "answer-v13-2026-10-16"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 _RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
@@ -52,8 +52,10 @@ SYSTEM_PROMPT = (
     "request instead of forcing a basic explanation. Cite every factual paragraph, "
     "including the first direct conclusion. Put [n] citations next to the "
     "supported claims. Use plain text, no Markdown headings, bold, HTML or tables. "
-    "An answered response longer than 200 characters must have at least two short "
-    "paragraphs separated by blank lines. Encode newlines correctly inside JSON. "
+    "An answered response longer than 80 words must have at least two short paragraphs "
+    "separated by blank lines. For text containing Chinese, Japanese or Korean characters, "
+    "use a 200-character threshold instead. Short answers may be one paragraph. "
+    "Encode newlines correctly inside JSON. "
     "Return JSON only with exactly these fields: "
     '{\"status\":\"answered|insufficient\",\"answer\":\"answer with [n] citations\",'
     '\"citation_ids\":[1,2],\"uncertainty\":\"low|medium|high\"}. '
@@ -69,6 +71,13 @@ SYSTEM_PROMPT = (
 def _sentences(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?。！？])\s+", text.strip())
     return [part.strip() for part in parts if part.strip()]
+
+
+def _needs_paragraphs(answer: str) -> bool:
+    """Measure CJK prose in characters and alphabetic prose in words."""
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", answer):
+        return len(answer.strip()) > 200
+    return len(re.findall(r"\b\w+(?:['’-]\w+)*\b", _CITATION_PATTERN.sub("", answer))) > 80
 
 
 def empty_evidence_answer(question: str, output_language=None) -> str:
@@ -151,7 +160,7 @@ def _validate_model_output(raw_content: str, evidence_count: int) -> tuple[str, 
         raise ValueError("answered responses must cite at least one evidence item")
     if status == "insufficient" and returned_ids:
         raise ValueError("insufficient responses cannot cite unsupported evidence")
-    if status == "answered" and len(answer.strip()) > 200 and not re.search(r"\n[ \t]*\n", answer):
+    if status == "answered" and _needs_paragraphs(answer) and not re.search(r"\n[ \t]*\n", answer):
         raise ValueError("long model answer must contain separate paragraphs")
 
     return answer.strip(), status
@@ -410,7 +419,7 @@ class AnswerService:
                 system += " The previous response used the wrong language. Answer this English question in English; preserve names and citation IDs."
             if tool_handler is not None and not tool_state["called"]:
                 system += " A format repair does not disable the tool. If missing history/status needs expansion, return the exact tool action JSON, without Markdown fences or answer fields."
-            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON."
+            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 80 words (200 characters for Chinese, Japanese or Korean text) MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Short answers may be one paragraph. Return complete JSON."
         payload = {
             "original_question": question,
             "caller_context": {"name": user.name, "role": user.role, "department": user.department},

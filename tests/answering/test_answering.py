@@ -220,6 +220,33 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertIn("\n\n",answer)
         self.assertEqual(answerer.last_diagnostics["failures"],["readability_validation_failed"])
 
+    def test_brief_english_answer_over_200_characters_does_not_need_format_retry(self):
+        text = ("The reviewer flagged background UI updates and UIKit timers in the dashboard. "
+                "The author said the updates would move to the main thread and the timers "
+                "would be replaced, but the record does not confirm that the changes were completed [1].")
+        self.assertGreater(len(text), 200)
+        result = {"status":"answered", "answer":text, "citation_ids":[1], "uncertainty":"medium"}
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            answerer = AnswerService()
+            with patch("urllib.request.urlopen", return_value=self._response(result)) as transport:
+                answer, decision, _ = answerer.answer(self.user, "What did reviewers flag?", self.evidence)
+        self.assertEqual(transport.call_count, 1)
+        self.assertEqual((answer, decision), (text, "answered"))
+        self.assertEqual(answerer.last_diagnostics["failures"], [])
+
+    def test_long_english_single_paragraph_still_requires_format_retry(self):
+        text = "The supported release remains pending. " * 18
+        bad = {"status":"answered", "answer":text + "[1]", "citation_ids":[1], "uncertainty":"medium"}
+        good = {**bad, "answer":"The release is pending [1].\n\n" + text + "[1]"}
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            answerer = AnswerService()
+            with patch("urllib.request.urlopen", side_effect=[self._response(bad), self._response(good)]) as transport:
+                answer, decision, _ = answerer.answer(self.user, "Explain the release status.", self.evidence)
+        self.assertEqual(transport.call_count, 2)
+        self.assertEqual(decision, "answered")
+        self.assertIn("\n\n", answer)
+        self.assertEqual(answerer.last_diagnostics["failures"], ["readability_validation_failed"])
+
     def test_endpoint_failure_triggers_deterministic_fallback(self):
         with patch.dict(os.environ, self.live_environment, clear=True):
             answerer = AnswerService()
