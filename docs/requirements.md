@@ -18,7 +18,7 @@
 | REQ-010 | 单一案例选择与展示声明 | `handbook_mandatory` | `implemented` | — | — |
 | REQ-011 | 业务演变呈现与时序冲突提示（Decision Radar） | `team_decision` | `in_progress` | `contextledger/ingestion/connectors.py`<br>`contextledger/storage/models.py`<br>`contextledger/storage/store.py`<br>`contextledger/ingestion/pipeline.py`<br>`contextledger/retrieval/filtered_index.py`<br>`contextledger/application/service.py`<br>`contextledger/interfaces/web.py`<br>`contextledger/interfaces/integration.py`<br>`contextledger/interfaces/templates/unified.html`<br>`contextledger/interfaces/static/unified.js`<br>`contextledger/interfaces/static/unified.css`<br>`contextledger/answering/workflows.py`<br>`contextledger/answering/service.py`<br>`contextledger/radar/protocol.py`<br>`contextledger/radar/tool.py`<br>`contextledger/radar/data.py`<br>`contextledger/radar/store.py`<br>`scripts/radar_demo.py`<br>`contextledger/evaluation/radar_demo.py`<br>`contextledger/retrieval/search.py`<br>`contextledger/radar/resolution.py` | `tests/application/test_integration.py`<br>`tests/application/test_llm_integration.py`<br>`tests/answering/test_llm_workflows.py`<br>`tests/answering/test_answering.py`<br>`tests/radar/test_radar.py`<br>`tests/radar/test_radar_data.py`<br>`tests/radar/test_radar_integration.py`<br>`tests/radar/test_radar_resolution.py` |
 | REQ-012 | 项目内容统一入库与 Git 协作 | `team_decision` | `implemented` | `scripts/project_sync.py`<br>`.github/workflows/ci.yml` | `tests/operations/test_project_sync.py` |
-| REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `planned` | — | — |
+| REQ-013 | 交付材料与格式待确认清单 | `pending_confirmation` | `in_progress` | — | — |
 | REQ-014 | 异构来源摄取、清洗与高价值信息筛选 | `team_decision` | `in_progress` | `contextledger/ingestion/source_adapters.py`<br>`contextledger/ingestion/source_sync.py` | `tests/ingestion/test_source_adapters.py` |
 | REQ-015 | 统一分类、混合索引与身份感知查询路由 | `team_decision` | `in_progress` | `contextledger/retrieval/filtered_index.py`<br>`contextledger/retrieval/search.py`<br>`contextledger/application/service.py` | `tests/application/test_integration.py` |
 | REQ-016 | 可信调用身份与持久化身份权限库 | `team_decision` | `in_progress` | `contextledger/access/identity_store.py`<br>`contextledger/access/demo_identity.py`<br>`contextledger/interfaces/web.py`<br>`contextledger/interfaces/integration.py`<br>`contextledger/interfaces/templates/unified.html`<br>`contextledger/interfaces/static/unified.js`<br>`scripts/sync_preview_config.py`<br>`.env.integration.example` | `tests/application/test_integration.py`<br>`tests/access/test_demo_identity.py`<br>`tests/operations/test_preview_config.py`<br>`tests/access/test_oidc.py` |
@@ -463,10 +463,10 @@
 
 ## REQ-013 · 交付材料与格式待确认清单
 
-- 来源：handbook wording and submission form pending confirmation
+- 来源：Handbook pp. 14-20 and 37, and user-provided Submission Requirements screenshot received 2026-10-15; remaining submission details pending confirmation
 - 权威级别：`pending_confirmation`
-- 状态：`planned`
-- 说明：公开仓库、Demo 视频、部署链接、Pitch Deck、腾讯产品、正式报告及合规格式不得在核实前写成官方硬性要求。
+- 状态：`in_progress`
+- 说明：已核对用户提供的完整 Handbook 第37页及提交截图：标题、少于10词的简介、四部分项目说明、至少3份真实CodeBuddy/WorkBuddy开发聊天截图或录屏及16:9封面为Required；5–8分钟演示视频和项目链接为Optional。准备英文报告并同步到用户指定Overleaf；真实开发对话附件尚待补齐，未确认的公开仓库、Pitch Deck、截止时间及合规细节继续单独核实。
 - 验收标准：
 
   - 提交前逐项核对比赛邮件中的 Handbook 和登录后的提交表
@@ -478,6 +478,47 @@
   - 代码：—
   - 测试：—
   - 文档：`docs/source/submission-open-questions.md`, `docs/source/handbook-fintech-track.md`, `docs/product/workload.md`
+
+### 功能扩展 · 按Handbook与提交表准备英文报告
+
+- 扩展键：`submission_report_20261015`
+- 来源：User-provided Handbook pp.14-20 and37 and Submission Requirements screenshot, verified 2026-10-15
+- 权威级别：`handbook_mandatory`（独立于基础需求）
+- 状态：`in_progress`
+- 说明：英文报告覆盖Handbook用户、痛点、五个场景、三个创新功能和实测指标；使用最新前端截图，保留真实开发聊天附件缺口。
+- 验收标准：
+
+  - 开头明确唯一案例Internal Brain及FinTech/Aspire赛道；目标用户和痛点从Handbook第14–19页出发，标注30%为场景估计
+  - 提供项目标题及少于10个英文单词的简介；四部分覆盖目标场景/用户/价值、现实痛点、业务/技术/Prompt设计及量化或明确影响
+  - 五个赛题场景均有worked example，权限、来源新鲜度、审计和当前实现/验证边界清楚区分
+  - 附16:9封面和真实CodeBuddy/WorkBuddy开发对话的待补清单；不得把产品截图或整理的提示词冒充开发聊天证据
+  - Overleaf写入并编译成功；报告不宣称所有附件或生产验收已完成；只推送工作分支，不合并main
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：`tests/operations/test_project_sync.py`
+  - 文档：`docs/submission/main.tex`, `docs/submission/README.md`, `docs/submission/assets/cover.png`, `docs/source/submission-requirements-20261015.md`, `docs/source/submission-requirements-20261015.png`, `docs/source/submission-open-questions.md`, `docs/source/handbook-fintech-track.md`, `docs/README.md`, `docs/submission/assets/workspace-latest-en.png`, `docs/submission/assets/workspace-latest-en.json`
+
+### 功能扩展 · 三项创新展示与新版前端截图
+
+- 扩展键：`innovation_showcase_20261015`
+- 来源：User requested emphasis on Decision Radar, Security Lens and Evidence Passport, plus latest frontend screenshots on 2026-10-15
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：突出Decision Radar、Security Lens、Evidence Passport；标注示意场景与验证边界。评测数字保持不变。
+- 验收标准：
+
+  - 分别说明Decision Timeline、Conflict Radar和Answer Replay，不能把示意09:40/09:47/09:50事件写成实测结果
+  - Security Lens展示系统内撤权与角色边界，普通员工不显示受限文档存在与否
+  - Evidence Passport列来源/原文/版本/当前访问依据；引用合法与逐句事实支持分开，不编造可信度百分比
+  - 最新前端英文截图同步Overleaf并编译，既有实验数字保持不变
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：`tests/operations/test_project_sync.py`
+  - 文档：`docs/submission/main.tex`, `docs/submission/README.md`, `docs/README.md`, `docs/submission/assets/workspace-latest-en.png`, `docs/submission/assets/workspace-latest-en.json`
 
 ## REQ-014 · 异构来源摄取、清洗与高价值信息筛选
 
@@ -646,6 +687,7 @@
   - 2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计
   - 2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID
   - 首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行
+  - 2026-10-15 Radar摘要与完整回答分别展示；完整回答可键盘展开，保留原文与引用，身份或权限变化后清空；没有摘要时不重复显示同一回答
 
 - 影响范围：
 
@@ -719,6 +761,27 @@
   - 代码：`scripts/evaluate_chat_latency.py`, `contextledger/evaluation/chat_latency.py`, `scripts/evaluate_radar_latency.py`, `contextledger/evaluation/radar_latency.py`
   - 测试：`tests/evaluation/test_chat_latency.py`, `tests/evaluation/test_chat_evaluation.py`, `tests/radar/test_radar_integration.py`
   - 文档：`docs/evaluation/chat-latency.md`, `docs/evaluation/chat.md`, `docs/README.md`, `docs/decisions/ADR-0004-decision-radar.md`
+
+### 功能扩展 · 提交报告的五维实测与费用证据
+
+- 扩展键：`submission_metrics_20261015`
+- 来源：user requested freshness, permission, recall, latency and cost experiments on 2026-10-15
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`validated`
+- 说明：冻结952881f基线，记录新鲜度、权限、召回、单次延迟和账单费用。仅文档化已完成实验，不重跑模型、不改变在线配置。原始失败、重评分和实验范围分别保留。
+- 验收标准：
+
+  - 报告用直观表格回答更新多久可查、是否越权、召回多少、单次回答多久、实际模型费用
+  - 固定受控来源与权限样例，保留失败、不可用、误放行/误拒绝和在途撤权记录
+  - 公开集按三种模式顺序执行，报告 Recall@1/5/10/20 和参考证据覆盖；离线排序不冒充已接入或未见测试效果
+  - 延迟与费用只使用单次请求，统计实际 provider token 和账单，包括重试和被丢弃的答案；被取消的并发与压测记录保留但不进报告
+  - 英文报告保持 Handbook 场景、用户、痛点和字体；原始与修正后的自动判分分别注明
+
+- 影响范围：
+
+  - 代码：—
+  - 测试：—
+  - 文档：`docs/evaluation/submission-20261015.md`, `docs/submission/main.tex`, `docs/submission/evaluation/metrics.json`
 
 ## REQ-019 · 回答 Prompt 的管理与质量评测
 

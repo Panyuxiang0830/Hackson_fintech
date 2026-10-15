@@ -67,6 +67,12 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     assert.equal(await page.evaluate(()=>window.stitchMotions.some(m=>m.page==='radar'&&m.options.duration===200)),true);
     assert.equal(await page.locator('[data-page=radar] [data-slot=verdict]').textContent(),'Pending confirmation');
     assert.equal(await page.locator('[data-page=radar] [data-slot=needs]').isVisible(),true);
+    const fullAnswer=page.locator('[data-page=radar] [data-slot=answer-details]');
+    assert.equal(await fullAnswer.isVisible(),true);
+    assert.equal(await page.locator('[data-page=radar] [data-slot=answer]').isVisible(),false);
+    await fullAnswer.locator('summary').focus();await page.keyboard.press('Enter');
+    assert.equal(await page.locator('[data-page=radar] [data-slot=answer]').innerText(),response().answer);
+    await fullAnswer.locator('summary').click();
     askDelay=0;
     assert.equal(await page.locator('[data-page=radar] [data-slot=evidence-list] button').count(),12);
     assert.equal(await page.locator('[data-page=radar] [data-slot=timeline] > :visible').count(),4);
@@ -80,6 +86,8 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     assert.equal(await page.evaluate(()=>window.stitchMotions.some(m=>m.slot==='passport-panel'&&m.options.duration===250)),true);
     assert.equal(await page.locator('[data-page=passport] [data-action=original]').isVisible(),false);
     assert.equal(await page.locator('[data-page=passport] [data-slot=quote]').textContent(),sourceText);
+    await page.locator('[data-page=passport] [data-slot=answer-details] summary').click();
+    assert.equal(await page.locator('[data-page=passport] [data-slot=answer]').innerText(),response().answer);
     assert.equal(await page.evaluate(()=>Boolean(window.stitchInjected)),false);
     await page.click('[data-page=passport] [data-action=technical]');
     assert.equal(await page.locator('[data-page=passport] [data-slot=technical]').isVisible(),true);
@@ -122,6 +130,10 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     assert.equal(await page.locator('[data-page=radar] [data-slot=needs]').isVisible(),false);
     await page.selectOption('[data-slot=identity-select]','admin');await page.waitForSelector('[data-nav=security]:visible');
     assert.equal(await page.locator('[data-page=radar] [data-slot=explanation]').textContent(),'');
+    for(const view of ['radar','passport']){
+      assert.equal(await page.locator(`[data-page=${view}] [data-slot=answer]`).textContent(),'');
+      assert.equal(await page.locator(`[data-page=${view}] [data-slot=answer-details]`).getAttribute('open'),null);
+    }
     await page.click('[data-nav=security]');await page.waitForFunction(()=>document.querySelector('[data-page=security] [data-slot=before-count]').textContent==='1');
     await page.click('[data-page=security] [data-action=binding]');await page.waitForFunction(()=>document.querySelector('[data-page=security] [data-slot=after-count]').textContent==='0');
     assert.equal(await page.locator('[data-page=security] [data-slot=before-count]').textContent(),'1');
@@ -145,13 +157,13 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     for(const width of viewportWidths){
       await page.setViewportSize({width,height:1000});
       for(const view of ['home','security','audit']){
-        await page.click(`[data-nav=${view}]`);await page.waitForTimeout(100);
+        await page.click(`[data-nav=${view}]`);await page.locator(`[data-page=${view}]`).evaluate(node=>Promise.all(node.getAnimations({subtree:true}).filter(animation=>animation.effect.getComputedTiming().iterations!==Infinity).map(animation=>animation.finished.catch(()=>{}))));
         const size=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(size.scroll<=size.width,`${view} overflow ${JSON.stringify(size)}`);
         const identity=await page.locator('[data-slot=identity-select]').boundingBox();assert.ok(identity.x>=0&&identity.x+identity.width<=width+1,`Identity offscreen at ${width} on ${view}`);
         assert.doesNotMatch(await page.locator('body').innerText(),/[\u4e00-\u9fff]/);
         const clipped=await page.locator('.stitch-action-label:visible').evaluateAll(nodes=>nodes.filter(n=>n.scrollWidth>n.clientWidth+2).map(n=>n.textContent));assert.deepEqual(clipped,[],`Clipped action at ${width} on ${view}`);
         if(view==='audit'){
-          const fields=await page.locator('.stitch-audit-field input').evaluateAll(nodes=>nodes.map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height})));assert.ok(fields.every(f=>f.width>=100&&f.height>=44),`Audit input squeezed at ${width}`);
+          const fields=await page.locator('.stitch-audit-field input').evaluateAll(nodes=>nodes.map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height})));assert.ok(fields.every(f=>f.width>=100&&f.height>=44),`Audit input squeezed at ${width}: ${JSON.stringify(fields)}`);
         }
         if(view==='home'&&width<768){
           const ask=await page.locator('[data-page=home] [data-action=ask]').boundingBox();assert.ok(ask.y+ask.height<=844,`Ask below first phone screen at ${width}`);

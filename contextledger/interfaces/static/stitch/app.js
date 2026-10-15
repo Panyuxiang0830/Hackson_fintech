@@ -156,6 +156,7 @@ function clearProtected() {
   state.timelineExpanded={radar:false,passport:false};state.passportOpener=null;notice('');
   for(const page of ['radar','passport']){
     put(page,'headline','Submit a question to see the current judgment.');put(page,'explanation','');put(page,'query','Current query');
+    put(page,'answer','');one(page,'answer-details').hidden=true;one(page,'answer-details').open=false;
     put(page,'verdict','Waiting for query');one(page,'timeline')?.replaceChildren();one(page,'evidence-list')?.replaceChildren();
     put(page,'event-count','0 source events');put(page,'evidence-caption','Current request evidence');
     if(one(page,'timeline-toggle'))one(page,'timeline-toggle').hidden=true;
@@ -248,6 +249,9 @@ function renderJudgment(page,data) {
   put(page,'query',state.question);
   put(page,'headline',p?.headline||(data.decision==='insufficient'?'Evidence is insufficient to confirm this question.':'Answer from the current authorised selection'));
   put(page,'explanation',p?.explanation||data.answer||'No reliable answer was generated.');
+  const details=one(page,'answer-details');
+  details.hidden=!p?.explanation||!data.answer||p.explanation.trim()===data.answer.trim();details.open=false;
+  put(page,'answer',details.hidden?'':data.answer);
   if(one(page,'verdict')){
     const label=p?.status==='confirmed'?'Confirmed':p?.status==='pending_confirmation'?'Pending confirmation':data.provider==='mock_fallback'?'Model answer unavailable':data.decision==='insufficient'?'Insufficient evidence':'Source-based answer';
     put(page,'verdict',label);

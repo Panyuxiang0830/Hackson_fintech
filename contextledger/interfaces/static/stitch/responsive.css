@@ -223,3 +223,6 @@ select option:checked{background:#E6F9F2;color:#006c46}
 .stitch-guide-step-heading>span:first-child{flex:1 1 220px;min-width:0}
 .stitch-guide-step-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-height:24px;max-width:100%;padding:4px 10px;line-height:16px}
 .stitch-guide-step-badge>.material-symbols-outlined{flex:none}
+.stitch-full-answer{margin-top:16px;border-top:1px solid #E5E9E8;padding-top:12px}
+.stitch-full-answer summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;color:#006c46;font-weight:600}
+.stitch-full-answer p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:#475569}

@@ -46,6 +46,12 @@ function timelineControls(main) {
   const toggle=document.createElement('button');toggle.type='button';toggle.className='stitch-text-action';
   toggle.hidden=true;toggle.setAttribute('aria-expanded','false');action(toggle,'toggle-timeline');slot(toggle,'timeline-toggle','Show all');heading.append(toggle);
 }
+function fullAnswer(main) {
+  const details=document.createElement('details');details.className='stitch-full-answer';details.hidden=true;slot(details,'answer-details');
+  const summary=document.createElement('summary');summary.textContent='Full answer';
+  const answer=document.createElement('p');slot(answer,'answer','');details.append(summary,answer);
+  main.querySelector('[data-slot="explanation"]').after(details);
+}
 function prepareRadar(main) {
   const judgmentLabel=[...main.querySelectorAll('*')].reverse().find(node=>/sg batch payments v2\.3.*current judgment/i.test(norm(node.textContent))&&norm(node.textContent).length<100);
   if(judgmentLabel)judgmentLabel.textContent='Current judgment';
@@ -209,6 +215,7 @@ for (const [name, doc] of Object.entries(documents)) {
   }
   if(name==='radar')prepareRadar(main);
   if(name==='passport')preparePassport(main);
+  if(name==='radar'||name==='passport')fullAnswer(main);
   if(name==='security')prepareSecurity(main);
   if(name==='audit')prepareAudit(main);
   leaf(main,'Audit Agent Healthy')?.remove();
@@ -292,7 +299,7 @@ for(const node of document.querySelectorAll('*')){
 for(const script of [...document.querySelectorAll('script')])script.remove();
 for(const style of [...document.querySelectorAll('style')]){styles.push(style.textContent);style.remove();}
 const notice=document.createElement('div');notice.id='stitch-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
-const app=document.createElement('script');app.src='/static/stitch/app.js?v=5';app.defer=true;document.head.append(app);
+const app=document.createElement('script');app.src='/static/stitch/app.js?v=6';app.defer=true;document.head.append(app);
 for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=5';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
 

@@ -101,3 +101,7 @@ Evidence Passport 只有取得有效且不含URL用户名密码的绝对HTTP(S) 
 `tests.application.test_llm_integration` 的18项检查亦通过；其中旧前端控件ID断言已改为定稿前端实际数据槽，原有API输入类型和权限/审计检查保留。
 
 首页引导的 Synthesized、Tickets & Commits、Evidence Passport 标签统一24px高度，保持独立宽度和单行；标题行允许换行，窄卡片将完整标签放到标题下方。实际检查320、390、820、1280、1600px时均未裁剪标签。
+
+## 2026-10-15 完整回答
+
+Radar 和桌面 Passport 将简短结论与完整回答分开。Full answer 支持键盘展开，保留答案中的限定条件、段落和引用；没有独立摘要时只显示一次回答。切换身份或权限后立即清空并收起完整回答。
