@@ -20,7 +20,7 @@ class RadarSynthesisTests(unittest.TestCase):
         self.presentation={'status':'pending_confirmation','headline':'目前仍待确认。','explanation':'授权材料未证明监控验证已完成 [1]。','citation_ids':[1],
             'needs_confirmation':[{'item':'核对正式监控验证结果。','citation_ids':[1]}]}
 
-    def execute(self,responses,question='事故历史如何演变？'):
+    def execute(self,responses,question='事故历史如何演变？',output_language=None):
         self.calls=[];self.tool_calls=[]
         def transport(request,**kwargs):
             body=json.loads(request.data);self.calls.append((body,kwargs))
@@ -30,8 +30,33 @@ class RadarSynthesisTests(unittest.TestCase):
         handler=lambda args:self.tool_calls.append(args) or {'coverage':{'documents':1,'truncated':False},'disagreements':[]}
         answer=AnswerService()
         with patch('urllib.request.urlopen',side_effect=transport):
-            result=answer.answer(self.user,question,self.evidence,tool_handler=handler)
+            result=answer.answer(self.user,question,self.evidence,tool_handler=handler,output_language=output_language)
         return result,answer.last_diagnostics | {'radar_presentation':answer.last_radar_presentation}
+
+    def test_has_question_checks_radar_fields_and_repairs_wrong_language(self):
+        presentation=self.presentation|{'headline':'Outcome needs confirmation.','explanation':'Monitoring validation is not recorded [1].','needs_confirmation':[{'item':'Check monitoring results.','citation_ids':[1]}]}
+        good=self.good|{'answer':'Monitoring validation remains unconfirmed [1].','radar_presentation':presentation}
+        bad=good|{'radar_presentation':presentation|{'headline':'目前授权资料中没有足够记录确认恢复状态。'}}
+        result,details=self.execute([self.action,bad,good],question='Has ENG-123 recovered?')
+        self.assertEqual(result[1],'answered')
+        self.assertEqual(details['failures'],['language_validation_failed'])
+        self.assertEqual(details['radar_presentation']['headline'],presentation['headline'])
+        self.assertEqual(len(self.tool_calls),1)
+
+    def test_insufficient_output_language_is_checked(self):
+        bad={'status':'insufficient','answer':'当前授权资料没有足够证据，无法确认这项业务是否完成。','citation_ids':[],'uncertainty':'high'}
+        good=bad|{'answer':'The authorised selection does not establish this outcome.'}
+        result,details=self.execute([bad,good],question='Has ENG-123 recovered?')
+        self.assertEqual(result[0],good['answer'])
+        self.assertEqual(details['failures'],['language_validation_failed'])
+
+    def test_english_interface_overrides_question_language_without_leaking_context(self):
+        good=self.good|{'answer':'The incident remains unconfirmed [1].'}
+        result,_=self.execute([good],output_language='en')
+        self.assertEqual(result[0],good['answer'])
+        self.assertIn('MUST be English',self.calls[0][0]['messages'][0]['content'])
+        result,_=self.execute([self.good])
+        self.assertEqual(result[0],self.good['answer'])
 
     def test_switch_only_after_actual_tool_and_preserve_scope(self):
         result,d=self.execute([self.action,self.good|{'radar_presentation':self.presentation}])

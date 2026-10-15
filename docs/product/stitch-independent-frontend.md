@@ -84,3 +84,20 @@ Audit Trail 筛选控制台使用容器宽度驱动的网格，字段含英文�
 验证范围：57项相关 Python 检查通过（回答、Radar综合/集成、身份边界、新前端文件和工具API）；另3项新 Flask 契约检查通过（默认入口/资源、实际搜索问答/原文、撤权和审计脱敏）。浏览器通过13个宽度、动效/焦点、减少动态效果、规划开关、ACL追溯字段、迟到409、复制和脱敏导出检查；这些使用受控fixture，不调用付费模型或同步真实来源。
 
 更大范围回归在 Windows 遇到既有平台限制：resource 模块、os.O_NOFOLLOW，以及原生 fcntl。临时本地预览/检查启动器使用 portalocker 提供文件锁兼容，测试清理前收集未释放的SQLite连接；不把该环境替代当作Linux同步安全验收，也不跳过失败测试来报告全量通过。生产Linux全量测试和真实模型质量未由本轮代替。
+
+## 2026-10-15 语言、来源入口与审计含义修正
+
+新版 /api/ask 明确发送 output_language=en。后端在请求内应用英文输出要求，覆盖普通 answer、insufficient、Radar headline/explanation/needs_confirmation 以及无证据/澄清/降级提示；原始问题和来源正文保持原文。旧调用未指定语言时继续按原问题选择语言；英文 Has/Have 等开头不再绕过默认检查。语言不符沿用一次格式修正，仍失败则返回英文安全提示，不把中文摘要带到页面。请求局部语言设置在调用结束后恢复，避免不同用户相互影响。Prompt 版本为 answer-v12-2026-10-15。
+
+Evidence Passport 只有取得有效且不含URL用户名密码的绝对HTTP(S) source_url时，才显示 Open in source；加载、不可用、关闭或清理时隐藏。无来源链接时继续阅读Passport中的索引原文，不跳到底层数据库，也不生成没有来源依据的地址。
+
+审计保持整组证据脱敏，不因增加说明而释放受限标题、文档ID、旧内容或历史授权行。新 evidence_visibility 枚举：visible 表示当前权限、版本和哈希可核对；not_recorded 表示事件原本没有证据；current_access_unavailable 表示当前访问不可核对（也可能来源不可用，不据此断言文档存在或已删除）；version_mismatch 表示当前可访问来源与历史版本/哈希不符；index_unavailable 表示索引无法复核。旧接口没有该枚举时前端使用通用隐藏提示。Not recorded 与 Withheld 分别显示，不把隐藏数量显示为0。
+
+详情显示服务端实际返回的 query，修复旧前端误读 question 字段；授权历史放入 Recorded authorisation checks 折叠区，明确为请求发生时的允许/拒绝记录，不等同当前权限。被隐藏的事件同时从界面状态和导出投影中移除 query、answer、证据ID与授权记录。
+
+针对性验证包括Has问题的中文Radar摘要重试、insufficient语言检查、英文界面对中文问题的输出与请求间隔离、真实Flask下四类隐藏原因和授权记录；浏览器检查无链接/非法链接隐藏、真实弹窗打开有效来源、审计提示和导出不泄漏，以及原13个尺寸边界。
+
+本次实际检查：49项针对性Python检查和13个浏览器尺寸检查通过。真实开启规划的Has问题生成内容均为英文；SG Batch Payments问题本次规划返回invalid_plan并回退，回答为英文证据不足；ENG-195/PR-135问题触发真实模型3次调用，但引用/格式校验未通过，返回mock_fallback并保留英文Pending confirmation及授权证据。两条失败/降级观测均保留在runtime/live-llm-20261015/planning-language-check.json与planning-radar-results.json，不计为真实答案质量通过。本轮未扩大向量夹具的验证范围。
+`tests.application.test_llm_integration` 的18项检查亦通过；其中旧前端控件ID断言已改为定稿前端实际数据槽，原有API输入类型和权限/审计检查保留。
+
+首页引导的 Synthesized、Tickets & Commits、Evidence Passport 标签统一24px高度，保持独立宽度和单行；标题行允许换行，窄卡片将完整标签放到标题下方。实际检查320、390、820、1280、1600px时均未裁剪标签。

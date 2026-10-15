@@ -198,3 +198,9 @@ bash scripts/integration.sh --out runtime/part_a --security-dir runtime/security
 - 请求 `92cc4103-d09e-4752-93a5-633e014cfcc7` 返回真实 GLM 三段回答，包含 [1]/[3]，5 份授权候选文档与 v5 同次比较一致；不是 Mock。审计为 `answer-v6-2026-10-07`、attempts=1、failures=[]、finish_reason=stop、permission_epoch=5、isolated_demo；核对时哈希链 53 个事件有效。
 - 质量未完全达标：实际回答仍有未询问的技术栈与迁移信息，不能因分段和编号校验通过就宣称表达已彻底解决；“没有定位文档”也未做全库存在性核验。Prompt 是软约束，后续需固定样例对比表达、相关性与事实支持，不能无限堆叠措辞或把样例调参当作通用能力。详见 [实际 Prompt 与验证边界](../product/prompt-and-login-walkthrough.md)。
 - 当前改动未合并 main，用户人工验收待完成；完整检索质量、跨来源冲突与逐句语义校验不因此完成。
+
+### 2026-10-15 英文前端与审计展示契约
+
+`POST /api/ask` 可选 `output_language="en"`，未提供时保留原问题语言行为；非法值返回400。新版页面显式发送该字段，覆盖 answer、insufficient、澄清/降级提示及全部 radar_presentation 文字，不翻译或改写来源原文。语言要求通过请求局部上下文传递，结束后恢复；不改变身份、检索权限或工具次数预算。
+
+`GET /api/audit` 的事件增加 `evidence_visibility`，取值为 visible、not_recorded、current_access_unavailable、version_mismatch、index_unavailable。该值只表示整组证据的公开状态，不携带受限文档标识或数量；redacted 仍决定正文/证据/授权细节是否释放。无证据事件可以标为 not_recorded，同时继续保守隐藏其原始问题和回答。授权记录显示请求发生时的判断，不能替代当前访问复核。

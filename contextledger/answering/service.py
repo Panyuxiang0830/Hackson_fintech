@@ -17,10 +17,11 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v11-2026-10-15"
+PROMPT_VERSION = "answer-v12-2026-10-15"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 _RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
+_OUTPUT_LANGUAGE = ContextVar("answer_output_language", default=None)
 SYSTEM_PROMPT = (
     "You are a permission-aware enterprise knowledge assistant. The user message is JSON "
     "with original_question, caller_context, and authorised_evidence. Answer the exact "
@@ -70,9 +71,9 @@ def _sentences(text: str) -> list[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
-def empty_evidence_answer(question: str) -> str:
+def empty_evidence_answer(question: str, output_language=None) -> str:
     return ("本次未检索到足够的可用依据，暂时无法回答这个问题。你可以补充具体信息，或换一种问法。"
-            if re.search(r"[\u4e00-\u9fff]", question) else
+            if output_language != "en" and re.search(r"[\u4e00-\u9fff]", question) else
             "This request found insufficient usable evidence to answer the question. "
             "You can add more detail or rephrase your question.")
 
@@ -86,8 +87,12 @@ def reasoning_parameters(base_url, effort):
 
 
 def _check_answer_language(question, answer):
+    if _OUTPUT_LANGUAGE.get() == "en":
+        if re.search(r"[\u4e00-\u9fff]", answer):
+            raise ValueError("answer language does not match English interface")
+        return
     if re.search(r"[\u4e00-\u9fff]", question) or not re.match(
-            r"(?:what|who|when|where|which|why|how|is|are|do|does|can|could|please)\b", question.strip(), re.I):
+            r"(?:what|who|when|where|which|why|how|is|are|was|were|has|have|had|do|does|did|can|could|would|should|will|please|summarize|explain|describe)\b", question.strip(), re.I):
         return
     if re.search(r"\b(?:Chinese|Mandarin|quote|translate|translation)\b", question, re.I):
         return
@@ -277,16 +282,25 @@ class AnswerService:
         value = _RADAR_PRESENTATION.get()
         return dict(value) if isinstance(value, dict) else None
 
-    def answer(self, user: User, question: str, evidence: list[Evidence], *, before_call=None, tool_handler=None) -> tuple[str, str, str]:
+    def answer(self, user: User, question: str, evidence: list[Evidence], *, before_call=None, tool_handler=None, output_language=None) -> tuple[str, str, str]:
+        if output_language not in (None, "en"):
+            raise ValueError("unsupported output_language")
+        token = _OUTPUT_LANGUAGE.set(output_language)
+        try:
+            return self._answer(user, question, evidence, before_call=before_call, tool_handler=tool_handler)
+        finally:
+            _OUTPUT_LANGUAGE.reset(token)
+
+    def _answer(self, user, question, evidence, *, before_call=None, tool_handler=None):
         _DIAGNOSTICS.set({"prompt_version": PROMPT_VERSION,
                           "attempts": 0, "failures": [],
                           "model": self.model, "max_tokens": ANSWER_MAX_TOKENS, "temperature": 0,
                           "reasoning_effort": self.reasoning_effort, "timeout_seconds": 30})
         _RADAR_PRESENTATION.set(None)
-        chinese = bool(re.search(r"[\u4e00-\u9fff]", question))
+        chinese = _OUTPUT_LANGUAGE.get() != "en" and bool(re.search(r"[\u4e00-\u9fff]", question))
         if not evidence:
             return (
-                empty_evidence_answer(question),
+                empty_evidence_answer(question, _OUTPUT_LANGUAGE.get()),
                 "insufficient",
                 "deterministic",
             )
@@ -422,7 +436,9 @@ class AnswerService:
             if truncated:
                 tool_state["result"].setdefault("coverage", {})["model_input_truncated"] = True
                 self.last_diagnostics["radar_context_truncated"] = True
-        system += (" Answer in Chinese, matching original_question; cite the first factual sentence."
+        system += (" All generated answer text, radar_presentation headline, explanation and needs_confirmation items MUST be English, including insufficient answers. Preserve original_question and source evidence as data, without translating or renaming source records. Cite the first factual sentence."
+                   if _OUTPUT_LANGUAGE.get() == "en" else
+                   " Answer in Chinese, matching original_question; cite the first factual sentence."
                    if re.search(r"[\u4e00-\u9fff]", question) else
                    " Match the language of original_question. For an English question, every answer sentence "
                    "must be English even when evidence or style guidance is Chinese. Cite the first factual sentence.")
@@ -446,6 +462,7 @@ class AnswerService:
             return self._openai_compatible(user, question, evidence, tool_handler=tool_handler,
                                           tool_state=tool_state, before_call=before_call)
         answer, decision = _validate_model_output(raw_content, len(evidence))
+        _check_answer_language(question, answer)
         if tool_handler is not None and tool_state["called"]:
             parsed = _completion_json(raw_content)
             if set(parsed) != {"status", "answer", "citation_ids", "uncertainty", "radar_presentation"}:
@@ -453,9 +470,9 @@ class AnswerService:
             presentation = _validate_radar_presentation(
                 parsed.get("radar_presentation"), len(evidence), decision,
                 tool_state["result"])
+            for text in (presentation["headline"], presentation["explanation"], *(item["item"] for item in presentation["needs_confirmation"])):
+                _check_answer_language(question, text)
             _RADAR_PRESENTATION.set(presentation)
-        if decision == "answered":
-            _check_answer_language(question, answer)
         return answer, decision
 
     def _completion(self, system, payload):

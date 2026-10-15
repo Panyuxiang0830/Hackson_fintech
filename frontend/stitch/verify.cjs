@@ -7,7 +7,7 @@ const sourceText='<img src=x onerror="window.stitchInjected=true"> Payments are 
 const employee={id:'member',name:'Radar Engineer（演示员工）',role:'member',epoch:5,enabled:true};
 const admin={id:'admin',name:'ContextLedger 管理员',role:'admin',epoch:1,enabled:true};
 let actor=employee, confirmed=false, deniedDoc=false, binding=true, employeeEpoch=5,askDelay=250,failAsk=false;
-let docDelays={},docFailures={};
+let docDelays={},docFailures={},docURL=null;
 const changes=[],errors=[];
 const planningRequests=[];
 const evidence=[{citation_id:1,corpus:'orgforge',doc_id:'slack-1',title:'Recovery report',source:'slack',version:'v1'},{citation_id:2,corpus:'orgforge',doc_id:'jira-2',title:'Incident record',source:'jira',version:'v2'},...Array.from({length:10},(_,i)=>({citation_id:i+3,corpus:'orgforge',doc_id:'source-'+i,title:'Postmortem: P1 incident · '+('Regional payment processing and recovery validation report · '.repeat(4))+i,source:'confluence',version:'v1'}))];
@@ -35,12 +35,12 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
       else if(url.pathname==='/api/demo/accounts')data=[admin,{...employee,epoch:employeeEpoch,initial_source:true}];
       else if(url.pathname==='/api/demo/select'){actor=request.postDataJSON().user_id==='admin'?admin:{...employee,epoch:employeeEpoch};data={ok:true};}
       else if(url.pathname==='/api/corpora')data=actor.role==='admin'?[]:[{id:'orgforge',label:'OrgForge demo'}];
-      else if(url.pathname==='/api/ask'){assert.equal(request.postDataJSON().corpus,'orgforge');planningRequests.push(request.postDataJSON().planning);if(askDelay)await new Promise(resolve=>setTimeout(resolve,askDelay));if(failAsk){await route.fulfill({status:503,contentType:'application/json',body:'{}'});return;}data=response();}
-      else if(url.pathname==='/api/doc'){const id=url.searchParams.get('doc_id');if(docDelays[id])await new Promise(resolve=>setTimeout(resolve,docDelays[id]));if(docFailures[id]){await route.fulfill({status:docFailures[id],contentType:'application/json',body:'{}'});return;}data=deniedDoc?{available:false}:{available:true,doc:{title:id==='jira-2'?'Incident record':'Recovery report',text:sourceText,source:'slack',version:'v1',ts:'2026-10-14T09:40:00Z',indexed_at:'2026-10-14T10:00:00Z',acl_basis:'administrator adjusted ACL; previous provenance retained in document history',metadata:{acl_provenance:{kind:'administrator_adjustment',previous_version:'v0'},source_acl_reference:{source_acl_basis:'unverified operator note'}},content_hash:'ab'.repeat(32),source_check:'unknown'}};}
+      else if(url.pathname==='/api/ask'){assert.equal(request.postDataJSON().corpus,'orgforge');assert.equal(request.postDataJSON().output_language,'en');planningRequests.push(request.postDataJSON().planning);if(askDelay)await new Promise(resolve=>setTimeout(resolve,askDelay));if(failAsk){await route.fulfill({status:503,contentType:'application/json',body:'{}'});return;}data=response();}
+      else if(url.pathname==='/api/doc'){const id=url.searchParams.get('doc_id');if(docDelays[id])await new Promise(resolve=>setTimeout(resolve,docDelays[id]));if(docFailures[id]){await route.fulfill({status:docFailures[id],contentType:'application/json',body:'{}'});return;}data=deniedDoc?{available:false}:{available:true,doc:{title:id==='jira-2'?'Incident record':'Recovery report',text:sourceText,source:'slack',source_url:docURL,version:'v1',ts:'2026-10-14T09:40:00Z',indexed_at:'2026-10-14T10:00:00Z',acl_basis:'administrator adjusted ACL; previous provenance retained in document history',metadata:{acl_provenance:{kind:'administrator_adjustment',previous_version:'v0'},source_acl_reference:{source_acl_basis:'unverified operator note'}},content_hash:'ab'.repeat(32),source_check:'unknown'}};}
       else if(url.pathname==='/api/admin/users'){assert.equal(actor.role,'admin');data=[admin,{...employee,epoch:employeeEpoch,bindings:[{corpus:'orgforge',principal_id:'slack:jax',enabled:binding}],restrictions:[]}];}
       else if(url.pathname==='/api/admin/principals')data=[{corpus:'orgforge',principal_id:'slack:jax',name:'Slack · Jax'}];
       else if(url.pathname==='/api/admin/permissions'){assert.equal(actor.role,'admin');const body=request.postDataJSON();changes.push(body);binding=body.enabled;employeeEpoch++;data={ok:true};}
-      else if(url.pathname==='/api/audit')data={integrity:{valid:true},events:[{request_id:'req-redacted',user_id:'member',event_type:'answer',permission_epoch:5,timestamp:'2026-10-14T10:01:00Z',redacted:true,question:'HIDDEN QUESTION',answer:'HIDDEN ANSWER',evidence:[{doc_id:'HIDDEN DOCUMENT'}]},{request_id:visibleRequestId,user_id:'admin',event_type:'permission_change',permission_epoch:1,policy_version:'snapshot-acl-and-local-deny-v1',timestamp:'2026-10-14T10:04:00Z',redacted:false,answer:'Permission change saved.',evidence:[]}]};
+      else if(url.pathname==='/api/audit')data={integrity:{valid:true},events:[{request_id:'req-redacted',user_id:'member',event_type:'answer',permission_epoch:5,timestamp:'2026-10-14T10:01:00Z',redacted:true,evidence_visibility:'current_access_unavailable',query:'HIDDEN QUERY',authorization_decisions:[{document_id:'HIDDEN AUTH'}],question:'HIDDEN QUESTION',answer:'HIDDEN ANSWER',evidence:[{doc_id:'HIDDEN DOCUMENT'}]},{request_id:visibleRequestId,user_id:'admin',event_type:'permission_change',permission_epoch:1,policy_version:'snapshot-acl-and-local-deny-v1',timestamp:'2026-10-14T10:04:00Z',redacted:false,evidence_visibility:'not_recorded',answer:'Permission change saved.',evidence:[]}]};
       else throw new Error('Unexpected API '+url.pathname);
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
     });
@@ -78,6 +78,7 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     await page.waitForFunction(()=>document.querySelector('[data-page=passport] [data-slot=doc-access-status]').textContent==='Authorised source');
     assert.equal(await page.locator('[data-slot=passport-panel]').evaluate(n=>n===document.activeElement),true);
     assert.equal(await page.evaluate(()=>window.stitchMotions.some(m=>m.slot==='passport-panel'&&m.options.duration===250)),true);
+    assert.equal(await page.locator('[data-page=passport] [data-action=original]').isVisible(),false);
     assert.equal(await page.locator('[data-page=passport] [data-slot=quote]').textContent(),sourceText);
     assert.equal(await page.evaluate(()=>Boolean(window.stitchInjected)),false);
     await page.click('[data-page=passport] [data-action=technical]');
@@ -127,10 +128,14 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     assert.equal(changes[0].enabled,false);assert.equal(changes[0].user_id,'member');
     await page.click('[data-page=security] [data-action=binding]');await page.waitForFunction(()=>document.querySelector('[data-page=security] [data-slot=after-count]').textContent==='1');assert.equal(changes[1].enabled,true);
     await page.click('[data-nav=audit]');await page.click('[data-page=audit] [data-action=audit-search]');await page.waitForFunction(()=>document.querySelector('[data-page=audit] [data-slot=events-count]').textContent==='2 found');
+    assert.match(await page.locator('[data-slot=audit-evidence]').textContent(),/current access could not be verified/);
+    assert.equal((await page.locator('body').textContent()).includes('HIDDEN AUTH'),false);
     assert.equal((await page.locator('body').textContent()).includes('HIDDEN QUESTION'),false);
     assert.equal((await page.locator('body').textContent()).includes('HIDDEN ANSWER'),false);
     assert.equal((await page.locator('body').textContent()).includes('HIDDEN DOCUMENT'),false);
     await page.locator('[data-page=audit] [data-slot=events] button').nth(1).click();
+    assert.equal(await page.locator('[data-slot=audit-evidence-count]').textContent(),'Not recorded');
+    assert.match(await page.locator('[data-slot=audit-evidence]').textContent(),/did not record any evidence/);
     assert.ok((await page.locator('[data-page=audit] [data-slot=audit-id]').textContent()).length<visibleRequestId.length);
     assert.equal(await page.locator('[data-page=audit] [data-slot=audit-id]').getAttribute('title'),visibleRequestId);
     assert.match(await page.locator('[data-page=audit] [data-slot=audit-facts]').textContent(),/SGT \(UTC\+08:00\)/);
@@ -165,6 +170,9 @@ const response=()=>({decision:'answered',provider:'fixture',request_id:'req-1',a
     const reduced=await page.evaluate(()=>window.stitchMotions.at(-1));assert.equal(reduced.options.duration,100);assert.ok(reduced.frames.every(frame=>!('transform' in frame)));
     await page.locator('[data-page=radar] [data-action=open-first]').last().click();await page.keyboard.press('Escape');assert.equal(await page.locator('body').getAttribute('data-active-page'),'radar');assert.equal(await page.evaluate(()=>document.querySelector('[data-slot="passport-panel"]').getAnimations().length),0);
     docDelays={'slack-1':250};docFailures={'slack-1':409};await page.locator('[data-page=radar] [data-action=open-first]').last().click();await page.keyboard.press('Escape');await page.waitForTimeout(350);assert.equal(await page.locator('body').getAttribute('data-active-page'),'radar','Late permission errors from a closed source must not clear the current result');assert.equal(await page.locator('[data-page=radar] [data-slot=evidence-list] button').count(),12);
+    docDelays={};docFailures={};docURL=base+'/source-original';await context.route('**/source-original',route=>route.fulfill({contentType:'text/plain',body:'Original source'}));
+    await page.locator('[data-page=radar] [data-action=open-first]').last().click();await page.waitForSelector('[data-action=original]:visible');const opened=page.waitForEvent('popup');await page.click('[data-action=original]');const popup=await opened;await popup.waitForLoadState();assert.equal(popup.url(),docURL);await popup.close();await page.keyboard.press('Escape');
+    docURL='javascript:alert(1)';await page.locator('[data-page=radar] [data-action=open-first]').last().click();await page.waitForFunction(()=>document.querySelector('[data-slot=doc-access-status]').textContent==='Authorised source');assert.equal(await page.locator('[data-action=original]').isVisible(),false);
     assert.deepEqual(errors,[]);
     console.log('Browser contracts passed: real accordion visibility, 4/all event expansion, direct phone Passport with focus/Escape, stale-document refusal, inline loading/errors, clipboard/export, existing security contracts, and 13 viewport boundaries from 320 to 1600px.');
   } finally {await browser.close();}

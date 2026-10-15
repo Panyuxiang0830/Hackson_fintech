@@ -357,7 +357,8 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     def ask():
         body = request.get_json() or {}
         corpus, query, mode, day = inputs(body)
-        result, hits = service.ask(g.actor.id, corpus, query, mode, day, planning=body.get("planning"))
+        result, hits = service.ask(g.actor.id, corpus, query, mode, day, planning=body.get("planning"),
+                                   output_language=body.get("output_language"))
         g.delivery = (corpus, result["index_generation"], hits)
         return jsonify(result)
 

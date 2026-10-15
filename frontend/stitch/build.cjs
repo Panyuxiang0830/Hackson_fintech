@@ -103,7 +103,8 @@ function preparePassport(main) {
   action([...main.querySelectorAll('button')].find(b=>b.textContent.trim()==='close'),'back-radar');
   [...main.querySelectorAll('button')].find(b=>b.textContent.trim()==='close').setAttribute('aria-label','Close Evidence Passport');
   action([...main.querySelectorAll('button')].find(b=>b.textContent.includes('Back to judgment')),'back-radar');
-  action([...main.querySelectorAll('button')].find(b=>b.textContent.includes('Open original')),'original');
+  const original=action([...main.querySelectorAll('button')].find(b=>b.textContent.includes('Open original')),'original');original.hidden=true;
+  original.replaceChildren(document.createTextNode('Open in source ↗'));
   const originalEvents=[...main.querySelectorAll('[id^="item-timeline-"]')];
   let backgroundTimeline=originalEvents[0].parentElement;
   while(!originalEvents.every(node=>backgroundTimeline.contains(node)))backgroundTimeline=backgroundTimeline.parentElement;
@@ -171,6 +172,8 @@ function prepareAudit(main) {
   const answerBlock=answerLabel.parentElement.parentElement; slot(answerBlock.children[1],'audit-answer','Choose an event to view its released details.');
   const mask=matching(answerBlock,'Masked for unauthorized auditors'); if(mask) slot(mask,'audit-mask','Current access applies');
   slot(main.querySelector('tbody'),'audit-evidence'); main.querySelector('tbody').replaceChildren();
+  const question=document.createElement('div');question.className='stitch-audit-question';question.innerHTML='<span class="font-label-sm text-label-sm text-text-muted">Recorded question</span><p data-slot="audit-question"></p>';answerBlock.before(question);
+  const authorisations=document.createElement('details');authorisations.className='stitch-audit-authorisations';authorisations.innerHTML='<summary>Recorded authorisation checks</summary><div data-slot="audit-authorisations"></div>';answerBlock.after(authorisations);
   slot(leaf(details,'REC-ID #883921'),'audit-id','Request details');
   const itemCount=leaf(details,'3 items'); if(itemCount)slot(itemCount,'audit-evidence-count','0 items');
   const frequency=leaf(main,'Query Frequency Spike'); if(frequency)frequency.parentElement.parentElement.remove();
@@ -193,6 +196,10 @@ for (const [name, doc] of Object.entries(documents)) {
     const guide=[...main.querySelectorAll('h2')].find(node=>norm(node.textContent)==='How to explore an answer').closest('[class~="lg:col-span-7"]');
     const examples=[...main.querySelectorAll('h2')].find(node=>norm(node.textContent)==='Try a demo question').closest('[class~="lg:col-span-5"]');
     guide.classList.add('stitch-home-guide');examples.classList.add('stitch-home-examples');guide.parentElement.setAttribute('data-layout','home-support');
+    for(const text of ['Synthesized','Tickets & Commits','Evidence Passport']){
+      const badge=[...guide.querySelectorAll('span.rounded-full')].find(node=>norm(node.textContent).includes(text));
+      if(badge){badge.classList.add('stitch-guide-step-badge');badge.parentElement.classList.add('stitch-guide-step-heading');}
+    }
     for(const b of main.querySelectorAll('button[onclick^="populatePrompt"]')){const m=b.getAttribute('onclick').match(/populatePrompt\(['"](.+?)['"]\)/); if(m){b.dataset.question=m[1];action(b,'example');}}
     const planning=leaf(main,'Query planning enabled');
     if(planning){const control=document.createElement('label');control.className='stitch-planning';control.innerHTML='<span>Query planning</span><input type="checkbox" role="switch" aria-label="Query planning" data-slot="planning-toggle"><span class="stitch-switch-track" aria-hidden="true"></span><span data-slot="planning-label">Off</span>';planning.parentElement.replaceWith(control);}
@@ -266,6 +273,7 @@ const replacements={
   'Access Level: Enterprise Tier 1':'Current session scope',
   'Encrypted':'Offline scope','Node 0x8F92':'Local audit'
 };
+replacements['Historical query, answer, and evidence details are redacted when current access or the recorded version cannot be verified. Table illustrates per-record visibility; current API may redact the complete event evidence list when operating in zero-trust isolation.']='Current access, recorded versions and content hashes are checked together. If any recorded source cannot be verified, the request evidence and authorisation details are withheld. Events without recorded evidence are labelled separately.';
 for(const node of document.querySelectorAll('*')){
   for (const child of [...node.childNodes].filter(child=>child.nodeType===3)) {
     const text=norm(child.textContent);
@@ -282,8 +290,8 @@ for(const node of document.querySelectorAll('*')){
 for(const script of [...document.querySelectorAll('script')])script.remove();
 for(const style of [...document.querySelectorAll('style')]){styles.push(style.textContent);style.remove();}
 const notice=document.createElement('div');notice.id='stitch-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
-const app=document.createElement('script');app.src='/static/stitch/app.js?v=4';app.defer=true;document.head.append(app);
-for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=4';document.head.append(link);}
+const app=document.createElement('script');app.src='/static/stitch/app.js?v=5';app.defer=true;document.head.append(app);
+for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=5';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
 
 async function localizeAssets(){

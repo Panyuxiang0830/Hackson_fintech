@@ -52,10 +52,45 @@ class StitchAPIContractTests(unittest.TestCase):
             self.assertTrue(event["redacted"])
             self.assertFalse(event["evidence"])
             self.assertIsNone(event.get("radar_presentation"))
+            self.assertEqual(event["evidence_visibility"], "current_access_unavailable")
+            self.assertFalse(event["authorization_decisions"])
         self.fixture.login(self.fixture.alice)
         source = self.client.get("/api/doc?corpus=alpha&doc_id=doc-0")
         self.assertEqual(source.status_code, 404)
         self.assertFalse(source.json["available"])
+
+    def test_empty_event_and_authorised_evidence_have_distinct_audit_states(self):
+        event=self.fixture.service.record(self.fixture.ids.get(self.fixture.admin.id),"permission_change")
+        self.fixture.login(self.fixture.admin)
+        data=self.client.get('/api/audit?request_id='+event['request_id']).json
+        self.assertEqual(data['events'][0]['evidence_visibility'],'not_recorded')
+        self.assertEqual(data['events'][0]['returned_evidence_count'],0)
+        self.fixture.ids.update(self.fixture.alice.id,role='compliance')
+        self.fixture.login(self.fixture.ids.get(self.fixture.alice.id))
+        answer=self.fixture.post('/api/ask',{'q':'TitanDB','corpus':'alpha','mode':'keyword','planning':False})
+        data=self.client.get('/api/audit?request_id='+answer.json['request_id']).json
+        item=data['events'][0]
+        self.assertEqual(item['evidence_visibility'],'visible')
+        self.assertFalse(item['redacted'])
+        self.assertTrue(item['authorization_decisions'])
+        actor=self.fixture.ids.get(self.fixture.alice.id)
+        hits,_=self.fixture.index.search(self.fixture.index.scope(actor,'alpha'),'TitanDB',mode='keyword')
+        historical=self.fixture.service.record(actor,'answer',hits=[hits[0]|{'version':'older-recorded-version'}])
+        data=self.client.get('/api/audit?request_id='+historical['request_id']).json
+        self.assertEqual(data['events'][0]['evidence_visibility'],'version_mismatch')
+        self.assertFalse(data['events'][0]['evidence'])
+        from unittest.mock import patch
+        from contextledger.retrieval.filtered_index import IndexUnavailable
+        with patch.object(self.fixture.index,'open',side_effect=IndexUnavailable('unverified index')):
+            data=self.client.get('/api/audit?request_id='+answer.json['request_id']).json
+        self.assertEqual(data['events'][0]['evidence_visibility'],'index_unavailable')
+
+    def test_english_interface_refusal_and_language_validation(self):
+        result=self.fixture.post('/api/ask',{'q':'未知的测试项目','corpus':'alpha','mode':'keyword','planning':False,'output_language':'en'})
+        self.assertEqual(result.status_code,200)
+        self.assertNotRegex(result.json['answer'],r'[\u4e00-\u9fff]')
+        result=self.fixture.post('/api/ask',{'q':'TitanDB','corpus':'alpha','output_language':'invalid'})
+        self.assertEqual(result.status_code,400)
 
 
 if __name__ == "__main__":

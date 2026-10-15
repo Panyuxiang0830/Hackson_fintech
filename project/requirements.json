@@ -1059,7 +1059,9 @@
             "审计标识缩略展示并支持复制完整值；时间明确标注时区且完整原值保留；手机交互目标约44px，加载状态在按钮内，错误提示置于对应页面内容中",
             "2026-10-15 新版作为唯一默认首页，原版前端按文件备份且不显示切换入口；删除中文设计说明，演示身份显示英文；Query planning 可切换且不会被会话轮询覆盖；操作按钮自动调整字号保持单行；Audit 筛选自适应网格；使用用户提供的 vectorized.svg.svg 引导图",
             "2026-10-15 问题卡使用独立配色与结论分层；移除 Isolated demo 视觉标签；搜索区数据集、规划和提交控件统一高度；下拉菜单圆角与主题绿色选中态；参考 emilkowalski/skills 的动效原则实现 Radar 与 Passport 的焦点转移和短时切换，支持 reduced motion 与快速返回，权限清理不等待动画",
-            "2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计"
+            "2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计",
+            "2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID",
+            "首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行"
           ],
           "code": [
             "frontend/stitch/build.cjs",
@@ -1079,12 +1081,15 @@
             "contextledger/interfaces/web.py",
             "contextledger/interfaces/static/stitch/assets/vectorized.svg.svg",
             "frontend/legacy-backup/2026-10-15",
-            ".gitattributes"
+            ".gitattributes",
+            "contextledger/answering/service.py",
+            "contextledger/application/service.py"
           ],
           "tests": [
             "tests/interfaces/test_stitch_frontend.py",
             "frontend/stitch/verify.cjs",
-            "tests/interfaces/test_stitch_api.py"
+            "tests/interfaces/test_stitch_api.py",
+            "tests/answering/test_radar_synthesis.py"
           ],
           "docs": [
             "docs/product/stitch-independent-frontend.md"
@@ -1178,7 +1183,8 @@
             "保存固定问题、期望事实与证据版本；失败和拒答保留在分母",
             "使用本地配置的真实模型及原生 Qdrant，分别报告回答、跨来源审批状态、无证据/越权、更新后答案和延迟",
             "浏览器检查回答/原文/权限切换与手机布局；明确当前为单轮问答，省略实体的追问不自动继承旧上下文",
-            "保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料"
+            "保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料",
+            "2026-10-15 定稿 Stitch 前端在 c7a7967 基线上完成3项真实API冒烟：2项真实模型问答/原文哈希通过，1项未知实体零生成拒答；保留一次格式修正记录。本次keyword/规划关闭，不计为真实向量召回或生产验收"
           ],
           "code": [
             "scripts/evaluate_chat.py",
@@ -1201,7 +1207,8 @@
             "docs/evaluation/chat.md",
             "docs/README.md",
             "BENCHMARK_QUICKSTART.md",
-            "docs/product/prompt-and-login-walkthrough.md"
+            "docs/product/prompt-and-login-walkthrough.md",
+            "docs/evaluation/stitch-live-20261015.md"
           ]
         },
         {

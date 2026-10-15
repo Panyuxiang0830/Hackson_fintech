@@ -87,6 +87,9 @@ function closePassport() {
   else (state.result?pages.radar.querySelector('[data-action="edit"]'):one('home','question')).focus();
   state.passportOpener=null;
 }
+function sourceURL(doc){
+  try{const url=new URL(doc?.source_url);return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password?url.href:null;}catch(error){return null;}
+}
 function technical(open) {
   const panel=one('passport','technical');panel.hidden=!open;
   const button=pages.passport.querySelector('[data-action="technical"]');button.setAttribute('aria-expanded',String(open));
@@ -160,7 +163,8 @@ function clearProtected() {
   }
   for(const name of ['claim','claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-access-status','doc-source-status'])put('passport',name,'—');
   technical(false);
-  for(const name of ['events','audit-facts','audit-evidence'])one('audit',name)?.replaceChildren();
+  for(const name of ['events','audit-facts','audit-evidence','audit-authorisations'])one('audit',name)?.replaceChildren();
+  put('audit','audit-question','No event selected.');pages.passport.querySelector('[data-action="original"]').hidden=true;
   put('audit','audit-answer','Select an event to view its released details.');put('audit','audit-id','Request details');put('audit','events-count','0 found');put('audit','audit-evidence-count','0 items');put('audit','integrity','Audit chain not checked');
   show('home',{motion:false});
 }
@@ -277,7 +281,7 @@ async function ask() {
   const question=one('home','question').value.trim(),corpus=one('home','corpus').value;
   if(!state.user||!question||!corpus){notice('Choose an identity and dataset, then enter a question.','error');return;}
   clearProtected();state.question=question;state.corpus=corpus;queryBusy(true);const generation=state.generation;
-  try {const data=await api('/api/ask',{q:question,corpus,mode:'hybrid',planning:state.planning});if(generation===state.generation){renderResult(data);notice(data.provider==='mock_fallback'?'No reliable model answer was generated. The authorised selection remains available.':'','error');}}
+  try {const data=await api('/api/ask',{q:question,corpus,mode:'hybrid',planning:state.planning,output_language:'en'});if(generation===state.generation){renderResult(data);notice(data.provider==='mock_fallback'?'No reliable model answer was generated. The authorised selection remains available.':'','error');}}
   catch(error){if(generation===state.generation||error.accessChanged)notice(error.message,'error');}
   finally {queryBusy(false);}
 }
@@ -288,12 +292,14 @@ async function openPassport(hit) {
   const generation=state.generation,docRequest=++state.docGeneration;state.doc=null;
   for(const name of ['claim-scope','citation-source','quote','doc-version','doc-time','doc-indexed','doc-access','technical','doc-source-status'])put('passport',name,'—');
   technical(false);
+  pages.passport.querySelector('[data-action="original"]').hidden=true;
   renderJudgment('passport',state.result);put('passport','claim','Loading source…');put('passport','doc-access-status','Checking access');show('passport');notice('Checking current source access…');
   try {
     const data=await api('/api/doc?'+new URLSearchParams({corpus:hit.corpus||state.corpus,doc_id:hit.doc_id}),undefined,()=>docRequest===state.docGeneration&&document.body.dataset.activePage==='passport');
     if(generation!==state.generation||docRequest!==state.docGeneration||document.body.dataset.activePage!=='passport')return;
     if(!data.available||!data.doc){clearProtected();const error=new Error('This source is unavailable under current access.');error.accessChanged=true;throw error;}
     state.doc=data.doc;
+    pages.passport.querySelector('[data-action="original"]').hidden=!sourceURL(state.doc);
     put('passport','doc-access-status','Authorised source');put('passport','doc-source-status',data.doc.source_check||'Unknown');
     put('passport','claim-scope','This passport shows the selected source and its current access metadata.');
     put('passport','claim',data.doc.title||hit.title||'Cited source');
@@ -363,10 +369,11 @@ async function loadAudit() {
   const filters={};for(const [slot,key] of [['audit-query','q'],['audit-user','user_id'],['audit-request','request_id']]){const value=one('audit',slot)?.value.trim();if(value)filters[key]=value;}
   const generation=state.generation;state.busy=true;notice('Reading audit events under current access…');
   state.audit=null;
-  for(const name of ['events','audit-facts','audit-evidence'])one('audit',name)?.replaceChildren();
+  for(const name of ['events','audit-facts','audit-evidence','audit-authorisations'])one('audit',name)?.replaceChildren();
+  put('audit','audit-question','Searching the current audit selection…');
   put('audit','audit-id','Request details');put('audit','audit-answer','Searching the current audit selection…');put('audit','integrity','Audit chain not checked');
   try {const data=await api('/api/audit?'+new URLSearchParams(filters));if(generation!==state.generation)return;
-    state.audit={...data,events:(data.events||[]).map(event=>event.redacted?{...event,question:null,answer:null,evidence:[],radar_presentation:null}:event)};
+    state.audit={...data,events:(data.events||[]).map(event=>event.redacted?{...event,question:null,query:null,answer:null,evidence:[],authorization_decisions:[],retrieved_document_ids:[],radar_presentation:null}:event)};
     renderAudit(state.audit);notice('');}
   catch(error){if(generation===state.generation||error.accessChanged)notice(error.message,'error');}finally{state.busy=false;}
 }
@@ -376,7 +383,7 @@ function renderAudit(data) {
   for(const [index,event] of events.entries()){
     const button=element('button','stitch-audit-event event-card group relative p-4 rounded-xl bg-canvas-bg shadow-sm cursor-pointer transition-all text-left w-full');button.type='button';button.setAttribute('aria-pressed',String(index===0));
     const time=formattedTime(event.timestamp);const meta=element('span','font-label-sm text-label-sm text-text-muted',`${time.time}${time.zone?' SGT':''} · ${event.event_type?.replaceAll('_',' ')||'Event'}`);meta.title=time.raw;
-    const title=element('h4','stitch-evidence-title font-title-md text-title-md font-bold text-text-primary',event.redacted?'Details withheld under current access':event.question||event.event_type||'Audit event');
+    const title=element('h4','stitch-evidence-title font-title-md text-title-md font-bold text-text-primary',event.redacted?(event.evidence_visibility==='not_recorded'?'Event recorded without evidence':'Details withheld under current access'):event.query||event.question||event.event_type||'Audit event');
     const actor=element('span','stitch-audit-muted',`${displayName(event.user_name||event.user_id,event.user_id)} · ${shortId(event.request_id)}`);actor.title=`${displayName(event.user_name||event.user_id,event.user_id)} · ${event.request_id||''}`;
     button.append(meta,title,actor);
     button.addEventListener('click',()=>{for(const row of list.querySelectorAll('button'))row.setAttribute('aria-pressed',String(row===button));renderAuditDetails(event,data.integrity);});list.append(button);if(index===0)renderAuditDetails(event,data.integrity);
@@ -395,9 +402,17 @@ function renderAuditDetails(event,integrity) {
   put('audit','audit-mask',event.redacted?'Details masked under current access':'Current evidence access checked');
   put('audit','audit-answer',event.redacted?'Recorded question, answer and evidence details are withheld under current access.':event.answer||'No answer was recorded for this event.');
   const body=one('audit','audit-evidence');body.replaceChildren();const evidence=event.redacted?[]:event.evidence||[];
-  put('audit','audit-evidence-count',event.redacted?'Withheld':`${evidence.length} items`);
+  const visibility=event.evidence_visibility|| (event.redacted?'withheld':evidence.length?'visible':'not_recorded');
+  put('audit','audit-evidence-count',visibility==='not_recorded'?'Not recorded':event.redacted?'Withheld':`${evidence.length} items`);
+  one('audit','audit-evidence-count').dataset.visibility=visibility;
+  one('audit','audit-mask').classList.toggle('stitch-audit-masked',Boolean(event.redacted));
+  one('audit','audit-mask').classList.toggle('stitch-audit-released',!event.redacted);
+  put('audit','audit-question',event.redacted?'Recorded text is withheld under current access.':event.query||event.question||'No question was recorded for this event.');
   for(const item of evidence){const row=element('tr','hover:bg-canvas-bg/80 transition-colors');const document=element('td','py-3.5 px-4 font-body-sm text-body-sm stitch-wrap',item.title||shortId(item.doc_id));document.title=item.doc_id||'Source record';row.append(document);for(const value of [item.version||'—','Authorised at this audit read'])row.append(element('td','py-3.5 px-4 font-body-sm text-body-sm stitch-wrap',value));body.append(row);}
-  if(event.redacted){const row=element('tr','');const cell=element('td','py-3.5 px-4 text-text-muted','Historical evidence details are withheld.');cell.colSpan=3;row.append(cell);body.append(row);}
+  if(!evidence.length){const messages={not_recorded:'This event did not record any evidence.',current_access_unavailable:'Historical evidence details are withheld because current access could not be verified. This may also occur when a source is no longer available.',version_mismatch:'Historical evidence details are withheld because the recorded version or hash no longer matches the current source.',index_unavailable:'Historical evidence details are withheld because the current index could not be verified.'};const row=element('tr','');const cell=element('td','py-3.5 px-4 text-text-muted',messages[visibility]||'Historical evidence details are withheld under current access.');cell.colSpan=3;row.append(cell);body.append(row);}
+  const authorisations=one('audit','audit-authorisations');authorisations.replaceChildren();
+  for(const check of event.redacted?[]:event.authorization_decisions||[]){const line=element('p','stitch-wrap',`${shortId(check.document_id)} · ${check.allowed===true?'Allowed at request time':check.allowed===false?'Denied at request time':'Recorded outcome unknown'} · ${check.reason||'No recorded reason'}`);authorisations.append(line);}
+  if(!authorisations.children.length)authorisations.append(element('p','text-text-muted',event.redacted&&visibility!=='not_recorded'?'Authorisation details are withheld with the evidence.':'No document authorisation checks were released for this event.'));
 }
 
 async function dispatch(actionName,node) {
@@ -409,7 +424,7 @@ async function dispatch(actionName,node) {
   if(actionName==='back-radar'){closePassport();return;}
   if(actionName==='technical'){technical(one('passport','technical').hidden);return;}
   if(actionName==='toggle-timeline'){const page=node.closest('[data-page]').dataset.page;state.timelineExpanded[page]=!state.timelineExpanded[page];if(state.result)renderTimeline(page,state.result);return;}
-  if(actionName==='original'){if(state.doc?.source_url){const url=new URL(state.doc.source_url);if(['http:','https:'].includes(url.protocol))window.open(url.href,'_blank','noopener,noreferrer');}else notice('This source has no external original URL. Its text is shown here.');return;}
+  if(actionName==='original'){const url=sourceURL(state.doc);if(url)window.open(url,'_blank','noopener,noreferrer');return;}
   if(actionName==='binding')return changeBinding();
   if(actionName==='query-employee')return runEmployeeQuery();
   if(actionName==='audit-search')return loadAudit();

@@ -644,11 +644,13 @@
   - 2026-10-15 新版作为唯一默认首页，原版前端按文件备份且不显示切换入口；删除中文设计说明，演示身份显示英文；Query planning 可切换且不会被会话轮询覆盖；操作按钮自动调整字号保持单行；Audit 筛选自适应网格；使用用户提供的 vectorized.svg.svg 引导图
   - 2026-10-15 问题卡使用独立配色与结论分层；移除 Isolated demo 视觉标签；搜索区数据集、规划和提交控件统一高度；下拉菜单圆角与主题绿色选中态；参考 emilkowalski/skills 的动效原则实现 Radar 与 Passport 的焦点转移和短时切换，支持 reduced motion 与快速返回，权限清理不等待动画
   - 2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计
+  - 2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID
+  - 首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行
 
 - 影响范围：
 
-  - 代码：`frontend/stitch/build.cjs`, `frontend/stitch/package.json`, `frontend/stitch/package-lock.json`, `frontend/stitch/source/01_search_home.html`, `frontend/stitch/source/02_decision_radar.html`, `frontend/stitch/source/03_evidence_passport.html`, `frontend/stitch/source/04_security_lens.html`, `frontend/stitch/source/05_audit_trail.html`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/design.css`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/interfaces/static/stitch/fonts.css`, `contextledger/interfaces/static/stitch/source-manifest.json`, `contextledger/interfaces/web.py`, `contextledger/interfaces/static/stitch/assets/vectorized.svg.svg`, `frontend/legacy-backup/2026-10-15`, `.gitattributes`
-  - 测试：`tests/interfaces/test_stitch_frontend.py`, `frontend/stitch/verify.cjs`, `tests/interfaces/test_stitch_api.py`
+  - 代码：`frontend/stitch/build.cjs`, `frontend/stitch/package.json`, `frontend/stitch/package-lock.json`, `frontend/stitch/source/01_search_home.html`, `frontend/stitch/source/02_decision_radar.html`, `frontend/stitch/source/03_evidence_passport.html`, `frontend/stitch/source/04_security_lens.html`, `frontend/stitch/source/05_audit_trail.html`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/design.css`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/interfaces/static/stitch/fonts.css`, `contextledger/interfaces/static/stitch/source-manifest.json`, `contextledger/interfaces/web.py`, `contextledger/interfaces/static/stitch/assets/vectorized.svg.svg`, `frontend/legacy-backup/2026-10-15`, `.gitattributes`, `contextledger/answering/service.py`, `contextledger/application/service.py`
+  - 测试：`tests/interfaces/test_stitch_frontend.py`, `frontend/stitch/verify.cjs`, `tests/interfaces/test_stitch_api.py`, `tests/answering/test_radar_synthesis.py`
   - 文档：`docs/product/stitch-independent-frontend.md`
 
 ## REQ-018 · 端到端质量、安全与性能评测
@@ -688,12 +690,13 @@
   - 使用本地配置的真实模型及原生 Qdrant，分别报告回答、跨来源审批状态、无证据/越权、更新后答案和延迟
   - 浏览器检查回答/原文/权限切换与手机布局；明确当前为单轮问答，省略实体的追问不自动继承旧上下文
   - 保留原始结果、模型/Prompt/源码指纹和复现命令；不保存密钥或真实公司资料
+  - 2026-10-15 定稿 Stitch 前端在 c7a7967 基线上完成3项真实API冒烟：2项真实模型问答/原文哈希通过，1项未知实体零生成拒答；保留一次格式修正记录。本次keyword/规划关闭，不计为真实向量召回或生产验收
 
 - 影响范围：
 
   - 代码：`scripts/evaluate_chat.py`, `contextledger/evaluation/chat.py`, `scripts/check_chat_ui.py`, `fixtures/chat/evaluation.json`, `contextledger/answering/service.py`, `contextledger/interfaces/static/unified.js`, `contextledger/interfaces/templates/unified.html`, `contextledger/radar/protocol.py`, `contextledger/answering/workflows.py`
   - 测试：`tests/evaluation/test_chat_evaluation.py`, `tests/answering/test_answering.py`, `tests/answering/test_radar_synthesis.py`, `tests/radar/test_radar_integration.py`
-  - 文档：`docs/evaluation/chat.md`, `docs/README.md`, `BENCHMARK_QUICKSTART.md`, `docs/product/prompt-and-login-walkthrough.md`
+  - 文档：`docs/evaluation/chat.md`, `docs/README.md`, `BENCHMARK_QUICKSTART.md`, `docs/product/prompt-and-login-walkthrough.md`, `docs/evaluation/stitch-live-20261015.md`
 
 ### 功能扩展 · 聊天延迟分阶段对照
 

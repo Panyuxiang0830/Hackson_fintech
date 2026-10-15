@@ -209,3 +209,17 @@ select option:checked{background:#E6F9F2;color:#006c46}
 @supports(appearance:base-select){select::picker(select){top:anchor(bottom);bottom:auto;left:anchor(left);right:auto;position-try-fallbacks:flip-block}}
 [data-input="keyboard"] select::picker(select){transition:none!important;transform:none!important}
 [data-page] .transition-all{transition-property:color,background-color,border-color,box-shadow,opacity,transform!important}
+.stitch-audit-question{padding:14px 16px;border-radius:12px;background:#EDF3FF;color:#244875;overflow-wrap:anywhere}
+.stitch-audit-question p{margin-top:6px;font-size:14px;line-height:1.5}
+.stitch-audit-authorisations{border:1px solid #E5E9E8;border-radius:12px;padding:12px 16px;font:13px/1.6 Inter,sans-serif}
+.stitch-audit-authorisations summary{cursor:pointer;min-height:28px;color:#006c46;font-weight:600}
+.stitch-audit-authorisations p{padding-block:6px}
+[data-slot="audit-evidence-count"][data-visibility="not_recorded"]{background:#F1F5F9;color:#64748B}
+[data-slot="audit-evidence-count"][data-visibility]:not([data-visibility="visible"]):not([data-visibility="not_recorded"]){background:#FEF3C7;color:#92400E}
+.stitch-audit-released{color:#006c46!important}
+.stitch-audit-masked{color:#92400E!important}
+/* Guide labels keep their own width; narrow cards move the entire badge below. */
+.stitch-guide-step-heading{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
+.stitch-guide-step-heading>span:first-child{flex:1 1 220px;min-width:0}
+.stitch-guide-step-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-height:24px;max-width:100%;padding:4px 10px;line-height:16px}
+.stitch-guide-step-badge>.material-symbols-outlined{flex:none}
