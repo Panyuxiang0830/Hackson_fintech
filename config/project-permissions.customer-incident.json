@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "authority": "team_decision",
+  "corpus": "orgforge",
+  "projects": [
+    {
+      "id": "orgforge:customer-telemetry-recovery",
+      "name": "Customer Telemetry Recovery",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-311",
+          "expected_content_hash": "893def76a3c21c86fe0533b62662efceac13516bb411351b6a36b549322828bc"
+        },
+        {
+          "doc_id": "ENG-210",
+          "expected_content_hash": "e3acaccc2b67000a15090de0979f6fa1ccb4bf847c2d02c44152c053e46f121a"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-02-02T11:36:00",
+          "expected_content_hash": "c86e470b7b98f00aac3c92ef207341c88764eafbf51a2c684e04e4243e805c48"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-02-23T16:23:00",
+          "expected_content_hash": "0651c16247cb15f722c2c11cc3c047efedf7fd866bdf3b69febb28c70b6a4e73"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-02-25T11:20:00",
+          "expected_content_hash": "320b8726541f1d7f1d63a6ef0958d24748e9c6bb19b3da06945850b788f866fa"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-03-02T09:00:00",
+          "expected_content_hash": "6d57aa6d2224d83ba569b1c723b66825fe8e2f383a6434795a794e8b79120e28"
+        },
+        {
+          "doc_id": "slack_dm_chris_jamie_2026-02-20T11:07:00",
+          "expected_content_hash": "f34db9cf53c61b3f99fe42a640d81f12006765ba759bcfc7c23364bce1b062fa"
+        },
+        {
+          "doc_id": "slack_dm_liam_sanjay_2026-02-20T09:00:00",
+          "expected_content_hash": "5bd67b9ddff8a638ca66a86e34afd7d32534ccc031a5ae50ad3379985863b3af"
+        },
+        {
+          "doc_id": "slack_dm_miki_sam_2026-02-27T13:05:30.003863",
+          "expected_content_hash": "925f5b02884bca9946ddf9ef48bb40576e74345ab114582d7dc75071b4a87ea9"
+        },
+        {
+          "doc_id": "slack_dm_raj_sam_2026-02-27T11:33:30.003863",
+          "expected_content_hash": "5168e6813fd3df90706fead4ecca92a3f49f9b8538e55db4fef0028a12660448"
+        },
+        {
+          "doc_id": "slack_engineering_2026-02-23T09:00:00",
+          "expected_content_hash": "99fd981c9b0e5f1d716d317ac903a985500499bc70648925d442fee09f4a6725"
+        },
+        {
+          "doc_id": "slack_engineering_2026-02-25T09:00:00",
+          "expected_content_hash": "bf64802da48d27705e5aafead76ae483431eeadc64fb94769638c8d93f083827"
+        },
+        {
+          "doc_id": "slack_engineering_2026-02-26T15:32:50.885316",
+          "expected_content_hash": "08da1ea37524a7999f9bae71d065d06ca9564a7c87701ee432ebae3e01f83843"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-02T15:04:41.068969",
+          "expected_content_hash": "0644a8ddb7bc9a80c1ea26e8d8f12c694e14eb122343488c32739dbdc408987d"
+        },
+        {
+          "doc_id": "slack_engineering_backend_2026-02-19T16:14:56.929930",
+          "expected_content_hash": "0f5dc63a97e538de80178f2b0dcc0994c376ac56b9a94c9fa0d66ef5d38c0f0e"
+        },
+        {
+          "doc_id": "slack_engineering_mobile_2026-02-18T13:42:00",
+          "expected_content_hash": "994b54d35a81a2e78b4cc81936bf58284829c17f1b56919854899a9a3bcc3465"
+        },
+        {
+          "doc_id": "slack_engineering_mobile_2026-02-19T14:55:56.056922",
+          "expected_content_hash": "7edd45cb43236dc721fa77b2eb8836510a814ef1843d32ec1d7531d3f00a7992"
+        },
+        {
+          "doc_id": "slack_engineering_mobile_2026-02-19T15:51:56.056922",
+          "expected_content_hash": "f2bee801ec46d1d3c7bd7a486237bdbdff30f9a9bf28744d75c35c97b85204a8"
+        },
+        {
+          "doc_id": "slack_engineering_mobile_2026-02-24T15:54:00",
+          "expected_content_hash": "ac37f2fc5d7adcd5d472d92c651b15c0f17646b3ee68766850f58797fb016fd4"
+        },
+        {
+          "doc_id": "slack_engineering_mobile_2026-02-24T16:22:00",
+          "expected_content_hash": "df861fdf661004d1498f927a45aeb33015a79f8b09acb10199fa84145396ff52"
+        },
+        {
+          "doc_id": "slack_incidents_2026-02-20T11:51:00",
+          "expected_content_hash": "01e692c9afa5b65e3d803bc39aa3f35c819aa67a8a58275be1367d2b5b08d306"
+        },
+        {
+          "doc_id": "slack_incidents_2026-02-23T15:18:00",
+          "expected_content_hash": "486149813bc5638bbfff635ee762b5258a2385d63fafa6afb341bcf8e2a7e906"
+        },
+        {
+          "doc_id": "slack_standup_2026-02-25T09:15:00",
+          "expected_content_hash": "afafc8a9b1a03adab77587cb94f0e3385df31f8292bd6ce70d330bd29ad7cac1"
+        }
+      ]
+    }
+  ]
+}

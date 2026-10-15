@@ -31,3 +31,21 @@
 ### 前端走查完成
 
 修复对照卡项目名称变量后，线上切至 `releases/project-permissions-ui-20261016` / `58ffc6ef`，PID789262，JS v11、CSS v7。后端项目规则与0dd92112一致，切换不改身份与权限。真实Chrome界面搜索Firebase→添加项目卡片→自动保存版本68→移除卡片→自动保存版本69，三张原项目卡片及三个来源全关状态恢复；原截图中的配置/部门说明不再显示，密级保留。运行身份库及审计链只读复核通过。截图在本地 `/tmp/contextledger-project-permissions.png`，不作为业务源码提交。
+
+
+## Radar 四案例项目补充（2026-10-16）
+
+`config/radar-project-permissions.json` 对照 `fixtures/radar/manifest.json`：复用SwiftUI项目，新增三个项目，目录合计九个。新配置不含initial_memberships，既有员工项目资格与来源开关保持原状态，新增资格由管理员搜索后添加。
+
+| fixture案例 | 项目名称 | 线上已有资源数 | 未入库的独立资源 |
+| --- | --- | ---: | --- |
+| 01-dashboard-review | SwiftUI Telemetry Dashboard（已有） | 4 | PR-135 |
+| 02-kafka-incident | Kafka Stream Recovery（新增） | 10 | PR-109 |
+| 03-customer-incident | Customer Telemetry Recovery（新增） | 23 | PR-139、ZD-101 |
+| 04-recurrence-revision | Marathon Pacing Resilience（新增） | 28 | PR-159 |
+
+fixture的110行记录按resource_id去重后是70份资源；现有预览收录65份，全部纳入这四个项目。SwiftUI的4份已经标注，本次新增61份；连同先前另外五个项目的10份，线上项目标签共75份。每份新增资料保留原正文、ACL、部门和密级，私聊仍受原参与人ACL约束。未入库的5份资源仅登记例外，不导入fixture合成ACL，也不把正文中的PR/工单引用宣称为独立原文。
+
+三个增量清单分别是 `config/project-permissions.kafka-incident.json`、`config/project-permissions.customer-incident.json`、`config/project-permissions.recurrence-revision.json`。每批最多28份，沿用现有50份上限、内容哈希预检、备份及队列发布，不修改检索策略或前端代码。管理员重新进入Manage Permissions即可加载新增目录，搜索名称并添加项目卡片。
+
+执行方式：先对每个增量清单运行 `scripts/apply_project_permissions.py --out <preview>/content --security-dir <preview>/security --manifest <清单>`；确认预检后加 `--apply`。不要为本次增量重放带初始成员的旧六项目清单。线上应用和授权/撤权测试结果将在完成后记录。

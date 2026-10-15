@@ -1,6 +1,7 @@
 """Project membership is mandatory for tagged resources, never for untagged ones."""
 import copy
 import json
+from pathlib import Path
 import unittest
 
 from contextledger.access.project_permissions import plan_project_annotations
@@ -77,6 +78,58 @@ class ProjectPermissionTests(unittest.TestCase):
         with self.assertRaises(ValueError):plan_project_annotations(broken,after)
         duplicate=copy.deepcopy(self.manifest);duplicate['projects']*=2
         with self.assertRaises(ValueError):plan_project_annotations(duplicate,after)
+
+
+class RadarProjectCatalogTests(unittest.TestCase):
+    def test_every_fixture_resource_is_tagged_or_explicitly_absent_from_preview(self):
+        root = Path(__file__).resolve().parents[2]
+        index = json.loads((root/'config/radar-project-permissions.json').read_text())
+        fixtures = json.loads((root/'fixtures/radar/manifest.json').read_text())
+        self.assertEqual(set(index['cases']), set(fixtures['cases']))
+        absent = {
+            '01-dashboard-review': {'PR-135'},
+            '02-kafka-incident': {'PR-109'},
+            '03-customer-incident': {'PR-139', 'ZD-101'},
+            '04-recurrence-revision': {'PR-159'},
+        }
+        assigned = set()
+        catalog = {}
+        for case, mapping in index['cases'].items():
+            with self.subTest(case=case):
+                manifest = json.loads((root/mapping['annotation_manifest']).read_text())
+                self.assertEqual(manifest['authority'], 'team_decision')
+                self.assertEqual(manifest['corpus'], 'orgforge')
+                self.assertLessEqual(sum(len(p['documents']) for p in manifest['projects']), 50)
+                for project in manifest['projects']:
+                    catalog[project['id']] = project
+                project = next(p for p in manifest['projects'] if p['id']==mapping['project'])
+                entries = project['documents']
+                ids = {e['doc_id'] for e in entries}
+                fixture_ids = {json.loads(line)['resource_id'] for line in
+                    (root/'fixtures/radar'/fixtures['cases'][case]['file']).read_text().splitlines()}
+                exceptions = {e['doc_id'] for e in mapping['unavailable_resources']}
+                self.assertEqual(exceptions, absent[case])
+                self.assertTrue(all(e['reason']=='not_in_preview_corpus' for e in mapping['unavailable_resources']))
+                self.assertEqual(ids | exceptions, fixture_ids)
+                self.assertFalse(ids & exceptions)
+                self.assertFalse(ids & assigned)
+                self.assertEqual(len(ids), len(entries))
+                for entry in entries:
+                    self.assertRegex(entry['expected_content_hash'], r'^[0-9a-f]{64}$')
+                assigned.update(ids)
+        self.assertEqual(len(assigned), 65)
+        self.assertEqual(len(catalog), 9)
+
+    def test_incremental_fixture_manifests_preserve_membership_configuration(self):
+        root = Path(__file__).resolve().parents[2]
+        index = json.loads((root/'config/radar-project-permissions.json').read_text())
+        for case, mapping in index['cases'].items():
+            if case=='01-dashboard-review':
+                continue
+            manifest = json.loads((root/mapping['annotation_manifest']).read_text())
+            # Reapplying these additions must not restore an administrator's old grants.
+            self.assertFalse(manifest.get('initial_memberships'))
+            self.assertEqual(len(manifest['projects']), 1)
 
 
 if __name__=='__main__':unittest.main()

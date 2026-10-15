@@ -660,7 +660,7 @@
 - 来源：user confirmed on 2026-10-15 for submission demo; preserve imported ACL and focus OrgForge
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`in_progress`
-- 说明：已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。 2026-10-15用户授权只对实际演示问题相关资源人工标注项目、部门和密级，并接通相应管理与追溯；不推广到其他数据。 2026-10-16 定向4份资料标注已部署到17866并通过真实模型、撤权/密级/部门对照与浏览器技术验收；用户人工验收待完成。 2026-10-16：用户要求移除演示配置与部门说明文案、保留密级，新增可搜索项目成员卡片；在SwiftUI之外从现有数据抽象五个项目，标注资源要求显式项目资格，未标项目资源不受项目层限制但保留来源ACL与密级。 新项目成员规则与六个项目/14份标签已部署并通过六项目线上检索/原文和三来源关闭对照；前端搜索添加/移除走查通过，Jax版本69、原三来源关闭状态保留；用户验收待完成。
+- 说明：已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。 2026-10-15用户授权只对实际演示问题相关资源人工标注项目、部门和密级，并接通相应管理与追溯；不推广到其他数据。 2026-10-16 定向4份资料标注已部署到17866并通过真实模型、撤权/密级/部门对照与浏览器技术验收；用户人工验收待完成。 2026-10-16：用户要求移除演示配置与部门说明文案、保留密级，新增可搜索项目成员卡片；在SwiftUI之外从现有数据抽象五个项目，标注资源要求显式项目资格，未标项目资源不受项目层限制但保留来源ACL与密级。 新项目成员规则与六个项目/14份标签已部署并通过六项目线上检索/原文和三来源关闭对照；前端搜索添加/移除走查通过，Jax版本69、原三来源关闭状态保留；用户验收待完成。 2026-10-16用户补充：核对fixtures/radar四个案例，已有SwiftUI复用；新增Kafka Stream Recovery、Customer Telemetry Recovery、Marathon Pacing Resilience三个项目。仅将四组案例在线上已存在的资源按内容哈希白名单标注，缺失PR/客户工单不伪造导入，不改变原ACL和员工既有项目/来源状态；实施与线上验证进行中。
 - 验收标准：
 
   - 撤销数据集或全部来源读取权后，员工仍能选择已有映射的数据集；无证据时不调用模型并返回安全提示
@@ -674,10 +674,11 @@
   - 管理员可搜索项目、添加及移除员工项目卡片；修改自动保存、递增权限版本并审计，来源关闭仍覆盖项目资格
   - 已有SwiftUI之外新增五个有明确原始资料和内容哈希的项目，仅更新白名单元数据，保留正文、原ACL和无关文本
   - 移除Configured demo permissions、项目demo后缀及截图中的部门/实现解释，保留密级选择和真实来源状态
+  - 四组Radar fixture都有可搜索的项目映射；标注其在线上已存在的全部去重资源，固定未入库资源例外，验证新增项目的检索/原文授权与撤权，并保留已有来源拒绝和员工成员配置
 
 - 影响范围：
 
-  - 代码：`contextledger/interfaces/web.py`, `contextledger/access/identity_store.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/answering/service.py`, `contextledger/access/demo_permissions.py`, `contextledger/storage/document_updates.py`, `config/demo-permissions.example.json`, `scripts/apply_demo_permissions.py`, `contextledger/retrieval/filtered_index.py`, `contextledger/access/project_permissions.py`, `scripts/apply_project_permissions.py`, `config/project-permissions.example.json`
+  - 代码：`contextledger/interfaces/web.py`, `contextledger/access/identity_store.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/answering/service.py`, `contextledger/access/demo_permissions.py`, `contextledger/storage/document_updates.py`, `config/demo-permissions.example.json`, `scripts/apply_demo_permissions.py`, `contextledger/retrieval/filtered_index.py`, `contextledger/access/project_permissions.py`, `scripts/apply_project_permissions.py`, `config/project-permissions.example.json`, `config/radar-project-permissions.json`, `config/project-permissions.kafka-incident.json`, `config/project-permissions.customer-incident.json`, `config/project-permissions.recurrence-revision.json`
   - 测试：`tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_answering.py`, `tests/access/test_demo_permissions.py`, `tests/application/test_document_updates.py`, `tests/access/test_project_permissions.py`, `tests/application/test_integration.py`, `tests/application/test_llm_integration.py`, `tests/access/test_demo_identity.py`
   - 文档：`docs/product/resource-permissions.md`, `docs/README.md`, `docs/product/curated-demo-permissions.md`, `docs/product/permission-demo-handoff-2026-10-15.md`, `docs/product/security-lens-demo-3d.md`, `docs/product/project-permissions.md`
 
