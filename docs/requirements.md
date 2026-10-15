@@ -752,10 +752,11 @@
   - 2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID
   - 首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行
   - 2026-10-15 Radar摘要与完整回答分别展示；完整回答可键盘展开，保留原文与引用，身份或权限变化后清空；没有摘要时不重复显示同一回答
+  - 2026-10-15 侧栏左上角品牌图使用团队提供的 ContextLedger 矢量 logo，替换原截图式占位图；去除整幅白底并裁成方形，与两行品牌文字等高，同时作为页面图标
 
 - 影响范围：
 
-  - 代码：`frontend/stitch/build.cjs`, `frontend/stitch/package.json`, `frontend/stitch/package-lock.json`, `frontend/stitch/source/01_search_home.html`, `frontend/stitch/source/02_decision_radar.html`, `frontend/stitch/source/03_evidence_passport.html`, `frontend/stitch/source/04_security_lens.html`, `frontend/stitch/source/05_audit_trail.html`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/design.css`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/interfaces/static/stitch/fonts.css`, `contextledger/interfaces/static/stitch/source-manifest.json`, `contextledger/interfaces/web.py`, `contextledger/interfaces/static/stitch/assets/vectorized.svg.svg`, `frontend/legacy-backup/2026-10-15`, `.gitattributes`, `contextledger/answering/service.py`, `contextledger/application/service.py`
+  - 代码：`frontend/stitch/build.cjs`, `frontend/stitch/package.json`, `frontend/stitch/package-lock.json`, `frontend/stitch/source/01_search_home.html`, `frontend/stitch/source/02_decision_radar.html`, `frontend/stitch/source/03_evidence_passport.html`, `frontend/stitch/source/04_security_lens.html`, `frontend/stitch/source/05_audit_trail.html`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/design.css`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/interfaces/static/stitch/fonts.css`, `contextledger/interfaces/static/stitch/source-manifest.json`, `contextledger/interfaces/web.py`, `contextledger/interfaces/static/stitch/assets/vectorized.svg.svg`, `frontend/legacy-backup/2026-10-15`, `.gitattributes`, `contextledger/answering/service.py`, `contextledger/application/service.py`, `contextledger/interfaces/static/stitch/assets/contextledger-logo.svg`
   - 测试：`tests/interfaces/test_stitch_frontend.py`, `frontend/stitch/verify.cjs`, `tests/interfaces/test_stitch_api.py`, `tests/answering/test_radar_synthesis.py`
   - 文档：`docs/product/stitch-independent-frontend.md`
 

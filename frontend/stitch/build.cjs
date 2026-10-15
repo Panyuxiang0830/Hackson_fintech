@@ -303,6 +303,8 @@ const notice=document.createElement('div');notice.id='stitch-notice';notice.setA
 const app=document.createElement('script');app.src='/static/stitch/app.js?v=7';app.defer=true;document.head.append(app);
 for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=5';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
+const logo=document.querySelector('img[alt="ContextLedger Logo"]');logo.src='/static/stitch/assets/contextledger-logo.svg';logo.className='h-10 w-10 shrink-0 object-contain';logo.width=40;logo.height=40;
+const icon=document.createElement('link');icon.rel='icon';icon.type='image/svg+xml';icon.href='/static/stitch/assets/contextledger-logo.svg';document.head.append(icon);
 
 async function localizeAssets(){
   fs.mkdirSync(path.join(out,'assets'),{recursive:true});

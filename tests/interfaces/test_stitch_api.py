@@ -22,7 +22,7 @@ class StitchAPIContractTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, expected.read_bytes())
             self.assertIn("script-src 'self'", response.headers["Content-Security-Policy"])
-        for asset in ("app.js", "design.css", "responsive.css", "fonts.css", "assets/vectorized.svg.svg"):
+        for asset in ("app.js", "design.css", "responsive.css", "fonts.css", "assets/vectorized.svg.svg", "assets/contextledger-logo.svg"):
             with self.subTest(asset=asset), self.client.get("/static/stitch/" + asset) as response:
                 self.assertEqual(response.status_code, 200)
 
