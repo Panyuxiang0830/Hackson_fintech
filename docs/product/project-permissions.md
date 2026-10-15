@@ -48,4 +48,14 @@ fixture的110行记录按resource_id去重后是70份资源；现有预览收录
 
 三个增量清单分别是 `config/project-permissions.kafka-incident.json`、`config/project-permissions.customer-incident.json`、`config/project-permissions.recurrence-revision.json`。每批最多28份，沿用现有50份上限、内容哈希预检、备份及队列发布，不修改检索策略或前端代码。管理员重新进入Manage Permissions即可加载新增目录，搜索名称并添加项目卡片。
 
-执行方式：先对每个增量清单运行 `scripts/apply_project_permissions.py --out <preview>/content --security-dir <preview>/security --manifest <清单>`；确认预检后加 `--apply`。不要为本次增量重放带初始成员的旧六项目清单。线上应用和授权/撤权测试结果将在完成后记录。
+执行方式：先对每个增量清单运行 `scripts/apply_project_permissions.py --out <preview>/content --security-dir <preview>/security --manifest <清单>`；确认预检后加 `--apply`。不要为本次增量重放带初始成员的旧六项目清单。线上应用和授权/撤权测试结果如下。
+
+
+### 四案例线上验收完成
+
+- 增量配置版本e6c9ce0f，服务器保存在 `releases/radar-project-catalog-20261016`；继续运行既有58ffc6ef服务（PID789262），通过管理接口与更新队列发布，不重启或更换前端脚本。
+- 三批10/23/28份任务全部ready，合计61份。备份序号分别为1792085763564208033、1792085784925187737、1792085812954230147。白名单外文档摘要不变，正文、哈希、ACL、部门、密级及其他业务属性不变；既有队列另更新observed_at和update_origin等发布记录。应用前后全部员工身份/成员/来源状态一致。
+- 四案例共65份原文逐份检查：无项目资格全部404；授予资格后，Jax原ACL允许的54份可读，其余11份仍404。关键词/向量/混合均验证无资格无该项目命中、授予后有该项目命中，项目没有绕过来源ACL。
+- 全部项目资格清空时，未标项目且原ACL允许的CONF-ENG-001仍可打开。三个来源全关时，四组查询三种检索均零命中，回答零证据/零模型调用，orgforge仍可选。
+- 测试结束Jax恢复原SwiftUI、CloudWatch、Telemetry Reliability三个项目、密级2和三个来源全关，版本119；审计链有效。运行证据：`project-permissions/radar-20261016/application.json`、`verification.json`。
+- 本地385 unittest、393 pytest + 160 subtests通过；服务器393 pytest + 160 subtests通过，项目同步及两份JS语法检查通过。Chrome实际搜索可找到三个新增项目，截图 `/tmp/contextledger-radar-projects.png`。用户刷新后可搜索添加；不预先授予新项目，不合并main。
