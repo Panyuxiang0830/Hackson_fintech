@@ -3,6 +3,9 @@ import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
+import shutil
+import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -88,6 +91,34 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertEqual(toggle["aria-controls"], panel["id"])
         self.assertEqual(toggle["aria-expanded"], "false")
         self.assertEqual(sum(attrs.get("data-slot") == "notice-host" for _, attrs in self.markup.nodes), 5)
+
+    @unittest.skipUnless(shutil.which("node"), "node is required to run the frontend helper")
+    def test_plain_answer_headline_uses_its_own_first_sentence(self):
+        source = (STATIC / "app.js").read_text(encoding="utf-8")
+        helper = re.search(r"^function answerSummary\(text\) \{.*?^\}$", source, re.M | re.S).group(0)
+        cases = [
+            "TracePay's current daily transfer limit is CNY 50,000 per customer, effective immediately per the policy document [1].",
+            "TitanDB stores ledger snapshots, e.g. daily balances [1]. It also feeds reconciliation [2].\n\nSee the runbook.",
+            "限额为每日五万元[1]。其余条款仍待确认[2]。",
+            "The evidence lists two metrics:\n- latency [1]\n- packet loss [1]",
+            "Version 1.2 shipped on time [3]",
+            "",
+        ]
+        script = helper + "\nconsole.log(JSON.stringify(" + json.dumps(cases) + ".map(answerSummary)));"
+        result = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+        self.assertEqual(result[0], {
+            "headline": "TracePay's current daily transfer limit is CNY 50,000 per customer, effective immediately per the policy document.",
+            "explanation": "Based on authorised source [1].",
+        })
+        self.assertEqual(result[1], {
+            "headline": "TitanDB stores ledger snapshots, e.g. daily balances.",
+            "explanation": "It also feeds reconciliation [2].\n\nSee the runbook.",
+        })
+        self.assertEqual(result[2], {"headline": "限额为每日五万元。", "explanation": "其余条款仍待确认[2]。"})
+        self.assertIsNone(result[3])  # A lead-in ending with a colon is not a conclusion.
+        self.assertEqual(result[4], {"headline": "Version 1.2 shipped on time", "explanation": "Based on authorised source [3]."})
+        self.assertIsNone(result[5])
+        self.assertIn("!p&&data.decision==='answered'&&data.provider!=='mock_fallback'?answerSummary(data.answer)", source)
 
 
 if __name__ == "__main__":

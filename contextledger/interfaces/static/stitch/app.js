@@ -254,11 +254,36 @@ function renderTimeline(page,data) {
   }
 }
 
+// Plain answers carry no Radar headline: lead with the answer's own first sentence
+// (citation markers moved to the explanation), never with generated or fixed wording.
+function answerSummary(text) {
+  const answer=String(text||'').trim();if(!answer)return null;
+  const citations=/^(?:\s*\[\d+(?:\s*[,，]\s*\d+)*\])+/;
+  const abbreviations=/(?:^|\s)(?:e\.g|i\.e|etc|vs|approx|Mr|Ms|Dr|No|Inc|Ltd|U\.S)$/i;
+  let end=answer.length;
+  for(const match of answer.matchAll(/[.!?。！？]/g)){
+    let stop=match.index+1;const after=answer.slice(stop).match(citations);if(after)stop+=after[0].length;
+    const next=answer.slice(stop);
+    if('。！？'.includes(match[0])||!next.trim()){end=stop;break;}
+    if(match[0]==='.'&&abbreviations.test(answer.slice(0,match.index)))continue;
+    if(/^\s+[^a-z\s]/.test(next)||/^\s*\n/.test(next)){end=stop;break;}
+  }
+  const lineBreak=answer.indexOf('\n');if(lineBreak>0&&lineBreak<end)end=lineBreak;
+  const first=answer.slice(0,end);
+  const cited=[...new Set(first.match(/\[\d+(?:\s*[,，]\s*\d+)*\]/g)||[])];
+  let headline=first.replace(/\s*\[\d+(?:\s*[,，]\s*\d+)*\]/g,'').replace(/^[#>*\-\s]+|\*\*/g,'').trim();
+  if(!headline||/[:：]$/.test(headline))return null;
+  if(headline.length>200)headline=headline.slice(0,headline.lastIndexOf(' ',190)>120?headline.lastIndexOf(' ',190):190).replace(/[\s,;:，；：]+$/,'')+'…';
+  const rest=answer.slice(end).trim();
+  return {headline,explanation:rest||(cited.length?`Based on authorised source ${cited.join(' ')}.`:'')};
+}
+
 function renderJudgment(page,data) {
   const p=data.radar_presentation;
+  const plain=!p&&data.decision==='answered'&&data.provider!=='mock_fallback'?answerSummary(data.answer):null;
   put(page,'query',state.question);
-  put(page,'headline',p?.headline||(data.decision==='insufficient'?'Evidence is insufficient to confirm this question.':'Answer from the current authorised selection'));
-  put(page,'explanation',p?.explanation||data.answer||'No reliable answer was generated.');
+  put(page,'headline',p?.headline||plain?.headline||(data.decision==='insufficient'?'Evidence is insufficient to confirm this question.':'Answer from the current authorised selection'));
+  put(page,'explanation',p?.explanation||(plain?plain.explanation:data.answer||'No reliable answer was generated.'));
   const details=one(page,'answer-details');
   details.hidden=!p?.explanation||!data.answer||p.explanation.trim()===data.answer.trim();details.open=false;
   put(page,'answer',details.hidden?'':data.answer);
