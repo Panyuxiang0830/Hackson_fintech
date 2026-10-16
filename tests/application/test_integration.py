@@ -41,6 +41,9 @@ class IntegrationTests(unittest.TestCase):
         self.ids.update(self.admin.id, role="admin")
         self.ids.bind(self.alice.id, "alpha", "alpha:a", True)
         self.ids.bind(self.bob.id, "alpha", "alpha:b", True)
+        self.ids.update(self.alice.id, projects=["payments"])
+        self.ids.update(self.bob.id, projects=["payments"])
+        self.alice, self.bob = self.ids.get(self.alice.id), self.ids.get(self.bob.id)
         db = connect(self.db_path)
         self.addCleanup(db.close)
         init_db(db)
@@ -527,7 +530,8 @@ class IntegrationTests(unittest.TestCase):
 
     def test_auditor_without_source_access_sees_redacted_content(self):
         result = self.post("/api/ask", {"corpus": "alpha", "q": "TitanDB", "mode": "keyword"})
-        self.login(self.admin)
+        self.ids.update(self.admin.id, role="compliance")
+        self.login(self.ids.get(self.admin.id))
         audited = self.client.get("/api/audit?q=最近%207%20天")
         self.assertEqual(audited.status_code, 200, audited.json)
         event = next(e for e in audited.json["events"] if e["request_id"] == result.json["request_id"])

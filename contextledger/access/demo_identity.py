@@ -76,12 +76,12 @@ def initialize_demo(db_path: Path, security_dir: Path, bindings: list[tuple[str,
         raise ValueError("Refusing to initialize demo identities in an existing security directory")
     security_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
     identities = IdentityStore(security_dir / "identities.sqlite")
-    administrator = identities.register(DEMO_ISSUER, "administrator", "ContextLedger 管理员")
+    administrator = identities.register(DEMO_ISSUER, "administrator", "ContextLedger Administrator")
     identities.update(administrator.id, role="admin")
     accounts = [{"id": administrator.id, "subject": "administrator", "source": None}]
     for index, source in enumerate(sources, 1):
         subject = f"employee-{index:02d}"
-        employee = identities.register(DEMO_ISSUER, subject, f"{source['name']}（演示员工）")
+        employee = identities.register(DEMO_ISSUER, subject, source['name'])
         identities.update(employee.id, department=source["department"])
         identities.bind(employee.id, source["corpus"], source["principal_id"], True)
         accounts.append({"id": employee.id, "subject": subject, "source": source})

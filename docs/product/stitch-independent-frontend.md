@@ -24,6 +24,10 @@ npm run build
 
 - 身份与数据集使用 `/api/session`、隔离 Demo 身份接口和 `/api/corpora`。
 - 提问复用 `/api/ask`，内部 Radar 仍由后端自动决定；普通回答或格式降级不推测业务 Confirmed 状态。
+- 2026-10-16：未运行 Radar 的普通 answered 回答，大字 Current judgment 取回答自身的第一句（去掉引用编号），其余内容作说明；只有一句时说明显示其引用来源。不额外调用模型、不改写或概括回答；首行以冒号引出列表、证据不足或模型降级时仍用原有固定提示。Radar presentation 存在时仍优先使用其 headline。
+  - 2026-10-16 部署：gpushare 17866 切换至 `releases/plain-headline-20261016`（9b0acc03，PID 799330，切换前备份 `backups/before-plain-headline-20261015T182405Z`，身份/绑定/拒绝规则不变）。浏览器以 Jax 提问 "What's TracePay's daily transfer limit?"：真实 glm-5.3-flash answered、无 Radar；大字为回答首句 "TracePay's current daily transfer limit is CNY 50,000 per customer, effective immediately per the policy document."，说明为其余句子并保留 [1]，标签 Source-based answer。首句依赖既有回答 Prompt 的“先直接回答”要求，不是格式保证；未新增 Prompt 字段。
+  - 2026-10-16 answer-v14 部署：17866 切换至 `releases/prompt-headline-20261016`（532533dd，PID 801617，备份 `backups/before-prompt-headline-20261015T184034Z`，切换前后权限不变）。验证前 Jax 不含 `orgforge:swiftui-telemetry` 项目成员，ENG-195 问题零证据；按用户要求经管理员接口 `project_membership` 加回，权限版本 136→137，项目为 cloudwatch-monitoring、swiftui-telemetry、telemetry-reliability。随后 Jax 提问 "What can I monitor in the ENG-195 SwiftUI telemetry health dashboard?"：glm-5.3-flash answered，prompt answer-v14，自动执行 Radar，状态 Pending confirmation；大字来自 Radar headline（14词）"ENG-195 dashboard monitors real-time latency and a further metric truncated in the source record."。同次 answer 首句约27词，略超25词要求，说明 Prompt 约束不是硬保证；前端200字截断仍兜底。
+  - 2026-10-16 answer-v15 部署：17866 切换至 `releases/headline-retry-20261016`（12501330，PID 803105，备份 `backups/before-headline-retry-20261015T185103Z`，权限不变）。此前用户在 v14 下问 "What can I monitor in the telemetry dashboard?" 得到以分号列举、被截断的超长首句。v15 同题（Jax，请求 a95e8b6a-a14c-4fbe-b663-83072984f795）：glm-5.3-flash answered、无 Radar、1次调用、无失败；大字18词 "The telemetry dashboard has three sections: a header bar, a live chart area, and a metrics summary panel."，各部分细节在说明中。本次未触发服务端重写，重写路径由单元测试覆盖。
 - Confirmed / Pending confirmation 读取服务端 `radar_presentation`。只有 pending 时显示待确认卡；未知事件时间仍写 Unknown。
 - 证据在当前页面内切换到 Passport，调用 `/api/doc` 重新检查授权；文本使用 `textContent`，原文外链仅允许 HTTP(S)。不可访问时清理旧来源与回答，显示中性提示。
 - 管理员页面复用用户、来源主体和权限修改接口；前后计数表示实际来源绑定数，不是命中证据数。不会执行原 HTML 中模拟撤权的脚本。
@@ -105,3 +109,7 @@ Evidence Passport 只有取得有效且不含URL用户名密码的绝对HTTP(S) 
 ## 2026-10-15 完整回答
 
 Radar 和桌面 Passport 将简短结论与完整回答分开。Full answer 支持键盘展开，保留答案中的限定条件、段落和引用；没有独立摘要时只显示一次回答。切换身份或权限后立即清空并收起完整回答。
+
+> 2026-10-16 更新：按用户要求，回答语言跟随提问语言。前端不再发送 `output_language=en`；中文问题得到中文回答（问题明确要求英文/翻译时除外），英文问题得到英文回答；演示模式的审计 AI 同样跟随提问语言。中文问题的回答若不含任何汉字，记为语言校验失败并按既有一次重试处理。前端为中文回答补的固定文字（单句说明、证据不足/无可靠回答的大字）同步改为中文；按钮、栏目等界面文字仍为英文。app.js 缓存版本 v18。
+>
+> 部署与实测（2026-10-16）：17866 切换至 `releases/question-language-20261016`（ed4a3cec，PID 891045，备份 `backups/before-question-language-20261016T070225Z`；业务权限与内容摘要切换前后一致）。按页面方式不指定输出语言实测，均为真实 glm-5.3-flash、一次成功：中文 TracePay 问题 380e09ab-646c-45b6-9913-5a5404c7f7bd 中文回答；英文问题 c53a0556-0db8-4ffc-ab7d-abc8f8dd4a7c 全英文回答（无汉字）；管理员中文审计 AI b36bb035-4fbd-4c56-a963-62ffe513b662 中文回答（response_language=Chinese）。观察：该审计问题中的“TracePay”未被提取为关键词筛选，读取今天全部 636 条并截断，模型已说明无法保证列全；这是既有审计问题解析限制，本次未改。

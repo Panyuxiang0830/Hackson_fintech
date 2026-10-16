@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "authority": "team_decision",
+  "corpus": "orgforge",
+  "projects": [
+    {
+      "id": "orgforge:marathon-pacing-resilience",
+      "name": "Marathon Pacing Resilience",
+      "documents": [
+        {
+          "doc_id": "CONF-ENG-054",
+          "expected_content_hash": "3cc9d14b3640bcf4da7e0e7e3f8559270fc5cd8f7960ccbe64f845767ef9e6e7"
+        },
+        {
+          "doc_id": "CONF-ENG-438",
+          "expected_content_hash": "856f362be695aace45ae5e37f493495987ce3d6d1a8dc49c01621e97f3a762fa"
+        },
+        {
+          "doc_id": "ENG-112",
+          "expected_content_hash": "e333ace2c176c3a869c256bb052363f6c02fa2fddc6e684d7da82670ee9b7bde"
+        },
+        {
+          "doc_id": "ENG-263",
+          "expected_content_hash": "bcd53ae00ce1b5f5ea3b71b4b1527cb78b5c7bdd70b7926dca453c976aa09ee8"
+        },
+        {
+          "doc_id": "slack_design_2026-03-26T16:59:14.940717",
+          "expected_content_hash": "91bc86917c9059571bf6f324f9ec2a5a69c4049e16aaa7df1c4245a52eda35bc"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-03-19T16:29:31.110700",
+          "expected_content_hash": "34f3d5c57ed36b1a71b3fe10987799711306aa69cc8ca0b81a1724031bf57142"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-03-23T16:10:37.747717",
+          "expected_content_hash": "fa384566ce27e704e3438b07d9e3f521ea88b189a21da7c798734db250a138db"
+        },
+        {
+          "doc_id": "slack_digital-hq_2026-03-25T11:46:06.735879",
+          "expected_content_hash": "bace437d0361d04d2d44678c4f633c5fbc4d0a8abf1cafbffa7d9b96e94cec4f"
+        },
+        {
+          "doc_id": "slack_dm_umji_zoe_2026-03-24T09:00:00",
+          "expected_content_hash": "e719a87979ec97401d35efefd6f15c1f9e806d9a661e44a4608dacdd1aa80a2c"
+        },
+        {
+          "doc_id": "slack_engineering_2026-01-06T09:00:00",
+          "expected_content_hash": "9d63be635b9cf2fcdae482aba0277aebeab432a89ff16549acf84554d7724794"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-18T09:00:00",
+          "expected_content_hash": "5f1f4dc3cb4df6cb9587810376789259a82f38d901ebb25ffcdfb0eec5e156c0"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-19T12:27:32.085751",
+          "expected_content_hash": "b86298b29f18c46f28786c137c4b9a91c5478f2c1df8b9706fa3df6abfc5b673"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-19T14:04:18.635629",
+          "expected_content_hash": "a1c614df1765700baecca18a0a6d8cd2f2f9004e7cc80f04058ab2d97819101c"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-20T09:00:00",
+          "expected_content_hash": "75d0aa36b7a0c68960e779343e1caf6c2aa1f8fd0405f112592826c6bc10d391"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-20T13:49:00",
+          "expected_content_hash": "58432593b47d8ce3ee1fcb10317cc5bfeac981d4695a598756763f3075c83756"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-23T10:31:56.362769",
+          "expected_content_hash": "308bcbb2c42b15bb32ea0885979e9a58d97f1517338162d6df2f809f52d16c31"
+        },
+        {
+          "doc_id": "slack_engineering_2026-03-24T13:05:58",
+          "expected_content_hash": "30623937b3b94571e7cb804c553868827d679214469ac04954884679037b4fbb"
+        },
+        {
+          "doc_id": "slack_engineering_backend_2026-01-14T14:17:00",
+          "expected_content_hash": "3db89a832b05fd24a74783cafecb4c239a47e1701577f3c98d734b85831aa9f1"
+        },
+        {
+          "doc_id": "slack_incidents_2026-01-05T12:16:00",
+          "expected_content_hash": "00d06c9d9f9b1467a5993c312a263ed16a31fe23cc7139877106921f33fbc563"
+        },
+        {
+          "doc_id": "slack_incidents_2026-01-06T13:57:00",
+          "expected_content_hash": "815f4a83492623c418708180130fb910d8578e6bd260a466244f08d39d5ce1e4"
+        },
+        {
+          "doc_id": "slack_incidents_2026-02-04T12:36:00",
+          "expected_content_hash": "6a07d0f940132cbe276c879792e673a93f9f420f96019cbba67f3d5e06138b0e"
+        },
+        {
+          "doc_id": "slack_incidents_2026-02-04T12:56:00",
+          "expected_content_hash": "fa8f111711224c5c0ab001f6efb88a91b9424575ac6fe679109e931c92fa2ba0"
+        },
+        {
+          "doc_id": "slack_incidents_2026-02-04T16:33:00",
+          "expected_content_hash": "7f2411058face69f0e19838b889706442c7b3f6c9add69bd5a3ef162285b603a"
+        },
+        {
+          "doc_id": "slack_incidents_2026-03-17T10:25:00",
+          "expected_content_hash": "41abd35f87de3c80e7b8af5efaf06c8db991ea6ec4b537750d92af2e3e02e83f"
+        },
+        {
+          "doc_id": "slack_sales_marketing_2026-01-22T15:12:21.130387",
+          "expected_content_hash": "0e0aa53befc4c56f16be5aac95874da4405d35af99edbdee437bea80acd1bb91"
+        },
+        {
+          "doc_id": "slack_standup_2026-01-07T09:30:00",
+          "expected_content_hash": "4447c91ff3f6e9b5b6cea8c8d7c0dcae76dc532b166f8b62dccf71bd199a6f92"
+        },
+        {
+          "doc_id": "slack_standup_2026-01-09T09:45:00",
+          "expected_content_hash": "663ac1da53ef8b0f68dcb27d602722dced1063fc869d67e8f040edee0e6f9659"
+        },
+        {
+          "doc_id": "slack_standup_2026-03-20T09:45:00",
+          "expected_content_hash": "67a2ded4c0440387a1031cae5c3342a0a53b09662f4f96a4bac1babe70fee8d1"
+        }
+      ]
+    }
+  ]
+}

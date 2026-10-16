@@ -58,7 +58,8 @@ class DemoIdentityTests(unittest.TestCase):
     def test_roster_has_independent_admin_and_six_members_without_oidc(self):
         people = self.get("/api/demo/accounts").json
         self.assertEqual(len(people), 7)
-        self.assertEqual(people[0]["name"], "ContextLedger 管理员")
+        self.assertEqual(people[0]["name"], "ContextLedger Administrator")
+        self.assertTrue(all('演示员工' not in item['name'] for item in people))
         self.assertEqual([item["role"] for item in people], ["admin"] + ["member"] * 6)
         self.assertEqual(self.ids.scope(self.ids.get(self.admin), "alpha")[0], [])
         self.assertFalse(self.app.testing)
@@ -111,6 +112,8 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(self.get("/api/search?corpus=alpha&q=TitanDB&principal=alpha:b").status_code, 400)
 
     def test_search_answer_audit_and_admin_revocation_share_real_services(self):
+        self.ids.update(self.alice, projects=["payments"])
+        self.ids.update(self.bob, projects=["payments"])
         self.select(self.alice)
         first = self.get("/api/search?corpus=alpha&q=TitanDB").json
         self.assertEqual({hit["doc_id"] for hit in first["hits"]}, {"doc-0", "doc-1"})
@@ -121,7 +124,8 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(len(audited["events"]), 1)
         self.assertEqual(audited["events"][0]["identity_mode"], "isolated_demo")
         self.assertTrue(audited["integrity"]["valid"])
-        self.assertIn("redacted", audited["events"][0]["answer"])
+        self.assertEqual(audited["events"][0]["answer"], answer["answer"])
+        self.assertFalse(audited["events"][0]["redacted"])
         denied = self.post("/api/admin/permissions", {"user_id": self.alice, "action": "restriction",
                 "corpus": "alpha", "kind": "source", "value": "jira", "denied": True})
         self.assertEqual(denied.status_code, 200)

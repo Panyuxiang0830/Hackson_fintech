@@ -300,9 +300,11 @@ for(const node of document.querySelectorAll('*')){
 for(const script of [...document.querySelectorAll('script')])script.remove();
 for(const style of [...document.querySelectorAll('style')]){styles.push(style.textContent);style.remove();}
 const notice=document.createElement('div');notice.id='stitch-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
-const app=document.createElement('script');app.src='/static/stitch/app.js?v=7';app.defer=true;document.head.append(app);
-for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=5';document.head.append(link);}
+const app=document.createElement('script');app.src='/static/stitch/app.js?v=19';app.defer=true;document.head.append(app);
+for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=8';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
+const logo=document.querySelector('img[alt="ContextLedger Logo"]');logo.src='/static/stitch/assets/contextledger-logo.svg';logo.className='h-10 w-10 shrink-0 object-contain';logo.width=40;logo.height=40;
+const icon=document.createElement('link');icon.rel='icon';icon.type='image/svg+xml';icon.href='/static/stitch/assets/contextledger-logo.svg';document.head.append(icon);
 
 async function localizeAssets(){
   fs.mkdirSync(path.join(out,'assets'),{recursive:true});
@@ -321,6 +323,17 @@ async function localizeAssets(){
 }
 (async()=>{
   await localizeAssets();
+  const auditMain=document.querySelector('[data-page="audit"]');
+  const first=auditMain.querySelector('.stitch-audit-console');
+  const nodes=[];for(let node=first;node;node=node.nextSibling)nodes.push(node);
+  const host=document.createElement('div');host.innerHTML=fs.readFileSync(path.join(__dirname,'audit-console.html'),'utf8');
+  const legacy=document.createElement('section');legacy.dataset.slot='audit-legacy';legacy.hidden=true;
+  first.before(host.firstElementChild,legacy);for(const node of nodes)legacy.append(node);
+  const change=(old,value)=>{const node=leaf(auditMain,old);if(node)node.textContent=value;};
+  change('Evidence workspace','Audit workspace');change('Current identity and source ACL snapshot apply.','Recorded activity, permission changes and operational events.');
+  change('Governance · Current Access Checks Apply','Governance · Recorded Activity');change('Source scope applies','Administrator audit view');
+  change('Trace a request, its recorded evidence versions, and authorisation context with cryptographic provenance.','Investigate information access, permission changes, document updates and unauthorised attempts.');
+  manifest.auditConsole={file:'frontend/stitch/audit-console.html',sha256:hash(fs.readFileSync(path.join(__dirname,'audit-console.html')))};
   fs.writeFileSync(path.join(out,'index.html'),'<!doctype html>\n'+document.documentElement.outerHTML);
   fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   const temp=process.env.STITCH_BUILD_TMP||path.join(require('node:os').tmpdir(),'contextledger-stitch-compile');fs.mkdirSync(temp,{recursive:true});

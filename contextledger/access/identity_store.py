@@ -55,6 +55,9 @@ class IdentityStore:
                     id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
                     expires_at REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS project_catalog (
+                    id TEXT PRIMARY KEY, corpus TEXT NOT NULL, name TEXT NOT NULL
+                );
             """)
 
     def db(self):
@@ -96,7 +99,7 @@ class IdentityStore:
             for row in db.execute("SELECT * FROM users ORDER BY name"):
                 item = dict(row)
                 item.pop("groups_json")
-                item.pop("projects_json")
+                item["projects"] = json.loads(item.pop("projects_json"))
                 item["bindings"] = [dict(r) for r in db.execute(
                     "SELECT corpus,principal_id,enabled FROM bindings WHERE user_id=?", (row["id"],))]
                 item["restrictions"] = [dict(r) for r in db.execute(
@@ -163,6 +166,45 @@ class IdentityStore:
                                   (actor.id, corpus)):
                 restrictions.setdefault(row[0], []).append(row[1])
             return bindings, restrictions
+
+    def projects(self, corpus: str) -> list[dict]:
+        with self.db() as db:
+            return [dict(r) for r in db.execute(
+                "SELECT id,name FROM project_catalog WHERE corpus=? ORDER BY name,id", (corpus,))]
+
+    def register_project(self, corpus: str, project: str, name: str):
+        if (not isinstance(corpus, str) or not corpus or not isinstance(project, str)
+                or not project.startswith(corpus + ':') or len(project) > 256
+                or not isinstance(name, str) or not name.strip() or len(name) > 120
+                or any('\x00' in v for v in (corpus, project, name))):
+            raise ValueError("invalid project catalog entry")
+        with self.db() as db:
+            db.execute("INSERT INTO project_catalog VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name",
+                       (project, corpus, name.strip()))
+
+    def project_membership(self, user_id: str, corpus: str, project: str, enabled: bool):
+        if type(enabled) is not bool:
+            raise ValueError("project membership must be boolean")
+        with self.db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if not db.execute("SELECT 1 FROM project_catalog WHERE corpus=? AND id=?", (corpus, project)).fetchone():
+                raise ValueError("unknown project")
+            row = db.execute("SELECT projects_json FROM users WHERE id=?", (user_id,)).fetchone()
+            if row is None:
+                raise ValueError("unknown user")
+            projects = set(json.loads(row[0]))
+            projects.add(project) if enabled else projects.discard(project)
+            db.execute("UPDATE users SET projects_json=?,epoch=epoch+1 WHERE id=?",
+                       (json.dumps(sorted(projects)), user_id))
+
+    def associated_corpora(self, user_id: str) -> set[str]:
+        """Directory membership survives revocation of a mapped source identity.
+
+        This only discovers a dataset name; it never grants content access.
+        """
+        with self.db() as db:
+            return {row[0] for row in db.execute(
+                "SELECT DISTINCT corpus FROM bindings WHERE user_id=?", (user_id,))}
 
     def new_session(self, actor: Actor, expires_at: float) -> str:
         sid = secrets.token_urlsafe(32)

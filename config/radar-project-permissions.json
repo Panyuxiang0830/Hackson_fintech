@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "authority": "team_decision",
+  "corpus": "orgforge",
+  "cases": {
+    "01-dashboard-review": {
+      "project": "orgforge:swiftui-telemetry",
+      "annotation_manifest": "config/project-permissions.example.json",
+      "unavailable_resources": [
+        {
+          "doc_id": "PR-135",
+          "reason": "not_in_preview_corpus"
+        }
+      ]
+    },
+    "02-kafka-incident": {
+      "project": "orgforge:kafka-stream-recovery",
+      "annotation_manifest": "config/project-permissions.kafka-incident.json",
+      "unavailable_resources": [
+        {
+          "doc_id": "PR-109",
+          "reason": "not_in_preview_corpus"
+        }
+      ]
+    },
+    "03-customer-incident": {
+      "project": "orgforge:customer-telemetry-recovery",
+      "annotation_manifest": "config/project-permissions.customer-incident.json",
+      "unavailable_resources": [
+        {
+          "doc_id": "PR-139",
+          "reason": "not_in_preview_corpus"
+        },
+        {
+          "doc_id": "ZD-101",
+          "reason": "not_in_preview_corpus"
+        }
+      ]
+    },
+    "04-recurrence-revision": {
+      "project": "orgforge:marathon-pacing-resilience",
+      "annotation_manifest": "config/project-permissions.recurrence-revision.json",
+      "unavailable_resources": [
+        {
+          "doc_id": "PR-159",
+          "reason": "not_in_preview_corpus"
+        }
+      ]
+    }
+  }
+}

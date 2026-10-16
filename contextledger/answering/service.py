@@ -17,7 +17,7 @@ from .models import Evidence, User
 DEFAULT_TOKENHUB_BASE_URL = "https://tokenhub.tencentmaas.com/v1"
 DEFAULT_MODEL = "glm-5.3-flash"
 _CITATION_PATTERN = re.compile(r"\[(\d+)\]")
-PROMPT_VERSION = "answer-v12-2026-10-15"
+PROMPT_VERSION = "answer-v15-2026-10-16"
 ANSWER_MAX_TOKENS = 1600
 _DIAGNOSTICS = ContextVar("answer_diagnostics", default=None)
 _RADAR_PRESENTATION = ContextVar("answer_radar_presentation", default=None)
@@ -43,6 +43,13 @@ SYSTEM_PROMPT = (
     "steps or operational conclusions just to make an answer longer. "
     "回答表达要求：用自己的话给用户讲明白，而不是翻译或抄写检索片段。默认面对非技术同事，"
     "先直接回答，再按问题需要解释具体用途和关系；详细程度来自有用的解释，不是罗列术语。"
+    "The first sentence of an answered response is shown alone as the headline: make it "
+    "one complete, self-contained direct conclusion of at most 25 words (at most 50 "
+    "characters for Chinese, Japanese or Korean), carrying the key fact the question asks "
+    "for, such as the value or status. Summarise instead of enumerating: no lists, "
+    "semicolons or parenthetical detail in the first sentence; when there are several "
+    "items, give their number or category and name them in the following sentences. "
+    "Do not open with filler such as 'Based on the evidence'. "
     "对于‘是什么／做什么的’：先给一句通俗结论，再按资料讲数据从哪里来、保存什么、谁怎样使用。"
     "资料只支持一句时，一句即可；不为凑段落添加自动化、保证效果或未知步骤。"
     "每一点独立成段，段间空行。讲清业务动作，不列开发框架、编程语言、实现缩写或参数；"
@@ -52,8 +59,10 @@ SYSTEM_PROMPT = (
     "request instead of forcing a basic explanation. Cite every factual paragraph, "
     "including the first direct conclusion. Put [n] citations next to the "
     "supported claims. Use plain text, no Markdown headings, bold, HTML or tables. "
-    "An answered response longer than 200 characters must have at least two short "
-    "paragraphs separated by blank lines. Encode newlines correctly inside JSON. "
+    "An answered response longer than 80 words must have at least two short paragraphs "
+    "separated by blank lines. For text containing Chinese, Japanese or Korean characters, "
+    "use a 200-character threshold instead. Short answers may be one paragraph. "
+    "Encode newlines correctly inside JSON. "
     "Return JSON only with exactly these fields: "
     '{\"status\":\"answered|insufficient\",\"answer\":\"answer with [n] citations\",'
     '\"citation_ids\":[1,2],\"uncertainty\":\"low|medium|high\"}. '
@@ -71,11 +80,55 @@ def _sentences(text: str) -> list[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
+def _needs_paragraphs(answer: str) -> bool:
+    """Measure CJK prose in characters and alphabetic prose in words."""
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", answer):
+        return len(answer.strip()) > 200
+    return len(re.findall(r"\b\w+(?:['’-]\w+)*\b", _CITATION_PATTERN.sub("", answer))) > 80
+
+
+_HEADLINE_CITATIONS = re.compile(r"\[\d+(?:\s*[,，]\s*\d+)*\]")
+_HEADLINE_ABBREVIATIONS = re.compile(r"(?:^|\s)(?:e\.g|i\.e|etc|vs|approx|Mr|Ms|Dr|No|Inc|Ltd|U\.S)$", re.I)
+HEADLINE_RETRY_WORDS = 30
+HEADLINE_RETRY_CJK_CHARACTERS = 60
+
+
+def headline_sentence(answer: str) -> str:
+    """First sentence as the Stitch frontend shows it (answerSummary in app.js)."""
+    text = answer.strip()
+    end = len(text)
+    for match in re.finditer(r"[.!?。！？]", text):
+        stop = match.end()
+        cited = re.match(r"(?:\s*" + _HEADLINE_CITATIONS.pattern + r")+", text[stop:])
+        if cited:
+            stop += cited.end()
+        rest = text[stop:]
+        if match.group() in "。！？" or not rest.strip():
+            end = stop
+            break
+        if match.group() == "." and _HEADLINE_ABBREVIATIONS.search(text[:match.start()]):
+            continue
+        if re.match(r"\s+[^a-z\s]", rest) or re.match(r"\s*\n", rest):
+            end = stop
+            break
+    line_break = text.find("\n")
+    if 0 < line_break < end:
+        end = line_break
+    return re.sub(r"\s*" + _HEADLINE_CITATIONS.pattern, "", text[:end]).strip()
+
+
+def _headline_too_long(answer: str) -> bool:
+    sentence = headline_sentence(answer)
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", sentence):
+        return len(re.sub(r"\s", "", sentence)) > HEADLINE_RETRY_CJK_CHARACTERS
+    return len(re.findall(r"\b\w+(?:['’-]\w+)*\b", sentence)) > HEADLINE_RETRY_WORDS
+
+
 def empty_evidence_answer(question: str, output_language=None) -> str:
-    return ("本次未检索到足够的可用依据，暂时无法回答这个问题。你可以补充具体信息，或换一种问法。"
+    return ("当前权限范围内未检索到足够的可用依据，暂时无法回答这个问题。请检查资料读取权限，或补充具体信息。"
             if output_language != "en" and re.search(r"[\u4e00-\u9fff]", question) else
-            "This request found insufficient usable evidence to answer the question. "
-            "You can add more detail or rephrase your question.")
+            "This request found insufficient usable evidence within your current access permissions. "
+            "Please check your reading permissions or add more detail to the question.")
 
 
 def reasoning_parameters(base_url, effort):
@@ -91,7 +144,12 @@ def _check_answer_language(question, answer):
         if re.search(r"[\u4e00-\u9fff]", answer):
             raise ValueError("answer language does not match English interface")
         return
-    if re.search(r"[\u4e00-\u9fff]", question) or not re.match(
+    if re.search(r"[\u4e00-\u9fff]", question):
+        # A Chinese question gets a Chinese answer unless it asks for English/translation.
+        if not re.search(r"English|英文|英语|翻译|translat", question, re.I) and not re.search(r"[\u4e00-\u9fff]", answer):
+            raise ValueError("answer language does not match Chinese question")
+        return
+    if not re.match(
             r"(?:what|who|when|where|which|why|how|is|are|was|were|has|have|had|do|does|did|can|could|would|should|will|please|summarize|explain|describe)\b", question.strip(), re.I):
         return
     if re.search(r"\b(?:Chinese|Mandarin|quote|translate|translation)\b", question, re.I):
@@ -151,7 +209,7 @@ def _validate_model_output(raw_content: str, evidence_count: int) -> tuple[str, 
         raise ValueError("answered responses must cite at least one evidence item")
     if status == "insufficient" and returned_ids:
         raise ValueError("insufficient responses cannot cite unsupported evidence")
-    if status == "answered" and len(answer.strip()) > 200 and not re.search(r"\n[ \t]*\n", answer):
+    if status == "answered" and _needs_paragraphs(answer) and not re.search(r"\n[ \t]*\n", answer):
         raise ValueError("long model answer must contain separate paragraphs")
 
     return answer.strip(), status
@@ -307,6 +365,7 @@ class AnswerService:
 
         tool_state = {"called": False, "result": None}
         if self.provider == "openai_compatible":
+            accepted = None  # A valid answer kept when only its headline was too long.
             for attempt in range(2):
                 if before_call is not None:
                     before_call()  # Recheck permissions before a bounded format retry.
@@ -320,7 +379,16 @@ class AnswerService:
                     else:
                         answer, decision = self._openai_compatible(user, question, evidence,
                             tool_handler=tool_handler, tool_state=tool_state, before_call=before_call)
-                    return answer, decision, f"openai_compatible/{self.last_diagnostics.get('actual_model') or self.model}"
+                    result = answer, decision, f"openai_compatible/{self.last_diagnostics.get('actual_model') or self.model}"
+                    if (accepted is None and decision == "answered" and self.last_radar_presentation is None
+                            and _headline_too_long(answer)):
+                        # The first sentence is the page headline: ask once for a shorter one.
+                        accepted = result
+                        details = self.last_diagnostics
+                        details["failures"].append("headline_too_long")
+                        _DIAGNOSTICS.set(details)
+                        continue
+                    return result
                 except (urllib.error.URLError, TimeoutError) as error:
                     details = self.last_diagnostics
                     details["failures"].append("api_unavailable")
@@ -340,6 +408,8 @@ class AnswerService:
                     details = self.last_diagnostics
                     details.setdefault("attempt_latencies_ms", []).append(round((time.monotonic() - attempt_started) * 1000, 1))
                     _DIAGNOSTICS.set(details)
+            if accepted is not None:
+                return accepted
             reason = self.last_diagnostics["failures"][-1]
             if chinese:
                 message = "模型服务暂不可用" if reason == "api_unavailable" else "模型回答未通过格式或引用校验"
@@ -406,11 +476,16 @@ class AnswerService:
             details["radar_prompt_hash"] = hashlib.sha256((TOOL_PROMPT + (SYNTHESIS_PROMPT if tool_state["called"] else "")).encode()).hexdigest()
             _DIAGNOSTICS.set(details)
         if self.last_diagnostics.get("attempts", 0) > 1:
+            if self.last_diagnostics["failures"][-1] == "headline_too_long":
+                system += (" The previous answer's first sentence was too long for the headline. Rewrite the answer so "
+                           "its first sentence is one short direct conclusion of at most 25 words (50 CJK characters), "
+                           "with no list or semicolon; keep every other fact, citation and paragraph rule.")
             if self.last_diagnostics["failures"][-1] == "language_validation_failed":
-                system += " The previous response used the wrong language. Answer this English question in English; preserve names and citation IDs."
+                language = "Chinese" if re.search(r"[\u4e00-\u9fff]", question) and _OUTPUT_LANGUAGE.get() != "en" else "English"
+                system += f" The previous response used the wrong language. Answer this {language} question in {language}; preserve names and citation IDs."
             if tool_handler is not None and not tool_state["called"]:
                 system += " A format repair does not disable the tool. If missing history/status needs expansion, return the exact tool action JSON, without Markdown fences or answer fields."
-            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 200 characters MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Return complete JSON."
+            system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 80 words (200 characters for Chinese, Japanese or Korean text) MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Short answers may be one paragraph. Return complete JSON."
         payload = {
             "original_question": question,
             "caller_context": {"name": user.name, "role": user.role, "department": user.department},

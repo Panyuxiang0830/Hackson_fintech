@@ -40,10 +40,21 @@
 - `docs/architecture/llm-workflows.md`：当前规划/审计/回答链路、配置预算、基本安全检查和部署记录；没有模型二次复核；
 - `docs/product/engineering-challenges.md`：用户确认的十个工程难题固定清单，后续讨论与进度回顾以此为准；
 - `docs/product/prompt-and-login-walkthrough.md`：当前回答 Prompt 原文、独立管理员边界及可信身份人工走查；浏览器登录已延期；
+- `docs/product/natural-question-validation-20261016.md`：不带工单编号的自然提问真实对照及英文短回答误拒修复；
+- `docs/product/security-lens-demo-3d.md`：约60秒的Security Lens撤权前后录制流程及2026-10-16逐题线上复测结果；
+- `docs/product/curated-demo-permissions.md`：ENG-195/PR-135四份白名单资料的人工演示权限、执行预检和录制步骤；
+- `docs/product/permission-demo-handoff-2026-10-15.md`：权限改进交接，包含代码、分支、真实线上状态、部署待办及报告边界；
+- `docs/product/project-permissions.md`：项目搜索与成员卡片、九个项目及Radar四案例的白名单标注、未标项目语义；
+- `docs/product/audit-console-v2-plan.md`：已确认的四区审计工作台、管理员完整历史审计与统一AI查询实现及验收；
+- `docs/product/concept-diagrams/audit-system-v2/README.md`：新版英文审计图，四类事件、完整管理员历史视图、确定性统计与可选AI引用解释；
+- `docs/product/concept-diagrams/permission-system-v2/README.md`：新版英文权限图，包含项目成员、Slack对话权限、部门/密级、撤权及交付复核；
+- `docs/product/resource-permissions.md`：数据集目录保留、来源／文档读取控制及2026-10-15服务器演示重试步骤；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；
 - `docs/product/update-2026-10-11.md`：本轮对比集成基线的变更、会议复盘、五场景验收缺口及后续插件计划；
 - `docs/product/part-a-integration-review.md`：对照 main Part A 的改进、真实验证边界、同事 PR 审查顺序与后续功能；
 - `docs/product/tool-entry-scope.md`：历史 Tool 设想、可信上游身份边界及2026-10-14获准实现的阶段更新，不阻塞当前前端验收；
+- `docs/architecture/permission-interfaces-v2.md`：五种确定性权限接入模式、统一契约、Slack／项目／密级／部门／POSIX处理及报告草稿；新增部分为设计，现有数据ACL保持原状；
+- `docs/decisions/ADR-0007-permission-provider-contract.md`：多模式权限接入的Proposed架构决策；
 - `docs/architecture/source-and-agent-interfaces.md`：四平台只读API/来源权限快照、宿主优先与可选内部模型路线、个人工具凭据、MCP stdio及三客户端模板；2026-10-14 已配置用户Codex并验证stdio/授权检索，桌面真人问答及真实来源/其他客户端待验收；
 - `docs/decisions/ADR-0005-source-adapters-and-mcp.md`：用户确认的来源适配、宿主模型优先MCP及凭据/快照边界，浏览器登录继续延期；
 - `docs/architecture/integration-plan.md`：当前两套实现、集成目标架构、已确认与待确认设计；

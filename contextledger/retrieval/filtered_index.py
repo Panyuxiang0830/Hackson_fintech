@@ -24,7 +24,7 @@ from contextledger.retrieval.search import _fts_query, _rrf, _snippet, contains_
 from contextledger.storage.store import chunk_digest, connect
 
 LEVELS = {"public": 0, "internal": 1, "confidential": 2, "restricted": 3}
-POLICY_VERSION = "snapshot-acl-and-local-deny-v1"
+POLICY_VERSION = "snapshot-acl-project-membership-and-local-deny-v2"
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 GUARD_VERSION = 2
 LIVE_SOURCES = frozenset({"jira", "confluence", "slack", "google_drive"})
@@ -156,10 +156,9 @@ class FilteredIndex:
             placeholders = ",".join("?" for _ in values) or "NULL"
             clauses.append(f"(m.{field}='[]' OR EXISTS (SELECT 1 FROM json_each(m.{field}) j WHERE j.value IN ({placeholders})))")
             params.extend(values)
-        if scope.actor.projects:
-            placeholders = ",".join("?" for _ in scope.actor.projects)
-            clauses.append(f"m.project IN ({placeholders})")
-            params.extend(scope.actor.projects)
+        placeholders = ",".join("?" for _ in scope.actor.projects) or "NULL"
+        clauses.append(f"(m.project='' OR m.project IN ({placeholders}))")
+        params.extend(scope.actor.projects)
         for kind, field in (("source", "d.source"), ("project", "m.project"),
                             ("department", "m.department"), ("document", "d.doc_id")):
             values = scope.denied.get(kind, [])
@@ -186,8 +185,10 @@ class FilteredIndex:
         for field, values in (("roles", scope.roles), ("departments", scope.departments)):
             must.append(qm.Filter(should=[match(field + "_unrestricted", True),
                 qm.FieldCondition(key=field, match=qm.MatchAny(any=list(values)))]))
+        projects = [match("project", "")]
         if scope.actor.projects:
-            must.append(qm.FieldCondition(key="project", match=qm.MatchAny(any=list(scope.actor.projects))))
+            projects.append(qm.FieldCondition(key="project", match=qm.MatchAny(any=list(scope.actor.projects))))
+        must.append(qm.Filter(should=projects))
         must_not = []
         if scope.blocked_live_documents:
             must_not.append(qm.FieldCondition(key="doc_id", match=qm.MatchAny(any=list(scope.blocked_live_documents))))

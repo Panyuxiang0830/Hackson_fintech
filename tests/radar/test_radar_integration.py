@@ -63,8 +63,8 @@ class RadarIntegrationTests(unittest.TestCase):
         self.assertEqual(stored['radar_presentation']['headline'],'生产恢复仍待确认。')
         self.login(self.admin)
         audited=self.client.get('/api/audit?request_id='+response.json['request_id']).json['events'][0]
-        self.assertTrue(audited['redacted'])
-        self.assertIsNone(audited['radar_presentation'])
+        self.assertFalse(audited['redacted'])
+        self.assertEqual(audited['radar_presentation'],stored['radar_presentation'])
 
     def test_disjoint_native_ids_can_seed_relationship_request(self):
         self.configure()

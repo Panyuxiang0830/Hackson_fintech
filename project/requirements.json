@@ -222,6 +222,29 @@
             "docs/decisions/ADR-0005-source-adapters-and-mcp.md",
             "docs/architecture/index-and-freshness.md"
           ]
+        },
+        {
+          "key": "permission_provider_contract_v2",
+          "title": "多模式确定性权限接入接口 v2 设计",
+          "source": "user requested on 2026-10-15: preserve current dataset ACL; design native Slack, project/classification/department and POSIX rwx permission integrations without requiring live dataset use",
+          "authority": "team_decision",
+          "status": "planned",
+          "description": "本轮交付接口设计和报告可用表述，不接入或替换现有数据集 ACL。统一快照、原生平台、企业属性策略、POSIX DAC/ACL及外部PDP五种模式；标明现有适配子集与新设计能力，不以设计稿冒充实现或真实企业验收。",
+          "acceptance_criteria": [
+            "权限解析和执行不依赖LLM；身份、组、项目、部门、密级来自已配置的可信来源，正文不能自行授予权限",
+            "每份资源配置一种主授权依据，可叠加必须满足的属性和本地撤权规则；不同模式不得任意取并集或在失败时降级放行",
+            "统一接口记录稳定身份、资源、权限版本、观察时间、过期时间、完整性与授权依据，明确unknown/unsupported和缺失字段语义",
+            "分别规定Slack范围/成员/线程继承、项目与密级及允许部门组合、Linux UID/GID/父目录搜索/访问ACL及mask的确定性处理和边界",
+            "权限条件在SQL/FTS/Qdrant检索前应用，生成和交付重查当前权限；外部PDP仅能单资源check但无法提供安全候选范围时不开放该检索模式",
+            "当前离线ACL及服务器演示保持原状；报告区分已实现、受控测试、设计扩展、真实平台未验证，附后续验收矩阵"
+          ],
+          "code": [],
+          "tests": [],
+          "docs": [
+            "docs/architecture/permission-interfaces-v2.md",
+            "docs/decisions/ADR-0007-permission-provider-contract.md",
+            "docs/README.md"
+          ]
         }
       ],
       "acceptance_criteria": [
@@ -362,6 +385,62 @@
         "docs/architecture/unified-integration.md",
         "docs/product/engineering-challenges.md",
         "docs/product/workload.md"
+      ],
+      "extensions": [
+        {
+          "key": "audit_console_four_domains",
+          "title": "四类审计工作台与统一AI审计入口",
+          "source": "User approved four-domain audit console implementation on 2026-10-16",
+          "authority": "team_decision",
+          "status": "implemented",
+          "description": "2026-10-16按用户确认实施并部署17866：获取信息、权限变更默认展开，资料更新、越权尝试默认折叠；顶部统一AI和各区独立查询，管理员完整已记录历史审计，员工权限保持不变。参数化SQLite提供精确统计和稳定分页，新权限事件含操作者/目标、前后值与epoch；旧日志不改写。已通过本地399 unittest、407 pytest+162 subtests及服务器407 pytest+162 subtests；完成四类真实模型与原生浏览器验证；跨类新版模型复验被服务商402 Payment Required阻断，待额度恢复后补验及用户实际体验验收。长明细按类别轮流取样、模型仅接收已转换SGT时间；AI校验失败保留完整查询与统计。 2026-10-16用户要求演示避免中文：统一演示账号的英文展示名称，旧审计名称仅在展示/模型投影中兼容；演示模式审计AI固定英文，原始日志不改写。 2026-10-16用户要求沿用旧图薄荷绿配色生成全英文Audit System新版图，反映四类事件、完整管理员历史视图、确定性查询统计、AI代表明细与E/Q1引用；本地链与检查点不表述为外部不可篡改存证。",
+          "acceptance_criteria": [
+            "顶部AI审计问答覆盖四类日志，答案引用可点击的实际事件；SQL确定性查询/聚合提供事实和统计，模型解释结果，不把最近20条样本当整个时间段",
+            "获取信息与权限变更默认展开，资料更新与越权事件显示简洁摘要框，点击后展开对应筛选和记录；各区查询互不覆盖，采用统一时区与真实分页/总数",
+            "管理员审计页面与AI可读取完整已记录历史问题、回答、资料和权限变更字段；不因管理员没有对应业务资料权限而隐藏审计，不改变普通员工或非管理员的业务访问规则",
+            "区分搜索返回、回答证据和原文访问；权限变更记录操作者、目标员工、范围、前后值、结果、关联操作ID及目标权限版本，新版字段不伪造回填旧日志",
+            "按操作者和受影响员工分别查询；关键词、事件类型、来源/项目、资料和时间条件真实生效；资料更新可追踪任务/版本，异常分类由实际拒绝证据决定",
+            "用户已确认实施方案；部署保留已有哈希链、业务权限和原资料，完成关键流程、真实模型及原生浏览器技术验收，随后由用户体验验收",
+            "演示账号名称及审计AI输出使用英文；兼容旧账号中文后缀与旧管理员称呼，不修改已有身份权限或审计链；原始历史提问和资料内容保持真实",
+            "2026-10-16 用户要求删除审计 AI 输入框下方的预设问题按钮，不提供默认问题；提问框保留输入提示"
+          ],
+          "code": [
+            "contextledger/audit/store.py",
+            "contextledger/audit/query.py",
+            "contextledger/application/service.py",
+            "contextledger/interfaces/web.py",
+            "contextledger/answering/workflows.py",
+            "contextledger/interfaces/static/stitch/app.js",
+            "contextledger/interfaces/static/stitch/index.html",
+            "contextledger/interfaces/static/stitch/responsive.css",
+            "contextledger/storage/document_updates.py",
+            "contextledger/audit/console.py",
+            "frontend/stitch/build.cjs",
+            "frontend/stitch/audit-console.html",
+            "contextledger/interfaces/static/stitch/source-manifest.json",
+            "contextledger/access/demo_identity.py"
+          ],
+          "tests": [
+            "tests/application/test_integration.py",
+            "tests/application/test_llm_integration.py",
+            "tests/interfaces/test_stitch_api.py",
+            "tests/interfaces/test_stitch_frontend.py",
+            "tests/answering/test_llm_workflows.py",
+            "tests/audit/test_console.py",
+            "tests/access/test_demo_identity.py",
+            "tests/audit/test_audit_time_parser.py",
+            "tests/radar/test_radar_integration.py"
+          ],
+          "docs": [
+            "docs/product/audit-console-v2-plan.md",
+            "docs/architecture/audit-query-flow.md",
+            "docs/product/concept-diagrams/audit-system-v2/README.md",
+            "docs/product/concept-diagrams/audit-system-v2/prompt.json",
+            "docs/product/concept-diagrams/audit-system-v2/04-audit-system-v2.png",
+            "docs/product/concept-diagrams/audit-system-v2/correction-prompt.json",
+            "docs/product/concept-diagrams/audit-system-v2/manifest.json"
+          ]
+        }
       ]
     },
     {
@@ -410,12 +489,12 @@
           "source": "user requested on 2026-10-11",
           "authority": "team_decision",
           "status": "in_progress",
-          "description": "已接入角色受控审计模型回答、白名单脱敏、有界事件与 E 引用，模型前后/交付检查当前角色、证据与链。合成回归通过；真实模型回答和真人验收仍待完成。",
+          "description": "已实现角色受控AI审计回答、有界代表明细与E/Q1引用，模型前后及交付复核角色、epoch和链。2026-10-16管理员改为完整已记录历史审计，接入四类精确统计和统一AI界面；compliance保持既有脱敏/证据复核。管理员新版已部署并完成真实模型与浏览器技术验证；模型不合规会退回确定性查询，待用户体验验收。 最新版四类真实模型回答通过；最终跨类复验因模型服务402 Payment Required未完成，恢复服务后补验。",
           "acceptance_criteria": [
             "调用前执行 admin/compliance 角色检查；普通员工不能通过页面、接口或模型生成的参数访问审计，模型不能执行任意 SQL 或决定角色、授权与查询范围",
-            "模型只读取服务端已授权、已脱敏且预算内的审计事件，不读取整份日志库；日志里的历史问题、回答与指令均作为不可信数据",
+            "管理员模型读取已授权的完整历史审计字段与后端精确统计；compliance仍仅读取已脱敏事件。模型输入有界，日志历史问题/回答/指令仍为不可信数据，不允许执行任意SQL。",
             "答案使用 [E序号] 等事件引用，服务端检查引用属于本次可见结果；日志截断或无匹配时说明本次结果范围，不据此推断整个时间段没有访问行为",
-            "审计问答在模型前后和交付前复核当前角色及相关业务证据权限；日志完整性异常时不把记录作为可信事实回答",
+            "模型前后及交付复核当前角色、epoch和链完整性；管理员历史审计不再依赖当前业务证据权限，compliance保持相关证据与版本复核。",
             "记录本次审计问答的请求、可见事件引用、模型/Prompt 版本与复核状态；不记录或泄漏无权限明文，查询本身继续进入哈希链",
             "模型失败、未配置或输出不合规时回退现有确定性查询结果，不宣称已生成可靠的模型审计回答"
           ],
@@ -1067,6 +1146,73 @@
         "docs/product/prompt-and-login-walkthrough.md",
         "docs/product/tool-entry-scope.md",
         "docs/product/workload.md"
+      ],
+      "extensions": [
+        {
+          "key": "resource_access_controls",
+          "title": "所属数据集保持可选与资料范围授权",
+          "source": "user confirmed on 2026-10-15 for submission demo; preserve imported ACL and focus OrgForge",
+          "authority": "team_decision",
+          "status": "in_progress",
+          "description": "已实现并部署至既有 gpushare 17866 隔离演示入口；所属数据集保持可选，Security Lens 按数据集、来源和文档管理后端读取限制，保留原始 ACL 与撤权状态。真实 OrgForge 索引隔离验证及当前 Jax 撤权查询通过；用户人工重试待完成。 2026-10-15用户授权只对实际演示问题相关资源人工标注项目、部门和密级，并接通相应管理与追溯；不推广到其他数据。 2026-10-16 定向4份资料标注已部署到17866并通过真实模型、撤权/密级/部门对照与浏览器技术验收；用户人工验收待完成。 2026-10-16：用户要求移除演示配置与部门说明文案、保留密级，新增可搜索项目成员卡片；在SwiftUI之外从现有数据抽象五个项目，标注资源要求显式项目资格，未标项目资源不受项目层限制但保留来源ACL与密级。 新项目成员规则与六个项目/14份标签已部署并通过六项目线上检索/原文和三来源关闭对照；前端搜索添加/移除走查通过，Jax版本69、原三来源关闭状态保留；用户验收待完成。 2026-10-16用户补充：核对fixtures/radar四个案例，已有SwiftUI复用；新增Kafka Stream Recovery、Customer Telemetry Recovery、Marathon Pacing Resilience三个项目。仅将四组案例在线上已存在的资源按内容哈希白名单标注，缺失PR/客户工单不伪造导入，不改变原ACL和员工既有项目/来源状态；e6c9ce0f配置已通过现有后端队列在17866应用61份新增标注，目录共九个；四案例65份在线资源的原文授权/撤权、关键词/向量/混合检索和原ACL限制通过，未标项目仍可读、全关来源零证据且不调模型；Jax原成员/来源状态恢复、版本119、审计有效；用户人工验收待完成。 2026-10-16用户要求生成撤权演示：以Jax/orgforge、自然问题及关闭三个来源为主，已重写约60秒录制脚本并复测真实GLM正常回答、三来源关闭后零证据/零模型调用、原文404与数据集可选；保留测试前权限状态，Jax版本128，用户录制待完成。 2026-10-16用户要求更新Permission System英文流程图，补充项目成员/未标项目语义、Slack频道ACL与私聊参与人、部门和密级、来源撤权及交付复核；依据当前实现作图，不把规划中的POSIX/PDP或实时ACL同步画成已实现。 新版英文PNG已生成并视觉核对，保留原图；提示词和实现依据随资产入库。",
+          "acceptance_criteria": [
+            "撤销数据集或全部来源读取权后，员工仍能选择已有映射的数据集；无证据时不调用模型并返回安全提示",
+            "管理员按数据集、来源和文档调整本地限制，恢复不能绕过原始来源 ACL；普通员工无法调用管理接口",
+            "同一员工部分撤权后仅返回剩余授权来源，全部撤权后旧原文不可读，权限版本与审计记录同步更新",
+            "历史撤销的身份绑定不自动恢复；页面仅提供员工已绑定来源身份的明确恢复入口，不展示其他员工身份作为授权选项",
+            "演示权限按显式文档ID和原内容哈希白名单应用，保留正文与其他全部文档；人工标注带独立来源说明，私聊不额外授予Jax权限",
+            "保留ENG-195/PR-135既有密级与部门配置，并按新增项目清单扩充显式项目标签；项目拒绝和密级变化在实际关键词/向量检索、原文及回答交付生效，恢复后正常回答",
+            "Security Lens以搜索和卡片管理项目、保留员工密级，Evidence Passport展示项目及密级；原始来源ACL与本地限制继续生效",
+            "项目标签非空时仅项目成员可检索、打开和交付；空项目对所有具备原ACL和密级资格的员工开放；空成员列表不能解释为全部项目",
+            "管理员可搜索项目、添加及移除员工项目卡片；修改自动保存、递增权限版本并审计，来源关闭仍覆盖项目资格",
+            "已有SwiftUI之外新增五个有明确原始资料和内容哈希的项目，仅更新白名单元数据，保留正文、原ACL和无关文本",
+            "移除Configured demo permissions、项目demo后缀及截图中的部门/实现解释，保留密级选择和真实来源状态",
+            "四组Radar fixture都有可搜索的项目映射；标注其在线上已存在的全部去重资源，固定未入库资源例外，验证新增项目的检索/原文授权与撤权，并保留已有来源拒绝和员工成员配置"
+          ],
+          "code": [
+            "contextledger/interfaces/web.py",
+            "contextledger/access/identity_store.py",
+            "contextledger/interfaces/static/stitch/app.js",
+            "contextledger/interfaces/static/stitch/index.html",
+            "contextledger/interfaces/static/stitch/responsive.css",
+            "contextledger/answering/service.py",
+            "contextledger/access/demo_permissions.py",
+            "contextledger/storage/document_updates.py",
+            "config/demo-permissions.example.json",
+            "scripts/apply_demo_permissions.py",
+            "contextledger/retrieval/filtered_index.py",
+            "contextledger/access/project_permissions.py",
+            "scripts/apply_project_permissions.py",
+            "config/project-permissions.example.json",
+            "config/radar-project-permissions.json",
+            "config/project-permissions.kafka-incident.json",
+            "config/project-permissions.customer-incident.json",
+            "config/project-permissions.recurrence-revision.json"
+          ],
+          "tests": [
+            "tests/interfaces/test_stitch_api.py",
+            "tests/interfaces/test_stitch_frontend.py",
+            "tests/answering/test_answering.py",
+            "tests/access/test_demo_permissions.py",
+            "tests/application/test_document_updates.py",
+            "tests/access/test_project_permissions.py",
+            "tests/application/test_integration.py",
+            "tests/application/test_llm_integration.py",
+            "tests/access/test_demo_identity.py"
+          ],
+          "docs": [
+            "docs/product/resource-permissions.md",
+            "docs/README.md",
+            "docs/product/curated-demo-permissions.md",
+            "docs/product/permission-demo-handoff-2026-10-15.md",
+            "docs/product/security-lens-demo-3d.md",
+            "docs/product/project-permissions.md",
+            "docs/product/concept-diagrams/permission-system-v2/README.md",
+            "docs/product/concept-diagrams/permission-system-v2/prompt.json",
+            "docs/product/concept-diagrams/permission-system-v2/02-permission-system-v2.png",
+            "docs/product/concept-diagrams/permission-system-v2/correction-prompt.json"
+          ]
+        }
       ]
     },
     {
@@ -1152,7 +1298,12 @@
             "2026-10-15 定稿前端与 origin/main 9ad487e 合并；沿用功能分包和 sources/MCP 功能，静态文件迁入 interfaces/static/stitch，默认首页仅使用定稿新版；保留主分支语言与工具参数校验及本地 Radar presentation 契约，来源 ACL 当前依据与历史追溯分离；布局、配色与动效不重新设计",
             "2026-10-15 补齐英文页面生成语言契约，覆盖Has开头、insufficient及Radar所有展示字段；原文外链仅在有效HTTP(S)来源地址存在时显示；审计区分未记录证据、当前不可访问、版本不匹配和索引不可核对，并在授权范围内展示历史授权记录，不泄漏受限标题/ID",
             "首页使用引导标签保持单行和独立宽度；窄屏时整块标签换到标题下方，不压缩图标或挤成两行",
-            "2026-10-15 Radar摘要与完整回答分别展示；完整回答可键盘展开，保留原文与引用，身份或权限变化后清空；没有摘要时不重复显示同一回答"
+            "2026-10-15 Radar摘要与完整回答分别展示；完整回答可键盘展开，保留原文与引用，身份或权限变化后清空；没有摘要时不重复显示同一回答",
+            "2026-10-15 侧栏左上角品牌图使用团队提供的 ContextLedger 矢量 logo，替换原截图式占位图；去除整幅白底并裁成方形，与两行品牌文字等高，同时作为页面图标",
+            "2026-10-16 普通回答（无 Radar presentation）的 Current judgment 大字显示回答自身第一句作为简短结论，不再显示固定占位语；引用编号保留在说明中，不额外调用模型或改写回答，证据不足与模型降级保持原提示",
+            "2026-10-16 回答 Prompt v14 要求 answered 首句为不超过25词（中日韩不超过50字）的独立直接结论并带关键事实，列表与解释放在后续句子，避免大字结论过长；仅为 Prompt 要求，前端200字截断保留为兜底",
+            "2026-10-16 实测 v14 仍出现用分号列举的超长首句；answer-v15 要求首句只概括不列举，服务端对未运行 Radar 的 answered 回答按前端同一规则取首句，超过30词／60个中日韩字时重检权限后要求重写一次，最多两次调用；重写失败保留首次合格回答，不降级",
+            "2026-10-16 用户要求回答语言跟随提问语言，取代此前固定英文输出：前端不再强制 output_language=en，问答、Radar 与审计 AI（含演示模式）按提问语言回答；中文问题回答不含汉字时按既有语言校验重试一次；前端补充的固定回答文字随语言切换，界面文字保持英文"
           ],
           "code": [
             "frontend/stitch/build.cjs",
@@ -1174,7 +1325,8 @@
             "frontend/legacy-backup/2026-10-15",
             ".gitattributes",
             "contextledger/answering/service.py",
-            "contextledger/application/service.py"
+            "contextledger/application/service.py",
+            "contextledger/interfaces/static/stitch/assets/contextledger-logo.svg"
           ],
           "tests": [
             "tests/interfaces/test_stitch_frontend.py",
@@ -1400,7 +1552,7 @@
       "source": "user requested recording answer prompt design on 2026-10-06",
       "authority": "team_decision",
       "status": "in_progress",
-      "description": "将回答阶段的系统指令、原用户问题与授权证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 已实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，本次扩充自然表达、术语解释、分段和问题相关性要求，避免机械抄写或无关细节；完整质量和成本评测仍待完成。",
+      "description": "将回答阶段的系统指令、原用户问题与授权证据模板、上下文预算及模型参数作为项目资产记录并管理，后续通过固定样例评估改进；安全边界沿用 REQ-009，评测框架复用 REQ-018。2026-10-07 已实施版本化 Prompt、证据不足无引用约束与一次受限格式重试，本次扩充自然表达、术语解释、分段和问题相关性要求，避免机械抄写或无关细节；完整质量和成本评测仍待完成。 2026-10-16：自然英文演示提问实测暴露200字符分段阈值误拒简短回答；调整为按CJK字符/英文词数区分长文，保留权限、引用与长文分段校验，并验证真实撤权前后回答。 已部署26d9a0d0至17866，379 unittest与服务器387 pytest通过；不带编号的自然问题撤权前/恢复后真实回答正常，撤权后零证据、零模型调用。",
       "acceptance_criteria": [
         "记录当前实际发送的系统指令、问题与证据格式、身份字段、证据截断和模型输出限制，示例不得包含真实密钥或无权限资料",
         "实际模型请求包含独立的系统指令、未经替换的原用户问题和带编号的授权检索证据，动态数据分区表达且不被提升为系统指令",
@@ -1408,7 +1560,8 @@
         "后续修改回答 Prompt 时保留可追踪版本与变更理由，使实验能够区分 Prompt、模型和检索证据的变化",
         "通过固定的跨来源、证据不足、引用及不可信来源指令样例比较 Prompt 版本，质量与成本评测复用 REQ-018，不把更改措辞本身当作改进证明",
         "Prompt 不能替代 REQ-009 的确定性权限与引用校验；当前编号合法检查不得宣称已经验证逐句事实支持",
-        "审计回答、检索规划及零证据提示模板单独记录版本、输入边界、输出格式和预算；answer-v9 移除已取消的引用复核和反馈重答上下文，保留原问题与授权证据；旧部署记录不能充当本次验证"
+        "审计回答、检索规划及零证据提示模板单独记录版本、输入边界、输出格式和预算；answer-v9 移除已取消的引用复核和反馈重答上下文，保留原问题与授权证据；旧部署记录不能充当本次验证",
+        "简短英文单段回答不因超过200个字符被格式拒绝；超过80词的英文及超过200字符的CJK长回答仍要求分段，引用和权限校验不变"
       ],
       "code": [
         "contextledger/answering/service.py",
@@ -1426,7 +1579,9 @@
         "docs/evaluation/model-selection.md",
         "docs/product/workload.md",
         "docs/product/llm-feature-plan.md",
-        "docs/architecture/decision-radar-v1.md"
+        "docs/architecture/decision-radar-v1.md",
+        "docs/product/security-lens-demo-3d.md",
+        "docs/product/natural-question-validation-20261016.md"
       ]
     },
     {
