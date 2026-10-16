@@ -70,8 +70,8 @@ class DocumentUpdates:
 
     def _record(self, actor_id, event_type, job_id, **details):
         self.audit.append({"request_id": uuid.uuid4().hex, "timestamp": now(),
-            "event_type": event_type, "user_id": actor_id, "job_id": job_id,
-            "decision": "allowed", "retrieved_document_ids": [], **details})
+            "event_type": event_type, "user_id": actor_id, "actor_name": self.identities.get(actor_id).name if self.identities.get(actor_id) else actor_id, "job_id": job_id,
+            "operation_id": job_id, "decision": "failed" if event_type.endswith("_failed") else "allowed", "retrieved_document_ids": [], **details})
 
     @staticmethod
     def _text(value, name, maximum=256):
@@ -211,7 +211,7 @@ class DocumentUpdates:
                           (document.corpus, document.doc_id)).fetchone():
                 raise UpdateConflict("document already has a pending update; wait or retry it")
             self._admin(actor_id)
-            self._record(actor_id, "document_update_intent", job_id, corpus=document.corpus, doc_id=document.doc_id)
+            self._record(actor_id, "document_update_intent", job_id, corpus=document.corpus, doc_id=document.doc_id, source=document.source, title=document.title, before_version=body["expected_version"])
             db.execute("INSERT INTO cl_update_jobs (id,corpus,doc_id,actor_id,base_version,document_json,state,created_at,updated_at,source_scope) VALUES (?,?,?,?,?,?,'queued',?,?,?)",
                 (job_id, document.corpus, document.doc_id, actor_id, body["expected_version"],
                  json.dumps(asdict(document), ensure_ascii=False), now(), now(), source_scope))
@@ -243,10 +243,10 @@ class DocumentUpdates:
         self._admin(actor_id)
         with connect(self.db_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT state FROM cl_update_jobs WHERE id=?", (job_id,)).fetchone()
+            row = db.execute("SELECT state,corpus,doc_id FROM cl_update_jobs WHERE id=?", (job_id,)).fetchone()
             if row is None or row["state"] != "failed":
                 raise UpdateConflict("only failed update jobs can be retried")
-            self._record(actor_id, "document_update_retry", job_id)
+            self._record(actor_id, "document_update_retry", job_id, corpus=row["corpus"], doc_id=row["doc_id"])
             db.execute("UPDATE cl_update_jobs SET actor_id=?,state='queued',attempts=0,retry_at=0,error_type=NULL,updated_at=? WHERE id=?", (actor_id, now(), job_id))
         self._wake.set()
         return self.status(actor_id, job_id)
@@ -306,7 +306,7 @@ class DocumentUpdates:
                     (type(error).__name__, time.time() + min(2 ** job["attempts"], 8), now(), job["id"]))
                 if job["source_scope"] is None:
                     db.execute("UPDATE cl_index_state SET state='failed' WHERE generation=?", (job["id"],))
-            self._record(job["actor_id"], "document_update_failed", job["id"], error_type=type(error).__name__)
+            self._record(job["actor_id"], "document_update_failed", job["id"], corpus=job["corpus"], doc_id=job["doc_id"], before_version=job["base_version"], error_type=type(error).__name__)
         return True
 
     def _save_history(self, db, row):
@@ -416,4 +416,4 @@ class DocumentUpdates:
             db.execute("UPDATE cl_metadata SET indexed_at=? WHERE corpus=? AND doc_id=?", (published_at, document.corpus, document.doc_id))
             db.execute("UPDATE cl_index_state SET generation=?,state='ready',indexed_at=? WHERE id=1", (job["id"], published_at))
             db.execute("UPDATE cl_update_jobs SET state='ready',error_type=NULL,generation=?,updated_at=? WHERE id=?", (job["id"], now(), job["id"]))
-        self._record(job["actor_id"], "document_update_ready", job["id"], corpus=document.corpus, doc_id=document.doc_id, version=document.version)
+        self._record(job["actor_id"], "document_update_ready", job["id"], corpus=document.corpus, doc_id=document.doc_id, source=document.source, title=document.title, before_version=job["base_version"], version=document.version)

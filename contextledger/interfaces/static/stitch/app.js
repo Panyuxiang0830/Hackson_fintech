@@ -153,7 +153,7 @@ function show(page,{motion=true}={}) {
 function clearProtected() {
   state.generation++;
   state.docGeneration++;
-  state.result=null;state.doc=null;state.audit=null;
+  state.result=null;state.doc=null;state.audit=null;resetAuditConsole();
   state.timelineExpanded={radar:false,passport:false};state.passportOpener=null;notice('');
   for(const page of ['radar','passport']){
     put(page,'headline','Submit a question to see the current judgment.');put(page,'explanation','');put(page,'query','Current query');
@@ -474,7 +474,151 @@ async function runEmployeeQuery() {
   const corpus=state.controlCorpus;await switchIdentity(userId);if(state.corpora.some(c=>c.id===corpus)){state.corpus=corpus;one('home','corpus').value=corpus;}one('home','question').value=question;await ask();
 }
 
-async function loadAudit() {
+const AUDIT_DOMAINS=[['access','Information access','search'],['permissions','Permission changes','manage_accounts'],['updates','Document updates','sync'],['violations','Unauthorised attempts','shield']];
+function resetAuditConsole(){
+  state.auditConsole=null;state.auditSelectedEvent=null;state.auditAI=null;put('audit','integrity','Audit chain not checked');
+  one('audit','audit-domains')?.replaceChildren();one('audit','audit-ai-result')?.replaceChildren();
+  if(one('audit','audit-ai-result'))one('audit','audit-ai-result').hidden=true;
+  one('audit','audit-ai-scope')?.replaceChildren();one('audit','audit-event-content')?.replaceChildren();
+  one('audit','audit-system-events')?.replaceChildren();one('audit','audit-event-dialog')?.close();
+}
+function auditRange(range,start,end){
+  if(range==='all')return {};
+  if(range==='custom'){
+    if(!start||!end)throw new Error('Choose both dates in Singapore time.');
+    const first=new Date(start+(start.length===16?':00':'')+'+08:00'),last=new Date(end+(end.length===16?':00':'')+'+08:00');
+    if(!Number.isFinite(+first)||!Number.isFinite(+last)||first>last)throw new Error('Choose a valid date range.');
+    return {start:first.toISOString(),end:last.toISOString()};
+  }
+  const now=new Date();return {start:new Date(+now-86400000).toISOString(),end:now.toISOString()};
+}
+function auditScope(selection){
+  const f=selection?.filters||{};const range=f.start||f.end?`${f.start?new Date(f.start).toLocaleString('en-GB',{timeZone:'Asia/Singapore'}):'Beginning'} – ${f.end?new Date(f.end).toLocaleString('en-GB',{timeZone:'Asia/Singapore'}):'Now'} SGT`:'All recorded times';
+  const options=state.auditConsole?.options;const person=id=>displayName(options?.people.find(p=>p.id===id)?.name,id);
+  return [range,f.category?.replaceAll('permissions','Permission changes').replaceAll('access','Information access').replaceAll('updates','Document updates').replaceAll('violations','Unauthorised attempts'),f.actor&&`Operator: ${person(f.actor)}`,f.target&&`Affected employee: ${person(f.target)}`,f.subject&&`Employee: ${person(f.subject)}`,f.source,f.project,f.keyword&&`Keyword: ${f.keyword}`,f.event_type?.replaceAll('_',' '),f.outcome].filter(Boolean).join(' · ');
+}
+function auditField(form,key,label,options=null){
+  const wrap=element('label','',label);const input=element(options?'select':'input');input.dataset.auditFilter=key;input.setAttribute('aria-label',label);
+  if(options)for(const [value,text] of options){const option=element('option','',text);option.value=value;input.append(option);}
+  else input.placeholder=label;
+  wrap.append(input);form.append(wrap);return input;
+}
+function makeAuditPanel(cat,title,icon,options){
+  const node=element('details','audit-domain');node.dataset.auditDomain=cat;node.open=['access','permissions'].includes(cat);
+  const summary=element('summary');summary.append(element('span','material-symbols-outlined',icon),element('h2','',title));
+  const count=element('span','audit-count','Loading…'),latest=element('span','audit-latest','Loading recorded events…');summary.append(count,latest);node.append(summary);
+  const body=element('div','audit-panel-body'),form=element('form','audit-panel-filters');body.append(form);
+  const keyword=auditField(form,'keyword','Search records');keyword.closest('label').classList.add('audit-filter-wide');
+  const people=[['','All employees'],...options.people.map(p=>[p.id,displayName(p.name,p.id)])];
+  if(cat==='permissions')auditField(form,'target','Affected employee',people);else auditField(form,'actor',cat==='access'?'Employee':'Operator',people);
+  const range=auditField(form,'range','Time range',[['24h','Last 24 hours'],['all','All recorded times'],['custom','Custom range (SGT)']]);
+  const custom=element('div','audit-custom-range audit-filter-wide');custom.hidden=true;const from=auditField(custom,'from','From (SGT)'),to=auditField(custom,'to','To (SGT)');from.type=to.type='datetime-local';form.append(custom);range.addEventListener('change',()=>{custom.hidden=range.value!=='custom';});
+  const advanced=element('details');advanced.append(element('summary','','More filters'));const extra=element('div');advanced.append(extra);form.append(advanced);
+  if(cat==='permissions')auditField(extra,'actor','Changed by',people);
+  auditField(extra,'source','Source',[['','All sources'],...options.sources.map(x=>[x,x])]);
+  auditField(extra,'project','Project',[['','All projects'],...options.projects.map(p=>[p.id,p.name])]);
+  const types=cat==='access'?[['search','Search'],['answer','Question & answer'],['document_open','Open original']]:cat==='permissions'?[['permission_change','Completed change'],['permission_change_failed','Failed change'],['permission_change_intent','Pending intent']]:cat==='updates'?[['document_update_ready','Published'],['document_update_failed','Failed']]:[['access_denied','Unauthorised endpoint'],['unauthenticated_request','Unauthenticated request'],['tool_auth_denied','Tool authentication denied'],['csrf_rejected','Request origin/token rejected']];
+  auditField(extra,'event_type','Action',[['','All actions'],...types]);
+  auditField(extra,'outcome','Result',[['','All results'],...(cat==='updates'?[['published','Published'],['failed','Failed'],['pending','Pending']]:cat==='violations'?[['blocked','Blocked']]:[['allowed','Allowed'],['answered','Answered'],['insufficient','Insufficient evidence'],['unavailable','Unavailable'],['failed','Failed'],['pending','Pending']])]);
+  auditField(extra,'document','Document ID');
+  const submit=element('button','audit-primary-button','Search records');submit.type='submit';form.append(submit);
+  const scope=element('div','audit-scope-text'),list=element('div','audit-panel-list'),footer=element('div','audit-panel-footer'),pageCount=element('span','',''),more=element('button','','Load more');more.type='button';more.hidden=true;footer.append(pageCount,more);body.append(scope,list,footer);node.append(body);
+  const panel={cat,node,form,count,latest,scope,list,pageCount,more,submit,rows:[],data:null,run:0,filters:null};
+  form.addEventListener('submit',event=>{event.preventDefault();queryAuditPanel(panel).catch(error=>notice(error.message,'error'));});more.addEventListener('click',()=>queryAuditPanel(panel,true).catch(error=>notice(error.message,'error')));
+  return panel;
+}
+function auditChangeText(change){
+  if(!change||!('before' in change)||!('after' in change))return 'Before / after values were not recorded';
+  const levels=['Public','Internal','Confidential','Restricted'];
+  const val=(key,value)=>key==='clearance'?levels[value]??String(value):key==='denied'?(value?'Blocked':'Not blocked'):key==='member'?(value?'Assigned':'Not assigned'):typeof value==='boolean'?(value?'Enabled':'Disabled'):value===null||value===''?'Not set':typeof value==='object'?JSON.stringify(value):String(value);
+  return [...new Set([...Object.keys(change.before),...Object.keys(change.after)])].map(k=>`${k==='denied'?'Local restriction':k.replaceAll('_',' ')}: ${val(k,change.before[k])} → ${val(k,change.after[k])}`).join('\n');
+}
+function auditRecord(event){
+  const button=element('button','audit-record');button.type='button';button.dataset.auditSequence=event.sequence;
+  const time=formattedTime(event.timestamp);button.append(element('small','',`${time.date} ${time.time} SGT · ${event.event_type.replaceAll('_',' ')} · ${event.outcome}`));
+  let summary=event.summary||event.event_type;
+  if(event.category==='permissions'){
+    const c=event.change||{},label=state.auditConsole?.options.projects.find(p=>p.id===(c.project||c.value))?.name||c.name||c.value||c.project||c.action||'Permission change';
+    summary=`${displayName(event.user_name,event.user_id)} → ${displayName(event.target_user_name,event.target_user_id)} · ${label}`;
+  }else summary=`${displayName(event.user_name,event.user_id)} · ${summary}`;
+  button.append(element('strong','',summary));if(event.category==='permissions')button.append(element('span','audit-change-line',auditChangeText(event.change)));
+  return button;
+}
+async function queryAuditPanel(panel,append=false){
+  const consoleState=state.auditConsole,generation=state.generation,run=++panel.run;panel.submit.disabled=true;panel.more.disabled=true;
+  try{
+    if(!append){const raw=Object.fromEntries([...panel.form.querySelectorAll('[data-audit-filter]')].map(x=>[x.dataset.auditFilter,x.value.trim()]));const {range,from,to,...fields}=raw;panel.filters={category:panel.cat,...fields,...auditRange(range,from,to),limit:25};panel.rows=[];panel.list.replaceChildren(element('p','audit-empty','Loading audit records…'));}
+    const data=await api('/api/audit?'+new URLSearchParams({...panel.filters,...(append?{cursor:panel.data.next_cursor}:{})}));
+    if(consoleState!==state.auditConsole||generation!==state.generation||run!==panel.run)return;
+    panel.data=data;panel.rows.push(...data.events);panel.count.textContent=`${data.total_count} events`;panel.latest.textContent=panel.rows[0]?`Latest: ${panel.rows[0].event_type.replaceAll('_',' ')} · ${formattedTime(panel.rows[0].timestamp).date} ${formattedTime(panel.rows[0].timestamp).time} SGT`:'No recorded events in this range';
+    panel.scope.textContent=auditScope(data.selection);panel.list.replaceChildren(...panel.rows.map(auditRecord));
+    if(!panel.rows.length)panel.list.append(element('p','audit-empty','No records match these filters. Try another employee, keyword or time range.'));
+    panel.pageCount.textContent=`Showing ${panel.rows.length} of ${data.total_count}`;panel.more.hidden=!data.next_cursor;
+    put('audit','integrity',data.integrity?.valid?'Local audit chain valid':'Audit chain requires review');
+  }catch(error){if(consoleState===state.auditConsole&&run===panel.run){panel.list.replaceChildren(element('p','audit-empty',error.message));panel.count.textContent='Unavailable';}throw error;}
+  finally{if(run===panel.run){panel.submit.disabled=false;panel.more.disabled=false;}}
+}
+async function loadAudit(){
+  one('audit','audit-workbench').hidden=state.user?.role!=='admin';one('audit','audit-legacy').hidden=state.user?.role==='admin';
+  if(state.user?.role!=='admin')return loadAuditLegacy();
+  const generation=state.generation;const options=await api('/api/audit/options');if(generation!==state.generation)return;
+  resetAuditConsole();const consoleState={options,panels:{}};state.auditConsole=consoleState;
+  const host=one('audit','audit-domains');for(const [cat,title,icon] of AUDIT_DOMAINS){const panel=makeAuditPanel(cat,title,icon,options);consoleState.panels[cat]=panel;host.append(panel.node);}
+  const results=await Promise.allSettled(Object.values(consoleState.panels).map(p=>queryAuditPanel(p)));for(const result of results)if(result.status==='rejected')notice(result.reason.message,'error');
+}
+function auditFact(host,label,value){const box=element('div');box.append(element('small','',label),element('span','',value??'Not recorded'));host.append(box);}
+async function showAuditEvent(sequence){
+  const consoleState=state.auditConsole,generation=state.generation;let event=Object.values(consoleState?.panels||{}).flatMap(p=>p.rows).find(e=>e.sequence===Number(sequence));
+  if(!event){const data=await api('/api/audit/events/'+Number(sequence));event=data.events[0];}
+  if(consoleState!==state.auditConsole||generation!==state.generation||!event)return;
+  state.auditSelectedEvent=event;const panel=consoleState.panels[event.category];if(panel){panel.node.open=true;panel.node.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  const host=one('audit','audit-event-content');host.replaceChildren();put('audit','audit-event-heading',`${event.event_type.replaceAll('_',' ')} · E${event.sequence}`);
+  const facts=element('div','audit-event-facts');host.append(facts);auditFact(facts,'Operator',displayName(event.user_name,event.user_id));auditFact(facts,'Recorded at (SGT)',new Date(event.timestamp).toLocaleString('en-GB',{timeZone:'Asia/Singapore'}));auditFact(facts,'Result',event.outcome);if(event.target_user_id)auditFact(facts,'Affected employee',displayName(event.target_user_name,event.target_user_id));
+  const section=(label,text)=>{host.append(element('h3','',label),element('p','',text));};
+  if(event.category==='permissions'){
+    const c=event.change||{};section('Permission object',c.name||consoleState.options.projects.find(p=>p.id===c.project)?.name||c.project||c.value||c.principal_id||c.action||'Not recorded');section('Before → after',auditChangeText(c));if(c.target_epoch_before!==undefined)section('Employee permission version',`${c.target_epoch_before} → ${c.target_epoch_after??'Not recorded'}`);
+  }
+  if(event.query)section('Recorded question / search',event.query);if(event.answer)section('Recorded answer',event.answer);
+  if(event.requested_document_id)section('Requested original document',event.requested_document_id);
+  if(event.unavailable_reason)section('Recorded availability',event.unavailable_reason.replaceAll('_',' '));
+  if(event.category==='updates'){section('Document',event.title||event.doc_id||'Not recorded');section('Version',`${event.before_version??'Not recorded'} → ${event.version??'Not recorded'}`);section('Update task',event.job_id||'Not recorded');}
+  if(event.category==='violations'){section('Requested operation',event.endpoint||event.tool||event.event_type);section('Recorded outcome','An unauthorised attempt was blocked. This record does not establish a successful breach.');}
+  if(event.error_type)section('Recorded error',event.error_type);
+  if(event.resources?.length){host.append(element('h3','','Recorded resources'));for(const item of event.resources){const row=element('div','audit-evidence-row');row.append(element('strong','',item.title||item.doc_id),element('p','',`${item.source||'Source not recorded'} · ${item.doc_id} · version ${item.version||'Not recorded'}`));if(item.label_basis)row.append(element('small','',item.label_basis));host.append(row);}}
+  const advanced=element('details');advanced.append(element('summary','','Request, operation and original event JSON'));advanced.append(element('pre','',JSON.stringify(event,null,2)));host.append(advanced);
+  const dialog=one('audit','audit-event-dialog');if(!dialog.open)dialog.showModal();
+}
+function renderAuditAI(data){
+  const host=one('audit','audit-ai-result');host.replaceChildren();host.hidden=false;
+  for(const part of data.answer.split(/(\[(?:E\d+|Q1)\])/g)){
+    const match=part.match(/^\[(E\d+|Q1)\]$/);if(!match){host.append(document.createTextNode(part));continue;}
+    const button=element('button','',part);button.type='button';if(match[1]==='Q1')button.addEventListener('click',()=>{one('audit','audit-ai-scope').scrollIntoView({block:'center'});});else button.dataset.auditSequence=match[1].slice(1);host.append(button);
+  }
+  one('audit','audit-ai-scope').textContent=`${data.total_count} matching records · ${auditScope(data.selection)}${data.selection.truncated?' · AI received representative event details; counts cover all matches.':''}`;
+}
+async function askAuditAI(){
+  if(state.user?.role!=='admin')return;const query=one('audit','audit-ai-question').value.trim();if(!query){notice('Enter an audit question.','error');return;}
+  if(!state.auditConsole)await loadAudit();const consoleState=state.auditConsole,generation=state.generation;const button=one('audit','audit-ai-submit');button.disabled=true;
+  const host=one('audit','audit-ai-result');host.hidden=false;host.textContent='Querying audit records and preparing an explanation…';
+  try{const range=auditRange(one('audit','audit-ai-range').value,one('audit','audit-ai-start').value,one('audit','audit-ai-end').value);const data=await api('/api/audit/ask',{q:query,...range,limit:25});if(consoleState===state.auditConsole&&generation===state.generation){state.auditAI=data;renderAuditAI(data);}}
+  catch(error){if(consoleState===state.auditConsole){host.textContent=error.message;notice(error.message,'error');}}
+  finally{button.disabled=false;}
+}
+function downloadAudit(value,filename){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+one('audit','audit-ai-form').addEventListener('submit',event=>{event.preventDefault();askAuditAI().catch(error=>notice(error.message,'error'));});
+one('audit','audit-ai-range').addEventListener('change',event=>{one('audit','audit-ai-custom').hidden=event.target.value!=='custom';});
+pages.audit.addEventListener('click',event=>{
+  const record=event.target.closest('[data-audit-sequence]');if(record){showAuditEvent(record.dataset.auditSequence).catch(error=>notice(error.message,'error'));return;}
+  const example=event.target.closest('[data-audit-example]');if(example){one('audit','audit-ai-question').value=example.dataset.auditExample;one('audit','audit-ai-question').focus();return;}
+  const action=event.target.closest('[data-action]')?.dataset.action;
+  if(action==='audit-detail-close')one('audit','audit-event-dialog').close();
+  if(action==='audit-event-export'&&state.auditSelectedEvent)downloadAudit(state.auditSelectedEvent,'contextledger-audit-event.json');
+  if(action==='audit-system-events'){
+    const generation=state.generation;api('/api/audit?category=system&limit=25').then(data=>{if(generation!==state.generation)return;one('audit','audit-system-events').replaceChildren(...data.events.map(auditRecord));}).catch(error=>notice(error.message,'error'));
+  }
+});
+
+async function loadAuditLegacy() {
   if(state.busy||!permitted('audit'))return;
   const filters={};for(const [slot,key] of [['audit-query','q'],['audit-user','user_id'],['audit-request','request_id']]){const value=one('audit',slot)?.value.trim();if(value)filters[key]=value;}
   const generation=state.generation;state.busy=true;notice('Reading audit events under current access…');
@@ -542,7 +686,7 @@ async function dispatch(actionName,node) {
 }
 
 document.addEventListener('click',event=>{
-  const nav=event.target.closest('[data-nav]');if(nav){event.preventDefault();notice('');show(nav.dataset.nav);if(nav.dataset.nav==='security')loadSecurity().catch(error=>notice(error.message,'error'));return;}
+  const nav=event.target.closest('[data-nav]');if(nav){event.preventDefault();notice('');show(nav.dataset.nav);if(nav.dataset.nav==='security')loadSecurity().catch(error=>notice(error.message,'error'));if(nav.dataset.nav==='audit')loadAudit().catch(error=>notice(error.message,'error'));return;}
   const button=event.target.closest('[data-action]');if(button){event.preventDefault();Promise.resolve(dispatch(button.dataset.action,button)).catch(error=>notice(error.message,'error'));}
 });
 document.querySelector('[data-slot="identity-select"]').addEventListener('change',event=>switchIdentity(event.target.value).catch(error=>notice(error.message,'error')));
@@ -558,7 +702,7 @@ one('security','document-rules').addEventListener('click',event=>{const button=e
 pages.security.querySelector('[data-action="deny-document"]').addEventListener('click',()=>{const id=one('security','document-id').value.trim();if(id)saveContentPermission({action:'restriction',kind:'document',value:id,denied:true});else notice('Enter a document ID from Evidence Passport.','error');});
 one('home','corpus').addEventListener('change',()=>{state.corpus=one('home','corpus').value;clearProtected();});
 one('home','planning-toggle').addEventListener('change',event=>{state.planningChoice=event.target.checked;try{localStorage.setItem('contextledger.stitch.planning',state.planningChoice?'on':'off');}catch(error){/* Storage is optional. */}renderPlanning();});
-one('audit','audit-form').addEventListener('submit',event=>{event.preventDefault();loadAudit().catch(error=>notice(error.message,'error'));});
+one('audit','audit-form').addEventListener('submit',event=>{event.preventDefault();loadAuditLegacy().catch(error=>notice(error.message,'error'));});
 one('home','question').addEventListener('input',()=>{if(state.result)clearProtected();else notice('');});
 matchMedia('(max-width:1023px)').addEventListener('change',()=>passportLayout(document.body.dataset.activePage==='passport'));
 document.addEventListener('keydown',event=>{

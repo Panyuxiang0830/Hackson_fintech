@@ -234,8 +234,8 @@
 - 扩展键：`audit_console_four_domains`
 - 来源：User requested proposal first on 2026-10-16; implementation requires their confirmation
 - 权威级别：`team_decision`（独立于基础需求）
-- 状态：`planned`
-- 说明：方案阶段：以获取信息、权限变更为两个主要展开区，资料更新和越权事件默认折叠；顶部统一AI提问框可查询四类记录，各区独立筛选。管理员完整查看已记录的审计信息，不再用其业务原文权限遮蔽历史审计。补齐事件字段、目标员工查询、真实关键词、分页/聚合及AI结构化输入；用户确认前不修改业务代码、界面或线上权限。
+- 状态：`in_progress`
+- 说明：2026-10-16用户已确认实施：以获取信息、权限变更为两个主要展开区，资料更新和越权事件默认折叠；顶部统一AI提问框可查询四类记录，各区独立筛选。管理员完整查看已记录的审计信息，不再用其业务原文权限遮蔽历史审计。补齐事件字段、目标员工查询、真实关键词、分页/聚合及AI结构化输入；在现有工作分支实现、测试并部署既有17866演示入口，保留原审计链与业务权限。 四区工作台与后端已实现，自动回归及服务器部署验收进行中。
 - 验收标准：
 
   - 顶部AI审计问答覆盖四类日志，答案引用可点击的实际事件；SQL确定性查询/聚合提供事实和统计，模型解释结果，不把最近20条样本当整个时间段
@@ -247,9 +247,9 @@
 
 - 影响范围：
 
-  - 代码：`contextledger/audit/store.py`, `contextledger/audit/query.py`, `contextledger/application/service.py`, `contextledger/interfaces/web.py`, `contextledger/answering/workflows.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/storage/document_updates.py`
-  - 测试：`tests/application/test_integration.py`, `tests/application/test_llm_integration.py`, `tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_llm_workflows.py`
-  - 文档：`docs/product/audit-console-v2-plan.md`
+  - 代码：`contextledger/audit/store.py`, `contextledger/audit/query.py`, `contextledger/application/service.py`, `contextledger/interfaces/web.py`, `contextledger/answering/workflows.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/storage/document_updates.py`, `contextledger/audit/console.py`, `frontend/stitch/build.cjs`, `frontend/stitch/audit-console.html`, `contextledger/interfaces/static/stitch/source-manifest.json`
+  - 测试：`tests/application/test_integration.py`, `tests/application/test_llm_integration.py`, `tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_llm_workflows.py`, `tests/audit/test_console.py`, `tests/access/test_demo_identity.py`, `tests/audit/test_audit_time_parser.py`, `tests/radar/test_radar_integration.py`
+  - 文档：`docs/product/audit-console-v2-plan.md`, `docs/architecture/audit-query-flow.md`
 
 ## REQ-007 · 防篡改审计链
 
@@ -293,13 +293,13 @@
 - 来源：user requested on 2026-10-11
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`in_progress`
-- 说明：已接入角色受控审计模型回答、白名单脱敏、有界事件与 E 引用，模型前后/交付检查当前角色、证据与链。合成回归通过；真实模型回答和真人验收仍待完成。
+- 说明：已接入角色受控审计模型回答、白名单脱敏、有界事件与 E 引用，模型前后/交付检查当前角色、证据与链。合成回归通过；真实模型回答和真人验收仍待完成。 2026-10-16用户确认管理员改为完整已记录历史审计，四区查询和AI输入扩展见REQ-006/audit_console_four_domains；compliance保留原脱敏，部署与新版真实模型验证进行中。
 - 验收标准：
 
   - 调用前执行 admin/compliance 角色检查；普通员工不能通过页面、接口或模型生成的参数访问审计，模型不能执行任意 SQL 或决定角色、授权与查询范围
-  - 模型只读取服务端已授权、已脱敏且预算内的审计事件，不读取整份日志库；日志里的历史问题、回答与指令均作为不可信数据
+  - 管理员模型读取已授权的完整历史审计字段与后端精确统计；compliance仍仅读取已脱敏事件。模型输入有界，日志历史问题/回答/指令仍为不可信数据，不允许执行任意SQL。
   - 答案使用 [E序号] 等事件引用，服务端检查引用属于本次可见结果；日志截断或无匹配时说明本次结果范围，不据此推断整个时间段没有访问行为
-  - 审计问答在模型前后和交付前复核当前角色及相关业务证据权限；日志完整性异常时不把记录作为可信事实回答
+  - 模型前后及交付复核当前角色、epoch和链完整性；管理员历史审计不再依赖当前业务证据权限，compliance保持相关证据与版本复核。
   - 记录本次审计问答的请求、可见事件引用、模型/Prompt 版本与复核状态；不记录或泄漏无权限明文，查询本身继续进入哈希链
   - 模型失败、未配置或输出不合规时回退现有确定性查询结果，不宣称已生成可靠的模型审计回答
 

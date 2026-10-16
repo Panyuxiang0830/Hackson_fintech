@@ -41,7 +41,7 @@ class StitchAPIContractTests(unittest.TestCase):
         for field in ("title", "text", "version", "content_hash", "acl_basis", "metadata", "source_check"):
             self.assertIn(field, source.json["doc"])
 
-    def test_permission_change_blocks_old_source_and_redacts_audit(self):
+    def test_permission_change_blocks_old_source_but_preserves_admin_history(self):
         answer = self.fixture.post("/api/ask", {"q": "TitanDB", "corpus": "alpha", "mode": "keyword", "planning": False})
         self.assertEqual(answer.status_code, 200)
         self.fixture.login(self.fixture.admin)
@@ -52,11 +52,10 @@ class StitchAPIContractTests(unittest.TestCase):
         self.assertEqual(audited.status_code, 200, audited.json)
         self.assertTrue(audited.json["events"])
         for event in audited.json["events"]:
-            self.assertTrue(event["redacted"])
-            self.assertFalse(event["evidence"])
-            self.assertIsNone(event.get("radar_presentation"))
-            self.assertEqual(event["evidence_visibility"], "current_access_unavailable")
-            self.assertFalse(event["authorization_decisions"])
+            self.assertFalse(event['redacted'])
+            self.assertTrue(event['evidence'])
+            self.assertEqual(event['evidence_visibility'],'visible')
+            self.assertTrue(event['authorization_decisions'])
         self.fixture.login(self.fixture.alice)
         source = self.client.get("/api/doc?corpus=alpha&doc_id=doc-0")
         self.assertEqual(source.status_code, 404)

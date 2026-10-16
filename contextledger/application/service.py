@@ -76,11 +76,11 @@ class UnifiedService:
     def record(self, actor, event_type, *, question="", hits=(), answer="", decision="allowed", **extra):
         return self.audit.append({
             "request_id": str(uuid.uuid4()), "timestamp": timestamp(), "event_type": event_type,
-            "user_id": actor.id, "user_role": actor.role, "permission_epoch": actor.epoch,
+            "user_id": actor.id, "actor_name": actor.name, "user_role": actor.role, "permission_epoch": actor.epoch,
             "policy_version": POLICY_VERSION, "query": question, "answer": answer, "decision": decision,
             "identity_mode": self.identity_mode,
             "retrieved_document_ids": [hit["doc_id"] for hit in hits],
-            "evidence": [{key: hit[key] for key in ("corpus", "doc_id", "version", "content_hash", "chunk_id")} for hit in hits],
+            "evidence": [{key: hit[key] for key in ("corpus", "doc_id", "version", "content_hash", "chunk_id", "title", "source") if key in hit} | {"project": hit.get("metadata", {}).get("project", "")} for hit in hits],
             "authorization_decisions": [{"document_id": hit["doc_id"], "allowed": True,
                 "reason": "source ACL snapshot AND current system restrictions"} for hit in hits],
             "audit_scope": "actual returned candidates; no denied titles/content or whole-corpus scan log",
@@ -305,7 +305,8 @@ class UnifiedService:
         hit, generation = self.index.open(scope, doc_id)
         self.fence(actor, corpus, generation, [hit] if hit else [])
         event = self.record(actor, "document_open", hits=[hit] if hit else [], corpus=corpus,
-                    decision="allowed" if hit else "unavailable", index_generation=generation)
+                    decision="allowed" if hit else "unavailable", index_generation=generation,
+                    requested_document_id=doc_id, unavailable_reason=None if hit else "not_found_or_not_authorised")
         return ({"available": True, "doc": self.public_hit(hit, full=True),
                  "index_generation": generation, "request_id": event["request_id"]} if hit else {"available": False}), hit
 
@@ -318,10 +319,77 @@ class UnifiedService:
         for corpus, generation, hits in guards:
             self.fence(actor, corpus, generation, hits)
 
+    def audit_console(self, actor_id, *, query="", generate=False, **filters):
+        from contextledger.audit.console import select, question_filters
+        actor=self.current(actor_id)
+        if actor.role!='admin':
+            raise PermissionError('administrator audit access required')
+        if type(generate) is not bool or not isinstance(query,str) or len(query)>4000 or (generate and not query.strip()):
+            raise ValueError('invalid audit question')
+        self.fence_audit(actor, [])
+        if query:
+            projects=[]
+            with self.identities.db() as db:
+                projects=[{'id':r[0],'name':r[1]} for r in db.execute('SELECT id,name FROM project_catalog')]
+            parsed=question_filters(query,self.identities,projects,parse_time=generate or not (filters.get("start") or filters.get("end")))
+            # Explicit console filters win; a natural-language time overrides
+            # the AI box's default range and is always shown in the result.
+            filters={**parsed,**{k:v for k,v in filters.items() if v not in (None,'')}}
+            if generate:
+                for k in ('start','end'):
+                    if k in parsed:filters[k]=parsed[k]
+            elif set(parsed)=={'category'} and not re.search(r'谁|何时|查询|访问|权限|更新|越权|\b(who|when|today|yesterday|last|past)\b',query,re.I):
+                filters['keyword']=query
+        data=select(self.audit,self.index.db_path,self.identities,filters)
+        sample=data.pop('_model_events')
+        selection=data['selection']
+        selection.update(statistics=data['statistics'],query_citation='Q1')
+        chinese=bool(re.search(r"[\u4e00-\u9fff]",query))
+        answer=(f"本次完整筛选共 {data['total_count']} 条审计事件。[Q1]" if chinese else f"{data['total_count']} matching audit events in this range. [Q1]")
+        provider,decision='deterministic','selection_only'
+        diagnostics={'attempts':0,'prompt_version':AUDIT_VERSION}
+        cited=[]
+        guard=lambda:self.fence_audit(actor, [])
+        if generate and sample:
+            model_events=[];size=0
+            for event in sample:
+                projection={k:event.get(k) for k in ('sequence','timestamp','event_type','category','user_id','user_name','target_user_id','target_user_name','decision','outcome','permission_epoch','operation_id','change','doc_id','job_id','before_version','version','error_type','endpoint','requested_document_id','unavailable_reason','authorization_decisions')}
+                projection.update(id=f"E{event['sequence']}",query=str(event.get('query') or '')[:1500],answer=str(event.get('answer') or '')[:2200],evidence=event.get('evidence',[])[:8])
+                size+=len(json.dumps(projection,ensure_ascii=False))
+                if size>40000:break
+                model_events.append(projection)
+            selection.update(model_event_count=len(model_events),truncated=len(model_events)<data['total_count'],
+                             detail_scope='representative latest events per category; statistics cover all matches')
+            draft,diagnostics=self.audit_answerer.answer(query,model_events,selection,guard)
+            if draft is not None:
+                answer,decision=draft['answer'],draft['decision'];cited=draft['citation_ids']
+                provider='openai_compatible/'+(diagnostics.get('actual_model') or self.audit_answerer.stage.model)
+            else:
+                answer='AI interpretation unavailable. The matching records and exact counts remain available.\n\n'+answer
+        elif generate:
+            answer=('所选范围没有匹配的审计记录，不能证明相关行为从未发生。[Q1]' if chinese else 'No matching audit records were found in the displayed range. This does not establish that an action never occurred. [Q1]')
+        if generate and selection.get('truncated'):
+            answer+=('\n\n明细仅展示部分事件；统计数量来自完整筛选结果。' if chinese else '\n\nEvent details are a partial selection; counts cover all matching records.')
+        guard()
+        recorded=self.record(actor,'audit_answer' if generate else 'audit_query',question=query,
+            answer=answer if generate else '',decision=decision,provider=provider,
+            result_count=data['total_count'],audit_filters=selection['filters'],event_citation_ids=cited,
+            llm_diagnostics=diagnostics,statistics=data['statistics'])
+        guard()
+        data.update(answer=answer,provider=provider,decision=decision,request_id=recorded['request_id'],
+                    llm_diagnostics=diagnostics,privacy='administrator full recorded audit view',_delivery_guards=[])
+        return data
+
     def audit_query(self, actor_id, *, query="", generate=False, **filters):
         actor = self.current(actor_id)
         if actor.role not in {"admin", "compliance"}:
             raise PermissionError("compliance role required")
+        if actor.role == "admin":
+            if filters.get("user_id"):
+                filters["actor"] = filters.pop("user_id")
+            else:
+                filters.pop("user_id", None)
+            return self.audit_console(actor_id, query=query, generate=generate, **filters)
         if not isinstance(query, str) or len(query) > 4000 or type(generate) is not bool or (generate and not query.strip()):
             raise ValueError("audit question must contain 1..4000 characters")
         if any(k not in {"user_id", "request_id", "document_id", "start", "end", "limit"} for k in filters):

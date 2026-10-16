@@ -530,7 +530,8 @@ class IntegrationTests(unittest.TestCase):
 
     def test_auditor_without_source_access_sees_redacted_content(self):
         result = self.post("/api/ask", {"corpus": "alpha", "q": "TitanDB", "mode": "keyword"})
-        self.login(self.admin)
+        self.ids.update(self.admin.id, role="compliance")
+        self.login(self.ids.get(self.admin.id))
         audited = self.client.get("/api/audit?q=最近%207%20天")
         self.assertEqual(audited.status_code, 200, audited.json)
         event = next(e for e in audited.json["events"] if e["request_id"] == result.json["request_id"])

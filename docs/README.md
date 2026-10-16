@@ -45,6 +45,7 @@
 - `docs/product/curated-demo-permissions.md`：ENG-195/PR-135四份白名单资料的人工演示权限、执行预检和录制步骤；
 - `docs/product/permission-demo-handoff-2026-10-15.md`：权限改进交接，包含代码、分支、真实线上状态、部署待办及报告边界；
 - `docs/product/project-permissions.md`：项目搜索与成员卡片、九个项目及Radar四案例的白名单标注、未标项目语义；
+- `docs/product/audit-console-v2-plan.md`：已确认的四区审计工作台、管理员完整历史审计与统一AI查询实现及验收；
 - `docs/product/concept-diagrams/permission-system-v2/README.md`：新版英文权限图，包含项目成员、Slack对话权限、部门/密级、撤权及交付复核；
 - `docs/product/resource-permissions.md`：数据集目录保留、来源／文档读取控制及2026-10-15服务器演示重试步骤；
 - `docs/product/demo-acceptance.md`：独立演示管理员、六名员工、隔离预览启动与权限／回答／审计人工验收；不是生产认证；

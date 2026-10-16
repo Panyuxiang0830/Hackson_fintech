@@ -72,6 +72,28 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertIn('data-slot="binding-select"', self.html)
         self.assertIn('data-slot="needs"', self.html)
 
+    def test_audit_workbench_has_ai_four_domains_and_a_rebuildable_source(self):
+        script=(STATIC/'app.js').read_text()
+        for slot in ('audit-ai-form','audit-ai-question','audit-domains','audit-event-dialog','audit-ai-result'):
+            self.assertIn('data-slot="'+slot+'"',self.html)
+        for category in ('access','permissions','updates','violations'):
+            self.assertIn("['"+category+"',",script)
+        self.assertIn("node.open=['access','permissions'].includes(cat)",script)
+        self.assertIn("api('/api/audit/ask'",script)
+        self.assertIn("if(nav.dataset.nav==='audit')loadAudit()",script)
+        manifest=json.loads((STATIC/'source-manifest.json').read_text())['auditConsole']
+        self.assertEqual(hashlib.sha256((ROOT/manifest['file']).read_bytes()).hexdigest(),manifest['sha256'])
+
+    @unittest.skipUnless(shutil.which('node'), 'node is required')
+    def test_audit_custom_time_range_is_sgt_and_reversed_ranges_are_rejected(self):
+        source=(STATIC/'app.js').read_text()
+        helper=re.search(r'^function auditRange\(.*?^\}',source,re.M|re.S).group(0)
+        js=helper+"\nprocess.stdout.write(JSON.stringify(auditRange('custom','2026-10-16T00:00','2026-10-16T23:59')));"
+        result=subprocess.run(['node','-e',js],capture_output=True,text=True,check=True)
+        self.assertEqual(json.loads(result.stdout),{'start':'2026-10-15T16:00:00.000Z','end':'2026-10-16T15:59:00.000Z'})
+        result=subprocess.run(['node','-e',helper+"\nauditRange('custom','2026-10-17T00:00','2026-10-16T00:00')"],capture_output=True,text=True)
+        self.assertNotEqual(result.returncode,0)
+
     def test_security_lens_controls_resources_instead_of_arbitrary_identity_binding(self):
         for slot in ('content-corpus', 'dataset-access', 'source-controls', 'document-id', 'document-rules', 'attribute-controls', 'project-controls', 'clearance-select', 'project-search', 'project-results', 'doc-policy'):
             self.assertIn('data-slot="' + slot + '"', self.html)

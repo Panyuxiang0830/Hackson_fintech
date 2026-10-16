@@ -123,7 +123,8 @@ class DemoIdentityTests(unittest.TestCase):
         self.assertEqual(len(audited["events"]), 1)
         self.assertEqual(audited["events"][0]["identity_mode"], "isolated_demo")
         self.assertTrue(audited["integrity"]["valid"])
-        self.assertIn("redacted", audited["events"][0]["answer"])
+        self.assertEqual(audited["events"][0]["answer"], answer["answer"])
+        self.assertFalse(audited["events"][0]["redacted"])
         denied = self.post("/api/admin/permissions", {"user_id": self.alice, "action": "restriction",
                 "corpus": "alpha", "kind": "source", "value": "jira", "denied": True})
         self.assertEqual(denied.status_code, 200)

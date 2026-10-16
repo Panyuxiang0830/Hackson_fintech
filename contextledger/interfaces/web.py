@@ -409,6 +409,15 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     @app.get("/api/audit")
     @role("admin", "compliance")
     def audit():
+        if g.actor.role == 'admin':
+            from contextledger.audit.console import FILTERS
+            if set(request.args)-FILTERS-{'q','user_id'}:
+                raise ValueError('unsupported audit filter')
+            filters={k:request.args[k] for k in FILTERS if k in request.args}
+            if request.args.get('user_id'):filters['actor']=request.args['user_id']
+            result=service.audit_console(g.actor.id,query=request.args.get('q',''),**filters)
+            g.audit_delivery=result.pop('_delivery_guards')
+            return jsonify(result)
         result = service.audit_query(g.actor.id, query=request.args.get("q", ""),
             **{key: request.args.get(key) for key in ("user_id", "request_id", "document_id", "start", "end")})
         g.audit_delivery = result.pop("_delivery_guards")
@@ -418,12 +427,37 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     @role("admin", "compliance")
     def audit_answer():
         body = request.get_json() or {}
+        if g.actor.role=='admin':
+            from contextledger.audit.console import FILTERS
+            if not isinstance(body,dict) or set(body)-FILTERS-{'q','user_id'}:
+                raise ValueError('unsupported audit field')
+            filters={k:body[k] for k in FILTERS if k in body}
+            if body.get('user_id'):filters['actor']=body['user_id']
+            result=service.audit_console(g.actor.id,query=body.get('q',''),generate=True,**filters)
+            g.audit_delivery=result.pop('_delivery_guards')
+            return jsonify(result)
         if not isinstance(body, dict) or set(body) - {"q", "user_id", "request_id", "document_id", "start", "end"}:
             raise ValueError("unsupported audit field")
         result = service.audit_query(g.actor.id, query=body.get("q", ""), generate=True,
             **{k: body.get(k) for k in ("user_id", "request_id", "document_id", "start", "end") if body.get(k)})
         g.audit_delivery = result.pop("_delivery_guards")
         return jsonify(result)
+
+    @app.get('/api/audit/options')
+    @role('admin')
+    def audit_options():
+        with connect(db_path) as db:
+            sources=[r[0] for r in db.execute('SELECT DISTINCT source FROM documents ORDER BY source')]
+        with service.identities.db() as db:
+            projects=[dict(id=r[0],name=r[1],corpus=r[2]) for r in db.execute('SELECT id,name,corpus FROM project_catalog ORDER BY name')]
+        return jsonify(people=[{'id':p['id'],'name':p['name']} for p in service.identities.users()],sources=sources,projects=projects)
+
+    @app.get('/api/audit/events/<int:sequence>')
+    @role('admin')
+    def audit_event(sequence):
+        result=service.audit_console(g.actor.id,sequence=sequence)
+        g.audit_delivery=result.pop('_delivery_guards')
+        return jsonify(result),200 if result['events'] else 404
 
     @app.get("/api/admin/users")
     @role("admin")
@@ -457,42 +491,49 @@ def create_app(db_path: Path, security_dir: Path, *, service=None, config=None, 
     @role("admin")
     def permissions():
         body = request.get_json() or {}
-        target = body.get("user_id")
-        if not service.identities.get(target):
-            raise ValueError("unknown user")
-        action = body.get("action")
-        service.fence(g.actor)
-        # An intent survives if a later write/audit step fails; no false success event.
-        detail = {k: body.get(k) for k in ("user_id", "action", "corpus", "principal_id", "kind", "value", "enabled", "denied", "role", "project", "name")}
-        if action == "project_catalog":
+        if not isinstance(body,dict):raise ValueError('permission object required')
+        target=body.get('user_id');target_actor=service.identities.get(target)
+        if not target_actor:raise ValueError('unknown user')
+        action=body.get('action');service.fence(g.actor)
+        if action not in {'project_catalog','project_membership','binding','restriction','account'}:
+            raise ValueError('unknown permission action')
+        if action=='project_catalog':
             with connect(db_path) as db:
-                if not db.execute("SELECT 1 FROM documents WHERE corpus=? LIMIT 1", (body.get("corpus"),)).fetchone():
-                    raise ValueError("unknown corpus")
-            service.record(g.actor, "permission_change_intent", change=detail)
-            service.identities.register_project(body.get("corpus"), body.get("project"), body.get("name"))
-        elif action == "project_membership":
-            if body.get("corpus") not in service.identities.associated_corpora(target):
-                raise ValueError("employee is not associated with this dataset")
-            service.record(g.actor, "permission_change_intent", change=detail)
-            service.identities.project_membership(target, body.get("corpus"), body.get("project"), body.get("enabled"))
-        elif action == "binding":
+                if not db.execute('SELECT 1 FROM documents WHERE corpus=? LIMIT 1',(body.get('corpus'),)).fetchone():raise ValueError('unknown corpus')
+        elif action=='project_membership':
+            if body.get('corpus') not in service.identities.associated_corpora(target):raise ValueError('employee is not associated with this dataset')
+        elif action=='binding':
             with connect(db_path) as db:
-                if not db.execute("SELECT 1 FROM principals WHERE corpus=? AND principal_id=?", (body.get("corpus"), body.get("principal_id"))).fetchone():
-                    raise ValueError("source principal does not exist in this corpus")
-            service.record(g.actor, "permission_change_intent", change=detail)
-            service.identities.bind(target, body["corpus"], body["principal_id"], body.get("enabled"))
-        elif action == "restriction":
-            service.record(g.actor, "permission_change_intent", change=detail)
-            service.identities.restrict(target, body["corpus"], body["kind"], body["value"], body.get("denied"))
-        elif action == "account":
-            changes = {key: body[key] for key in ("role", "enabled", "department", "groups", "projects", "clearance") if key in body}
-            if target == g.actor.id and (changes.get("enabled") is False or changes.get("role", "admin") != "admin"):
-                raise ValueError("Use another admin to disable/demote this admin account")
-            service.record(g.actor, "permission_change_intent", change=detail)
-            service.identities.update(target, **changes)
-        else:
-            raise ValueError("unknown permission action")
-        service.record(g.actor, "permission_change", change=detail)
+                if not db.execute('SELECT 1 FROM principals WHERE corpus=? AND principal_id=?',(body.get('corpus'),body.get('principal_id'))).fetchone():raise ValueError('source principal does not exist in this corpus')
+        changes={k:body[k] for k in ('role','enabled','department','groups','projects','clearance') if k in body}
+        if action=='account' and target==g.actor.id and (changes.get('enabled') is False or changes.get('role','admin')!='admin'):
+            raise ValueError('Use another admin to disable/demote this admin account')
+        def snapshot():
+            actor=service.identities.get(target)
+            person=next(p for p in service.identities.users() if p['id']==target)
+            if action=='account':return {k:asdict(actor).get(k) for k in changes}
+            if action=='project_membership':return {'member':body.get('project') in actor.projects}
+            if action=='restriction':return {'denied':any(r['corpus']==body.get('corpus') and r['kind']==body.get('kind') and r['value']==body.get('value') for r in person['restrictions'])}
+            if action=='binding':
+                found=next((b for b in person['bindings'] if b['corpus']==body.get('corpus') and b['principal_id']==body.get('principal_id')),None)
+                return {'enabled':bool(found['enabled']) if found else False,'mapped':found is not None}
+            return {'catalog_entry':next((p for p in service.identities.projects(body.get('corpus')) if p['id']==body.get('project')),None)}
+        operation_id=secrets.token_hex(16)
+        detail={k:body.get(k) for k in ('user_id','action','corpus','principal_id','kind','value','enabled','denied','role','project','name','clearance','department','groups','projects') if k in body}
+        detail.update(before=snapshot(),target_epoch_before=target_actor.epoch)
+        context={'operation_id':operation_id,'target_user_name':target_actor.name}
+        service.record(g.actor,'permission_change_intent',change=detail,**context)
+        try:
+            if action=='project_catalog':service.identities.register_project(body.get('corpus'),body.get('project'),body.get('name'))
+            elif action=='project_membership':service.identities.project_membership(target,body.get('corpus'),body.get('project'),body.get('enabled'))
+            elif action=='binding':service.identities.bind(target,body['corpus'],body['principal_id'],body.get('enabled'))
+            elif action=='restriction':service.identities.restrict(target,body['corpus'],body['kind'],body['value'],body.get('denied'))
+            else:service.identities.update(target,**changes)
+        except (ValueError,PermissionError,sqlite3.Error) as error:
+            service.record(g.actor,'permission_change_failed',decision='failed',change=detail,error_type=type(error).__name__,**context)
+            raise
+        detail.update(after=snapshot(),target_epoch_after=service.identities.get(target).epoch)
+        service.record(g.actor,'permission_change',change=detail,**context)
         # Self-binding changes need an updated delivery epoch, not an accidental 409.
         if target == g.actor.id:
             g.actor = service.current(g.actor.id)

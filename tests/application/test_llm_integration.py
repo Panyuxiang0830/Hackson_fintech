@@ -276,7 +276,8 @@ class LLMIntegrationTests(unittest.TestCase):
         self.assertEqual(self.post("/api/audit/ask", {"q":"谁查询了什么？"}).status_code, 403)
         self.service.record(self.ids.get(self.alice.id), "answer", question="PRIVATE NAME",
             query_plan={"private":"SECRET IN EXTRAS"}, answer="SECRET RAW ANSWER")
-        self.login(self.admin)  # Admin has NO implicit business-reading permissions.
+        self.ids.update(self.admin.id, role="compliance")
+        self.login(self.ids.get(self.admin.id))  # Admin has NO implicit business-reading permissions.
         self.calls.clear()
         with patch("urllib.request.urlopen", side_effect=self.transport):
             response = self.post("/api/audit/ask", {"q":"谁查询了什么？", "request_id":normal.json["request_id"]})
@@ -297,7 +298,8 @@ class LLMIntegrationTests(unittest.TestCase):
         self.enable_workflows()
         normal = self.ask()
         self.ids.bind(self.admin.id, "alpha", "alpha:a", True)
-        self.login(self.admin)
+        self.ids.update(self.admin.id, role="compliance")
+        self.login(self.ids.get(self.admin.id))
         original = self.transport
         def revoke(request, **kwargs):
             response = original(request, **kwargs)
@@ -330,17 +332,18 @@ class LLMIntegrationTests(unittest.TestCase):
         self.assertIn("不能证明", result.json["answer"])
         call.assert_not_called()
         for i in range(22):
-            self.service.record(self.ids.get(self.alice.id), "test")
+            self.service.record(self.ids.get(self.alice.id), "search")
         with patch("urllib.request.urlopen", side_effect=self.transport):
             result = self.post("/api/audit/ask", {"q":"谁查询过信息？"})
         self.assertTrue(result.json["selection"]["truncated"])
         self.assertEqual(result.json["selection"]["model_event_count"], 20)
-        self.assertIn("不能据此统计", result.json["answer"])
+        self.assertIn("来自完整筛选", result.json["answer"])
+        self.assertEqual(result.json["total_count"], 22)
         self.assertTrue(self.calls[-1][1]["selection"]["truncated"])
 
     def test_audit_integrity_failure_blocks_models(self):
         self.enable_workflows()
-        self.service.record(self.ids.get(self.alice.id), "test")
+        self.service.record(self.ids.get(self.alice.id), "search")
         self.login(self.admin)
         with self.audit.db() as db:
             db.execute("UPDATE events SET payload='{}' WHERE sequence=1")

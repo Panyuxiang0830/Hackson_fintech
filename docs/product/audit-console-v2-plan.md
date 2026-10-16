@@ -1,6 +1,6 @@
 # 四类审计工作台方案
 
-2026-10-16；REQ-006/audit_console_four_domains、REQ-008。authority=team_decision，status=planned。按用户要求先供确认，未授权实施。
+2026-10-16；REQ-006/audit_console_four_domains、REQ-008。authority=team_decision，status=in_progress。2026-10-16用户已确认本方案，进入实现与部署验收。
 
 ## 已确认的目标
 
@@ -13,7 +13,7 @@
 - POST `/api/audit/ask` 调用 UnifiedService.audit_query(generate=True)，由 AuditAnswerer 解读查询结果，校验[E序号]事件引用并把审计问答本身写入日志。
 - 线上历史事件E98记录provider=openai_compatible/glm-5.3-flash、decision=answered、attempts=1，说明有真实模型调用成功记录。
 - 当前Stitch页面仅接GET `/api/audit`，没有调用该AI接口。现有模型输入最多20条事件且缺少完整权限变更/资料更新字段；不能直接宣称已支持完整四域分析。
-- 本轮只核实代码与历史调用，不发起新模型请求、不修改服务器权限或业务界面。
+- 上述为方案阶段核实；用户确认后已实施管理员完整审计和四区工作台，真实模型与服务器验收结果见文末。
 
 ## 页面布局
 
@@ -86,4 +86,16 @@ AI失败时保留已经查出的事件和条件，提供重试。AI回复只读�
 - 两个主要区域默认展开、另外两区默认收起，独立筛选与引用跳转不互相覆盖。
 - 测试涵盖新增before/after、旧日志兼容、管理员完整审计、员工拒绝、链完整性、查询/分页、AI事件字段和引用、模型失败回退及浏览器布局；完成后做实际服务器四类与真实模型验证。
 
-实施只在用户确认后开始。范围是上述审计工作台和必要后端补齐；不重构业务知识问答或重建语料索引。
+本轮范围是上述审计工作台和必要后端补齐；不重构业务知识问答或重建语料索引。
+
+
+## 实现记录（2026-10-16，部署验收进行中）
+
+- 管理员GET /api/audit与POST /api/audit/ask使用完整历史事件投影；compliance沿用原业务权限/版本复核。普通员工仍禁止审计。
+- contextledger/audit/console.py从同一已验证哈希链快照构建临时SQLite查询索引，执行参数化筛选、精确COUNT/GROUP BY和稳定游标分页；不维护第二份持久化日志。目录只补显示标签，标注current directory，不伪造历史标题。
+- 支持category、actor、target、subject、keyword、source、project、document、event_type、outcome、start/end、request_id、sequence、cursor、limit；actor与target分开，subject匹配任一方。/api/audit/options提供自然姓名和项目目录，/api/audit/events/<sequence>支持直接查看引用。
+- 新权限事件包含operation_id、目标姓名、before/after和目标epoch；意图与终态只在主列表合为一项，具体事件ID仍能打开原阶段。旧相邻相同意图/完成仅在视图内去重，不改原链。
+- 资料任务补齐source/title、旧/新版本、任务与结果，原文不可用事件记录requested_document_id；404仍不推断为已确认越权。
+- AI使用最多20份分类型代表明细和40k字符，SQL统计覆盖全部匹配事件，统计引用[Q1]、事件引用[E序号]；确定性约束识别人名、来源/项目、类型和SGT时间范围。AI未配置/失败保留实际列表与统计。
+- 四区独立筛选；Information access与Permission changes默认展开，Document updates与Unauthorised attempts默认折叠。AI引用打开事件详情，旧合规界面保留；前端JS v15、CSS v8。构建源frontend/stitch/audit-console.html和build.cjs同步。
+- 自动回归与实际部署结果待下方补充；原身份、成员、来源限制与原审计记录保留。
