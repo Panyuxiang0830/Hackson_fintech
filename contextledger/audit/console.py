@@ -92,6 +92,8 @@ def normalize(event, people, documents):
     if change.get('project'):projects.add(change['project'])
     if change.get('kind')=='project' and change.get('value'):projects.add(change['value'])
     item['sources'],item['projects']=sorted(sources),sorted(projects)
+    if item['category']=='updates':
+        item['before_version_status']=('new_resource' if item.get('before_version') is None else 'recorded') if 'before_version' in item else 'not_recorded'
     if item['category']=='permissions':
         obj=change.get('project') or change.get('value') or change.get('principal_id') or change.get('action','permissions')
         item['summary']=f"{name(item['user_name'])} → {name(item['target_user_name'])}: {obj}"
@@ -188,8 +190,14 @@ def select(store, db_path, identities, filters):
         where=' AND '.join(clauses)
         total=db.execute('SELECT COUNT(*) FROM selection WHERE '+where,params).fetchone()[0]
         stats={}
-        for field in ('category','kind','outcome'):
+        for field in ('category','kind','outcome','actor','target'):
             stats[field]={k:n for k,n in db.execute('SELECT '+field+',COUNT(*) FROM selection WHERE '+where+' GROUP BY '+field,params)}
+        stats['by_category']={}
+        for cat,n in stats['category'].items():
+            grouped={'total_count':n}
+            for field in ('kind','outcome','actor','target'):
+                grouped[field]={key:count for key,count in db.execute('SELECT '+field+',COUNT(*) FROM selection WHERE '+where+' AND category=? GROUP BY '+field,[*params,cat])}
+            stats['by_category'][cat]=grouped
         page=[json.loads(r[0]) for r in db.execute('SELECT payload FROM selection WHERE '+where+' AND seq<? ORDER BY seq DESC LIMIT ?',[*params,before,limit+1])]
         has_more=len(page)>limit;page=page[:limit]
         sample=[]

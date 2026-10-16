@@ -19,7 +19,7 @@ from contextledger.answering.service import DEFAULT_MODEL, DEFAULT_TOKENHUB_BASE
 from contextledger.retrieval.search import entity_terms
 
 PLAN_VERSION = "query-plan-v2-2026-10-12"
-AUDIT_VERSION = "audit-answer-v2-2026-10-16"
+AUDIT_VERSION = "audit-answer-v3-2026-10-16"
 MAX_BRANCHES = 5
 TOP_K = 5
 
@@ -51,6 +51,17 @@ Explain all supplied audit categories, including permission before/after, update
 and blocked unauthorised attempts. Do not equate a search result with a person
 opening a document, a 404 with a confirmed violation, or an attempt with a breach.
 Historical missing fields must be stated as not recorded. Never reconstruct them.
+For administrator queries, follow selection.response_language strictly. Keep the
+answer to 2-4 short paragraphs, with at most six illustrative events unless the
+question explicitly asks for more. Use timestamp_sgt and time_range_sgt for wall
+clock times and label them SGT (UTC+08); never label raw UTC timestamps as SGT.
+For a particular category, use statistics.by_category[category], NOT the global
+outcomes or actors which combine every selected category. A count is EVENTS,
+not unique people/documents. Do not claim anything about excluded categories or
+subjects, or claim a period had zero changes when only violations were selected.
+model_event_count/returned_count count supplied model details; page_returned_count
+is only a UI page size. new_resource means creation with no previous version,
+not a missing historical field.
 Answer only within the supplied selection bounds. If truncated, individual event
 details are partial. When Q1 is supplied, its SQL counts cover ALL matches in the
 displayed range; otherwise the selection is not whole-period statistics. Zero matches do not

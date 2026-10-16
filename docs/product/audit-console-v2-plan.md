@@ -97,5 +97,16 @@ AI失败时保留已经查出的事件和条件，提供重试。AI回复只读�
 - 新权限事件包含operation_id、目标姓名、before/after和目标epoch；意图与终态只在主列表合为一项，具体事件ID仍能打开原阶段。旧相邻相同意图/完成仅在视图内去重，不改原链。
 - 资料任务补齐source/title、旧/新版本、任务与结果，原文不可用事件记录requested_document_id；404仍不推断为已确认越权。
 - AI使用最多20份分类型代表明细和40k字符，SQL统计覆盖全部匹配事件，统计引用[Q1]、事件引用[E序号]；确定性约束识别人名、来源/项目、类型和SGT时间范围。AI未配置/失败保留实际列表与统计。
-- 四区独立筛选；Information access与Permission changes默认展开，Document updates与Unauthorised attempts默认折叠。AI引用打开事件详情，旧合规界面保留；前端JS v15、CSS v8。构建源frontend/stitch/audit-console.html和build.cjs同步。
+- 四区独立筛选；Information access与Permission changes默认展开，Document updates与Unauthorised attempts默认折叠。AI引用打开事件详情，旧合规界面保留；前端JS v16、CSS v8。构建源frontend/stitch/audit-console.html和build.cjs同步。
 - 自动回归与实际部署结果待下方补充；原身份、成员、来源限制与原审计记录保留。
+
+
+### 026f552f第一轮线上验收
+
+- 原17866入口已切换至audit-console-20261016，PID876796；备份before-audit-console-20261016T053039Z。切换前后身份/成员/来源限制及canonical摘要一致，旧1491条日志前缀逐条完全一致。
+- 本地398 unittest、406 pytest + 162 subtests通过；服务器406 pytest + 162 subtests通过。
+- 完整历史管理员读取、关键词、目标员工、精确数量、游标不重复、来源/密级/项目before/after、事件ID打开、员工403通过；测试后Jax原配置恢复、epoch143。
+- 通过真实更新队列发布一份明确标注的隔离验收资料demo:audit-console-acceptance-20261016，ACL为空且密级Restricted；白名单外OrgForge资料摘要不变。该记录不参与员工检索。
+- 四类及跨类AI均实际调用glm-5.3-flash并回答：fb9a466b-738e-43ab-8d48-98dd182b1a9b、d7736a40-2c5e-4678-8740-d48adf9f31ec、7c8dba01-8ab6-45ad-af79-2db95033d270、0d4febd1-5bda-48f4-afb8-379fb21f859d、17e4dc53-6109-41f9-aac7-017d8afb5a36。运行结果保留audit-console/verification.json。
+- 人工检查AI内容发现跨类全局outcome计数可能误当访问计数，且有UTC/SGT描述混用；已补SQL按category分组的结果/操作者统计、明确SGT起止和事件时间、明细数量与页面数量分离、输出语言及查询范围约束。AI的Q1引用可展开完整统计。质量补丁与真实模型复验进行中。
+- 原生浏览器已刷新至新页面并进入Audit Trail；Mac随后锁定，最终折叠/引用交互视觉验收等待解锁。此处不宣称浏览器最终验收完成。

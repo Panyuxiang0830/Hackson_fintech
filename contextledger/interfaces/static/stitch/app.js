@@ -581,7 +581,7 @@ async function showAuditEvent(sequence){
   if(event.query)section('Recorded question / search',event.query);if(event.answer)section('Recorded answer',event.answer);
   if(event.requested_document_id)section('Requested original document',event.requested_document_id);
   if(event.unavailable_reason)section('Recorded availability',event.unavailable_reason.replaceAll('_',' '));
-  if(event.category==='updates'){section('Document',event.title||event.doc_id||'Not recorded');section('Version',`${event.before_version??'Not recorded'} → ${event.version??'Not recorded'}`);section('Update task',event.job_id||'Not recorded');}
+  if(event.category==='updates'){section('Document',event.title||event.doc_id||'Not recorded');section('Version',`${event.before_version_status==='new_resource'?'New document':event.before_version??'Not recorded'} → ${event.version??'Not recorded'}`);section('Update task',event.job_id||'Not recorded');}
   if(event.category==='violations'){section('Requested operation',event.endpoint||event.tool||event.event_type);section('Recorded outcome','An unauthorised attempt was blocked. This record does not establish a successful breach.');}
   if(event.error_type)section('Recorded error',event.error_type);
   if(event.resources?.length){host.append(element('h3','','Recorded resources'));for(const item of event.resources){const row=element('div','audit-evidence-row');row.append(element('strong','',item.title||item.doc_id),element('p','',`${item.source||'Source not recorded'} · ${item.doc_id} · version ${item.version||'Not recorded'}`));if(item.label_basis)row.append(element('small','',item.label_basis));host.append(row);}}
@@ -592,9 +592,15 @@ function renderAuditAI(data){
   const host=one('audit','audit-ai-result');host.replaceChildren();host.hidden=false;
   for(const part of data.answer.split(/(\[(?:E\d+|Q1)\])/g)){
     const match=part.match(/^\[(E\d+|Q1)\]$/);if(!match){host.append(document.createTextNode(part));continue;}
-    const button=element('button','',part);button.type='button';if(match[1]==='Q1')button.addEventListener('click',()=>{one('audit','audit-ai-scope').scrollIntoView({block:'center'});});else button.dataset.auditSequence=match[1].slice(1);host.append(button);
+    const button=element('button','',part);button.type='button';if(match[1]==='Q1')button.addEventListener('click',()=>{const counts=one('audit','audit-ai-scope').querySelector('details');if(counts)counts.open=true;one('audit','audit-ai-scope').scrollIntoView({block:'center'});});else button.dataset.auditSequence=match[1].slice(1);host.append(button);
   }
   one('audit','audit-ai-scope').textContent=`${data.total_count} matching records · ${auditScope(data.selection)}${data.selection.truncated?' · AI received representative event details; counts cover all matches.':''}`;
+  const counts=element('details');counts.append(element('summary','','Verified query counts'));
+  for(const [cat,group] of Object.entries(data.statistics.by_category||{})){
+    const label=AUDIT_DOMAINS.find(row=>row[0]===cat)?.[1]||cat;
+    counts.append(element('p','',`${label}: ${group.total_count} events · ${Object.entries(group.outcome).map(([key,n])=>`${key}: ${n}`).join(', ')}`));
+  }
+  one('audit','audit-ai-scope').append(counts);
 }
 async function askAuditAI(){
   if(state.user?.role!=='admin')return;const query=one('audit','audit-ai-question').value.trim();if(!query){notice('Enter an audit question.','error');return;}

@@ -107,6 +107,11 @@ class AuditConsoleTests(unittest.TestCase):
         events,selection=captured[0]
         self.assertEqual({e['category'] for e in events},{'access','permissions','updates','violations'})
         self.assertEqual(selection['total_count'],4)
+        self.assertEqual(selection['statistics']['by_category']['access']['outcome'],{'allowed':1})
+        self.assertEqual(selection['statistics']['by_category']['permissions']['outcome'],{'allowed':1})
+        self.assertIn('+08:00',events[0]['timestamp_sgt'])
+        self.assertEqual(selection['response_language'],'English')
+        self.assertEqual(selection['returned_count'],len(events))
         change=next(e['change'] for e in events if e['category']=='permissions')
         self.assertEqual(change['after'],{'denied':True})
         self.assertFalse(selection['not_whole_period_statistics'])
