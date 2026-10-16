@@ -618,7 +618,6 @@ one('audit','audit-ai-form').addEventListener('submit',event=>{event.preventDefa
 one('audit','audit-ai-range').addEventListener('change',event=>{one('audit','audit-ai-custom').hidden=event.target.value!=='custom';});
 pages.audit.addEventListener('click',event=>{
   const record=event.target.closest('[data-audit-sequence]');if(record){showAuditEvent(record.dataset.auditSequence).catch(error=>notice(error.message,'error'));return;}
-  const example=event.target.closest('[data-audit-example]');if(example){one('audit','audit-ai-question').value=example.dataset.auditExample;one('audit','audit-ai-question').focus();return;}
   const action=event.target.closest('[data-action]')?.dataset.action;
   if(action==='audit-detail-close')one('audit','audit-event-dialog').close();
   if(action==='audit-event-export'&&state.auditSelectedEvent)downloadAudit(state.auditSelectedEvent,'contextledger-audit-event.json');

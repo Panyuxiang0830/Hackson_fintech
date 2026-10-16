@@ -44,6 +44,6 @@
   },
   "auditConsole": {
     "file": "frontend/stitch/audit-console.html",
-    "sha256": "6e5090b8c60084059dd34a28ddeb59413027276a05c9c2bdfc0f0eb91eb75eda"
+    "sha256": "1b79dbc77e5ed91ea93f4d1b66aabb4a71388db127698854e8e6ab1f2c797ebc"
   }
 }

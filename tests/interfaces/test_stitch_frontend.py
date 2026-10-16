@@ -143,6 +143,9 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertIn("!p&&data.decision==='answered'&&data.provider!=='mock_fallback'?answerSummary(data.answer)", source)
         # Answers follow the question's language: the page no longer forces English output.
         self.assertNotIn("output_language:'en'", source)
+        # The audit AI box has no preset example questions.
+        self.assertNotIn('audit-example', self.html)
+        self.assertNotIn('data-audit-example', source)
         zh = json.loads(subprocess.run(["node", "-e", helper + "\nconsole.log(JSON.stringify(answerSummary('限额为每日十万元 [1]。')))"],
                                        capture_output=True, text=True, check=True).stdout)
         self.assertEqual(zh, {"headline": "限额为每日十万元。", "explanation": "依据授权来源 [1]。"})

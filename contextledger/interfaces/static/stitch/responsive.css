@@ -264,8 +264,6 @@ select option:checked{background:#E6F9F2;color:#006c46}
 .audit-ai-controls>label{min-width:190px;font-size:12px;color:#61756b}.audit-ai-controls>button{margin-left:auto}
 .audit-custom-range{display:flex;gap:8px;flex-wrap:wrap}.audit-custom-range label{font-size:11px;flex:1;min-width:150px}
 .audit-custom-range[hidden]{display:none}
-.audit-example-questions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.audit-example-questions button{font-size:12px;background:transparent;padding:6px 10px;border-radius:20px}
 .audit-ai-result{margin-top:18px;background:#fff;border:1px solid #cbe6d8;border-radius:12px;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
 .audit-ai-result button{padding:1px 5px;margin:0 2px;font-size:12px;color:#087a50}
 .audit-scope-text{font-size:12px;line-height:1.5;color:#687b70;margin-top:10px;overflow-wrap:anywhere}
