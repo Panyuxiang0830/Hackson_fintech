@@ -1,0 +1,16 @@
+{
+  "file": "04-audit-system-v2.png",
+  "width": 1672,
+  "height": 941,
+  "sha256": "6a0ff3670253f142ef9da7a1595ebabae7aa289c46b259b1f5ec1b0c21437a8e",
+  "language": "English",
+  "generator": "built-in image_gen",
+  "inspected_revision": "82f1673e",
+  "prompts": [
+    "prompt.json",
+    "correction-prompt.json"
+  ],
+  "reference": "6a0b9317fcd35399f19307cba0b0eb42.png",
+  "code_modified": false,
+  "server_restarted": false
+}

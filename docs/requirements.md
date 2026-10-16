@@ -235,7 +235,7 @@
 - 来源：User approved four-domain audit console implementation on 2026-10-16
 - 权威级别：`team_decision`（独立于基础需求）
 - 状态：`implemented`
-- 说明：2026-10-16按用户确认实施并部署17866：获取信息、权限变更默认展开，资料更新、越权尝试默认折叠；顶部统一AI和各区独立查询，管理员完整已记录历史审计，员工权限保持不变。参数化SQLite提供精确统计和稳定分页，新权限事件含操作者/目标、前后值与epoch；旧日志不改写。已通过本地399 unittest、407 pytest+162 subtests及服务器407 pytest+162 subtests；完成四类真实模型与原生浏览器验证；跨类新版模型复验被服务商402 Payment Required阻断，待额度恢复后补验及用户实际体验验收。长明细按类别轮流取样、模型仅接收已转换SGT时间；AI校验失败保留完整查询与统计。 2026-10-16用户要求演示避免中文：统一演示账号的英文展示名称，旧审计名称仅在展示/模型投影中兼容；演示模式审计AI固定英文，原始日志不改写。
+- 说明：2026-10-16按用户确认实施并部署17866：获取信息、权限变更默认展开，资料更新、越权尝试默认折叠；顶部统一AI和各区独立查询，管理员完整已记录历史审计，员工权限保持不变。参数化SQLite提供精确统计和稳定分页，新权限事件含操作者/目标、前后值与epoch；旧日志不改写。已通过本地399 unittest、407 pytest+162 subtests及服务器407 pytest+162 subtests；完成四类真实模型与原生浏览器验证；跨类新版模型复验被服务商402 Payment Required阻断，待额度恢复后补验及用户实际体验验收。长明细按类别轮流取样、模型仅接收已转换SGT时间；AI校验失败保留完整查询与统计。 2026-10-16用户要求演示避免中文：统一演示账号的英文展示名称，旧审计名称仅在展示/模型投影中兼容；演示模式审计AI固定英文，原始日志不改写。 2026-10-16用户要求沿用旧图薄荷绿配色生成全英文Audit System新版图，反映四类事件、完整管理员历史视图、确定性查询统计、AI代表明细与E/Q1引用；本地链与检查点不表述为外部不可篡改存证。
 - 验收标准：
 
   - 顶部AI审计问答覆盖四类日志，答案引用可点击的实际事件；SQL确定性查询/聚合提供事实和统计，模型解释结果，不把最近20条样本当整个时间段
@@ -251,7 +251,7 @@
 
   - 代码：`contextledger/audit/store.py`, `contextledger/audit/query.py`, `contextledger/application/service.py`, `contextledger/interfaces/web.py`, `contextledger/answering/workflows.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/storage/document_updates.py`, `contextledger/audit/console.py`, `frontend/stitch/build.cjs`, `frontend/stitch/audit-console.html`, `contextledger/interfaces/static/stitch/source-manifest.json`, `contextledger/access/demo_identity.py`
   - 测试：`tests/application/test_integration.py`, `tests/application/test_llm_integration.py`, `tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_llm_workflows.py`, `tests/audit/test_console.py`, `tests/access/test_demo_identity.py`, `tests/audit/test_audit_time_parser.py`, `tests/radar/test_radar_integration.py`
-  - 文档：`docs/product/audit-console-v2-plan.md`, `docs/architecture/audit-query-flow.md`
+  - 文档：`docs/product/audit-console-v2-plan.md`, `docs/architecture/audit-query-flow.md`, `docs/product/concept-diagrams/audit-system-v2/README.md`, `docs/product/concept-diagrams/audit-system-v2/prompt.json`, `docs/product/concept-diagrams/audit-system-v2/04-audit-system-v2.png`, `docs/product/concept-diagrams/audit-system-v2/correction-prompt.json`, `docs/product/concept-diagrams/audit-system-v2/manifest.json`
 
 ## REQ-007 · 防篡改审计链
 
