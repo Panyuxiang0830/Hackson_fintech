@@ -58,7 +58,8 @@ def iso(value):
 
 
 def name(value):
-    return re.sub(r'[（(]演示员工[）)]','',value or '').strip()
+    # Presentation aliases for legacy demo names; immutable events stay intact.
+    return re.sub(r'[（(]演示员工[）)]','',value or '').strip().replace('ContextLedger 管理员','ContextLedger Administrator')
 
 
 def normalize(event, people, documents):
@@ -67,9 +68,9 @@ def normalize(event, people, documents):
     actor_id, target_id = item.get('user_id',''), change.get('user_id') or item.get('target_user_id','')
     kind = item.get('event_type','unknown')
     item.update(category=category(kind), outcome=outcome(item), actor_id=actor_id,
-                user_name=item.get('actor_name') or people.get(actor_id, actor_id or 'Unknown actor'),
+                user_name=name(item.get('actor_name') or people.get(actor_id, actor_id or 'Unknown actor')),
                 target_user_id=target_id,
-                target_user_name=item.get('target_user_name') or people.get(target_id,target_id),
+                target_user_name=name(item.get('target_user_name') or people.get(target_id,target_id)),
                 redacted=False, evidence_visibility='visible' if item.get('evidence') else 'not_recorded')
     resources=[]
     for evidence in item.get('evidence',[]):

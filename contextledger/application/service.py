@@ -344,7 +344,7 @@ class UnifiedService:
         sample=data.pop('_model_events')
         selection=data['selection']
         selection.update(statistics=data['statistics'],query_citation='Q1')
-        chinese=bool(re.search(r"[\u4e00-\u9fff]",query))
+        chinese=self.identity_mode!='isolated_demo' and bool(re.search(r"[\u4e00-\u9fff]",query))
         selection['response_language']='Chinese' if chinese else 'English'
         selection['time_range_sgt']={k:datetime.fromisoformat(v.replace('Z','+00:00')).astimezone(SGT).isoformat() for k,v in selection['filters'].items() if k in {'start','end'}}
         answer=(f"本次完整筛选共 {data['total_count']} 条审计事件。[Q1]" if chinese else f"{data['total_count']} matching audit events in this range. [Q1]")

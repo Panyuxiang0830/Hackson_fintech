@@ -143,6 +143,32 @@ class AuditConsoleTests(unittest.TestCase):
             result=self.f.post('/api/audit/ask',{'q':'Summarize access'})
         self.assertEqual(result.status_code,409)
 
+    def test_demo_ai_uses_english_names_and_language_without_rewriting_history(self):
+        person=self.f.ids.register('test','legacy-jax','Jax（演示员工）')
+        before_epoch=person.epoch
+        legacy=self.f.service.record(self.f.admin,'permission_change',
+            actor_name='ContextLedger 管理员',target_user_name=person.name,
+            change={'user_id':person.id,'action':'account','before':{'clearance':1},'after':{'clearance':2}})
+        self.f.service.record(person,'search',question='Telemetry dashboard')
+        self.f.service.identity_mode='isolated_demo'
+        captured=[]
+        def explain(query,events,selection,guard):
+            captured.append((events,selection));guard()
+            return {'answer':'Recorded activity [Q1].','decision':'answered','citation_ids':['Q1']},{'attempts':1}
+        with patch.object(self.f.service.audit_answerer,'answer',side_effect=explain):
+            result=self.f.post('/api/audit/ask',{'q':'今天Jax查过什么，权限变化有哪些？'})
+        self.assertEqual(result.status_code,200)
+        events,selection=captured[0]
+        self.assertEqual(selection['response_language'],'English')
+        change=next(e for e in events if e['category']=='permissions')
+        self.assertEqual(change['user_name'],'ContextLedger Administrator')
+        self.assertEqual(change['target_user_name'],'Jax')
+        self.assertEqual(next(e for e in events if e['category']=='access')['user_name'],'Jax')
+        stored=self.f.audit.query(request_id=legacy['request_id'])[0]
+        self.assertEqual(stored,legacy)
+        self.assertEqual(self.f.ids.get(person.id).name,person.name)
+        self.assertEqual(self.f.ids.get(person.id).epoch,before_epoch)
+
     def test_ai_sgt_today_and_target_alias(self):
         person=self.f.ids.register('test','jax','Jax（演示员工）')
         parsed=question_filters('今天谁改了Jax的权限？',self.f.ids,now=datetime(2026,10,15,18,tzinfo=timezone.utc))

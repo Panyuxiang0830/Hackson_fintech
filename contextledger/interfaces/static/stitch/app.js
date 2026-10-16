@@ -19,7 +19,7 @@ const element = (tag,classes,text) => {const node=document.createElement(tag);no
 const permitted = page => page==='security'?state.user?.role==='admin':page==='audit'?['admin','compliance'].includes(state.user?.role):true;
 // Display aliases affect demo chrome only; source quotations and exports keep original data.
 function displayName(value,id) {
-  const name=String(value||'').replace(/（演示员工）/g,'').trim().replace('ContextLedger 管理员','ContextLedger Administrator');
+  const name=String(value||'').replace(/[（(]演示员工[）)]/g,'').trim().replace('ContextLedger 管理员','ContextLedger Administrator');
   return /\p{Script=Han}/u.test(name)?`Account ${shortId(id)}`:name||shortId(id);
 }
 function projectLabel(value){return state.contentScopes.flatMap(c=>c.project_catalog||[]).find(p=>p.id===value)?.name||String(value).split(':').at(-1).replaceAll('-',' ');}

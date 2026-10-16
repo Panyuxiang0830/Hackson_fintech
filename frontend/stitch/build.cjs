@@ -300,7 +300,7 @@ for(const node of document.querySelectorAll('*')){
 for(const script of [...document.querySelectorAll('script')])script.remove();
 for(const style of [...document.querySelectorAll('style')]){styles.push(style.textContent);style.remove();}
 const notice=document.createElement('div');notice.id='stitch-notice';notice.setAttribute('role','status');notice.hidden=true;document.body.append(notice);
-const app=document.createElement('script');app.src='/static/stitch/app.js?v=16';app.defer=true;document.head.append(app);
+const app=document.createElement('script');app.src='/static/stitch/app.js?v=17';app.defer=true;document.head.append(app);
 for(const href of ['/static/stitch/fonts.css','/static/stitch/design.css','/static/stitch/responsive.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href+'?v=8';document.head.append(link);}
 document.title='ContextLedger · Stitch workspace';
 const logo=document.querySelector('img[alt="ContextLedger Logo"]');logo.src='/static/stitch/assets/contextledger-logo.svg';logo.className='h-10 w-10 shrink-0 object-contain';logo.width=40;logo.height=40;

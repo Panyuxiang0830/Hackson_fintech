@@ -58,7 +58,8 @@ class DemoIdentityTests(unittest.TestCase):
     def test_roster_has_independent_admin_and_six_members_without_oidc(self):
         people = self.get("/api/demo/accounts").json
         self.assertEqual(len(people), 7)
-        self.assertEqual(people[0]["name"], "ContextLedger 管理员")
+        self.assertEqual(people[0]["name"], "ContextLedger Administrator")
+        self.assertTrue(all('演示员工' not in item['name'] for item in people))
         self.assertEqual([item["role"] for item in people], ["admin"] + ["member"] * 6)
         self.assertEqual(self.ids.scope(self.ids.get(self.admin), "alpha")[0], [])
         self.assertFalse(self.app.testing)
