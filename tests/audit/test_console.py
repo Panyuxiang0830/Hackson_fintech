@@ -109,13 +109,31 @@ class AuditConsoleTests(unittest.TestCase):
         self.assertEqual(selection['total_count'],4)
         self.assertEqual(selection['statistics']['by_category']['access']['outcome'],{'allowed':1})
         self.assertEqual(selection['statistics']['by_category']['permissions']['outcome'],{'allowed':1})
-        self.assertIn('+08:00',events[0]['timestamp_sgt'])
+        self.assertIn('SGT (UTC+08)',events[0]['timestamp_sgt'])
+        self.assertNotIn('timestamp',events[0])
         self.assertEqual(selection['response_language'],'English')
         self.assertEqual(selection['returned_count'],len(events))
         change=next(e['change'] for e in events if e['category']=='permissions')
         self.assertEqual(change['after'],{'denied':True})
         self.assertFalse(selection['not_whole_period_statistics'])
         self.assertIn('Q1',result.json['answer'])
+
+    def test_cross_category_model_budget_preserves_change_details(self):
+        self.change(action='restriction',corpus='alpha',kind='source',value='slack',denied=True)
+        for _ in range(12):
+            self.f.service.record(self.f.alice,'answer',question='Long answer',answer='A'*10000,
+                evidence=[{'doc_id':'doc-0','title':'T'*1500,'text':'B'*8000}]*8)
+        captured=[]
+        def explain(query,events,selection,guard):
+            captured.extend(events);guard()
+            return None,{'attempts':1}
+        with patch.object(self.f.service.audit_answerer,'answer',side_effect=explain):
+            result=self.f.post('/api/audit/ask',{'q':'Compare information access and permission changes'})
+        self.assertEqual(result.status_code,200)
+        self.assertEqual({e['category'] for e in captured},{'access','permissions'})
+        change=next(e['change'] for e in captured if e['category']=='permissions')
+        self.assertEqual(change['after'],{'denied':True})
+        self.assertLessEqual(sum(len(json.dumps(e,ensure_ascii=False)) for e in captured),40000)
 
     def test_ai_guard_stops_administrator_role_change(self):
         self.f.service.record(self.f.alice,'search',question='Kafka')

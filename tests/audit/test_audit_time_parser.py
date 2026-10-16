@@ -74,7 +74,9 @@ class AuditTimeSelectionTests(unittest.TestCase):
         self.assertEqual(len(results['events']),1)
         selected=self.service.audit_answerer.answer.call_args.args[1]
         self.assertEqual(len(selected),1)
-        self.assertEqual(selected[0]['timestamp'],(current-timedelta(days=3)).isoformat())
+        self.assertEqual(results['events'][0]['timestamp'],(current-timedelta(days=3)).isoformat())
+        self.assertEqual(selected[0]['timestamp_sgt'],(current-timedelta(days=3)).astimezone(
+            timezone(timedelta(hours=8))).strftime('%d %b %Y %H:%M:%S SGT (UTC+08)'))
         self.assertTrue(results['integrity']['valid'])
         self.assertFalse(results['events'][0]['redacted'])
         with self.assertRaises(PermissionError):

@@ -19,7 +19,7 @@ from contextledger.answering.service import DEFAULT_MODEL, DEFAULT_TOKENHUB_BASE
 from contextledger.retrieval.search import entity_terms
 
 PLAN_VERSION = "query-plan-v2-2026-10-12"
-AUDIT_VERSION = "audit-answer-v3-2026-10-16"
+AUDIT_VERSION = "audit-answer-v4-2026-10-16"
 MAX_BRANCHES = 5
 TOP_K = 5
 
@@ -54,7 +54,9 @@ Historical missing fields must be stated as not recorded. Never reconstruct them
 For administrator queries, follow selection.response_language strictly. Keep the
 answer to 2-4 short paragraphs, with at most six illustrative events unless the
 question explicitly asks for more. Use timestamp_sgt and time_range_sgt for wall
-clock times and label them SGT (UTC+08); never label raw UTC timestamps as SGT.
+clock times and label them SGT (UTC+08). timestamp_sgt is already converted:
+copy its displayed clock time exactly, NEVER add eight hours again or invent
+an accompanying UTC clock. Never label raw UTC timestamps as SGT.
 For a particular category, use statistics.by_category[category], NOT the global
 outcomes or actors which combine every selected category. A count is EVENTS,
 not unique people/documents. Do not claim anything about excluded categories or

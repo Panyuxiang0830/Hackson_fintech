@@ -355,8 +355,10 @@ class UnifiedService:
         if generate and sample:
             model_events=[];size=0
             for event in sample:
-                projection={k:event.get(k) for k in ('sequence','timestamp','event_type','category','user_id','user_name','target_user_id','target_user_name','decision','outcome','permission_epoch','operation_id','change','doc_id','job_id','before_version','before_version_status','version','source','title','corpus','error_type','endpoint','requested_document_id','unavailable_reason','authorization_decisions')}
-                projection.update(id=f"E{event['sequence']}",timestamp_sgt=datetime.fromisoformat(event['timestamp'].replace('Z','+00:00')).astimezone(SGT).isoformat(),query=str(event.get('query') or '')[:1500],answer=str(event.get('answer') or '')[:2200],evidence=event.get('evidence',[])[:8],resources=event.get('resources',[])[:8])
+                projection={k:event.get(k) for k in ('sequence','event_type','category','user_id','user_name','target_user_id','target_user_name','decision','outcome','permission_epoch','operation_id','change','doc_id','job_id','before_version','before_version_status','version','source','title','corpus','error_type','endpoint','requested_document_id','unavailable_reason')}
+                projection.update(id=f"E{event['sequence']}",timestamp_sgt=datetime.fromisoformat(event['timestamp'].replace('Z','+00:00')).astimezone(SGT).strftime('%d %b %Y %H:%M:%S SGT (UTC+08)'),query=str(event.get('query') or '')[:1500],answer=str(event.get('answer') or '')[:2200])
+                for field in ('evidence','resources'):
+                    projection[field]=[{k:str(v)[:500] for k,v in item.items() if k in {'doc_id','corpus','source','title','version','content_hash','project','label_basis'}} for item in event.get(field,[])[:4] if isinstance(item,dict)]
                 size+=len(json.dumps(projection,ensure_ascii=False))
                 if size>40000:break
                 model_events.append(projection)

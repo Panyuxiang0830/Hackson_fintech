@@ -200,9 +200,12 @@ def select(store, db_path, identities, filters):
             stats['by_category'][cat]=grouped
         page=[json.loads(r[0]) for r in db.execute('SELECT payload FROM selection WHERE '+where+' AND seq<? ORDER BY seq DESC LIMIT ?',[*params,before,limit+1])]
         has_more=len(page)>limit;page=page[:limit]
-        sample=[]
+        samples=[]
         for cat in stats['category']:
-            sample.extend(json.loads(r[0]) for r in db.execute('SELECT payload FROM selection WHERE '+where+' AND category=? ORDER BY seq DESC LIMIT ?', [*params,cat,max(1,20//len(stats['category']))]))
+            samples.append([json.loads(r[0]) for r in db.execute('SELECT payload FROM selection WHERE '+where+' AND category=? ORDER BY seq DESC LIMIT ?', [*params,cat,max(1,20//len(stats['category']))])])
+        # Spend the model detail budget across categories before taking more
+        # records from one category; long answers must not hide all changes.
+        sample=[rows[i] for i in range(max(map(len,samples),default=0)) for rows in samples if i<len(rows)]
     next_cursor=None
     if has_more:
         next_cursor=base64.urlsafe_b64encode(json.dumps({'filter':signature,'as_of':as_of,'before':page[-1]['sequence']}).encode()).decode()
