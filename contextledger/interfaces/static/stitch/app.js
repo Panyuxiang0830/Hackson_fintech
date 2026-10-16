@@ -275,15 +275,18 @@ function answerSummary(text) {
   if(!headline||/[:：]$/.test(headline))return null;
   if(headline.length>200)headline=headline.slice(0,headline.lastIndexOf(' ',190)>120?headline.lastIndexOf(' ',190):190).replace(/[\s,;:，；：]+$/,'')+'…';
   const rest=answer.slice(end).trim();
-  return {headline,explanation:rest||(cited.length?`Based on authorised source ${cited.join(' ')}.`:'')};
+  const chinese=/\p{Script=Han}/u.test(headline);
+  return {headline,explanation:rest||(cited.length?(chinese?`依据授权来源 ${cited.join(' ')}。`:`Based on authorised source ${cited.join(' ')}.`):'')};
 }
 
 function renderJudgment(page,data) {
   const p=data.radar_presentation;
   const plain=!p&&data.decision==='answered'&&data.provider!=='mock_fallback'?answerSummary(data.answer):null;
   put(page,'query',state.question);
-  put(page,'headline',p?.headline||plain?.headline||(data.decision==='insufficient'?'Evidence is insufficient to confirm this question.':'Answer from the current authorised selection'));
-  put(page,'explanation',p?.explanation||(plain?plain.explanation:data.answer||'No reliable answer was generated.'));
+  // Generated text follows the question's language; fixed fallbacks match it too.
+  const chinese=/\p{Script=Han}/u.test(state.question||'');
+  put(page,'headline',p?.headline||plain?.headline||(data.decision==='insufficient'?(chinese?'现有授权证据不足以确认这个问题。':'Evidence is insufficient to confirm this question.'):(chinese?'基于当前授权资料的回答':'Answer from the current authorised selection')));
+  put(page,'explanation',p?.explanation||(plain?plain.explanation:data.answer||(chinese?'未生成可靠回答。':'No reliable answer was generated.')));
   const details=one(page,'answer-details');
   details.hidden=!p?.explanation||!data.answer||p.explanation.trim()===data.answer.trim();details.open=false;
   put(page,'answer',details.hidden?'':data.answer);
@@ -322,7 +325,7 @@ async function ask() {
   const question=one('home','question').value.trim(),corpus=one('home','corpus').value;
   if(!state.user||!question||!corpus){notice('Choose an identity and dataset, then enter a question.','error');return;}
   clearProtected();state.question=question;state.corpus=corpus;queryBusy(true);const generation=state.generation;
-  try {const data=await api('/api/ask',{q:question,corpus,mode:'hybrid',planning:state.planning,output_language:'en'});if(generation===state.generation){renderResult(data);notice(data.provider==='mock_fallback'?'No reliable model answer was generated. The authorised selection remains available.':'','error');}}
+  try {const data=await api('/api/ask',{q:question,corpus,mode:'hybrid',planning:state.planning});if(generation===state.generation){renderResult(data);notice(data.provider==='mock_fallback'?'No reliable model answer was generated. The authorised selection remains available.':'','error');}}
   catch(error){if(generation===state.generation||error.accessChanged)notice(error.message,'error');}
   finally {queryBusy(false);}
 }

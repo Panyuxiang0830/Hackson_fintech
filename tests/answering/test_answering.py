@@ -189,6 +189,27 @@ class AnswerServiceTests(unittest.TestCase):
         self.assertTrue(_headline_too_long(self.LONG_HEADLINE))
         self.assertFalse(_headline_too_long("The limit is CNY 100,000 per customer [1]."))
 
+    def test_chinese_question_answered_in_english_gets_a_chinese_rewrite(self):
+        calls = []
+        replies = ["It is a ledger used by finance to reconcile transactions [1].",
+                   "这是一个财务台账，用来核对交易记录 [1]。"]
+        def transport(request, **kwargs):
+            calls.append(json.loads(request.data))
+            return self._response({'status': 'answered', 'answer': replies.pop(0),
+                                   'citation_ids': [1], 'uncertainty': 'low'})
+        with patch.dict(os.environ, self.live_environment, clear=True):
+            service = AnswerService()
+            with patch('urllib.request.urlopen', side_effect=transport):
+                answer, status, _ = service.answer(self.user, '这个台账是做什么的？', self.evidence)
+        self.assertEqual(status, 'answered')
+        self.assertTrue(answer.startswith('这是'))
+        self.assertEqual(service.last_diagnostics['failures'], ['language_validation_failed'])
+        self.assertIn('Answer this Chinese question in Chinese', calls[1]['messages'][0]['content'])
+
+    def test_chinese_question_may_explicitly_ask_for_english(self):
+        from contextledger.answering.service import _check_answer_language
+        _check_answer_language('请用英文解释这个台账', 'It is a ledger used by finance [1].')
+
     def test_requested_chinese_translation_is_not_rejected_as_wrong_language(self):
         from contextledger.answering.service import _check_answer_language
         _check_answer_language('Please translate this explanation into Chinese.',

@@ -141,6 +141,11 @@ class StitchFrontendTests(unittest.TestCase):
         self.assertEqual(result[4], {"headline": "Version 1.2 shipped on time", "explanation": "Based on authorised source [3]."})
         self.assertIsNone(result[5])
         self.assertIn("!p&&data.decision==='answered'&&data.provider!=='mock_fallback'?answerSummary(data.answer)", source)
+        # Answers follow the question's language: the page no longer forces English output.
+        self.assertNotIn("output_language:'en'", source)
+        zh = json.loads(subprocess.run(["node", "-e", helper + "\nconsole.log(JSON.stringify(answerSummary('限额为每日十万元 [1]。')))"],
+                                       capture_output=True, text=True, check=True).stdout)
+        self.assertEqual(zh, {"headline": "限额为每日十万元。", "explanation": "依据授权来源 [1]。"})
 
 
 if __name__ == "__main__":

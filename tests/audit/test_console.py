@@ -143,7 +143,7 @@ class AuditConsoleTests(unittest.TestCase):
             result=self.f.post('/api/audit/ask',{'q':'Summarize access'})
         self.assertEqual(result.status_code,409)
 
-    def test_demo_ai_uses_english_names_and_language_without_rewriting_history(self):
+    def test_demo_ai_uses_english_names_and_question_language_without_rewriting_history(self):
         person=self.f.ids.register('test','legacy-jax','Jax（演示员工）')
         before_epoch=person.epoch
         legacy=self.f.service.record(self.f.admin,'permission_change',
@@ -159,7 +159,7 @@ class AuditConsoleTests(unittest.TestCase):
             result=self.f.post('/api/audit/ask',{'q':'今天Jax查过什么，权限变化有哪些？'})
         self.assertEqual(result.status_code,200)
         events,selection=captured[0]
-        self.assertEqual(selection['response_language'],'English')
+        self.assertEqual(selection['response_language'],'Chinese')  # Replies follow the question's language.
         change=next(e for e in events if e['category']=='permissions')
         self.assertEqual(change['user_name'],'ContextLedger Administrator')
         self.assertEqual(change['target_user_name'],'Jax')

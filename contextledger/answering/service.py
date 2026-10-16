@@ -144,7 +144,12 @@ def _check_answer_language(question, answer):
         if re.search(r"[\u4e00-\u9fff]", answer):
             raise ValueError("answer language does not match English interface")
         return
-    if re.search(r"[\u4e00-\u9fff]", question) or not re.match(
+    if re.search(r"[\u4e00-\u9fff]", question):
+        # A Chinese question gets a Chinese answer unless it asks for English/translation.
+        if not re.search(r"English|英文|英语|翻译|translat", question, re.I) and not re.search(r"[\u4e00-\u9fff]", answer):
+            raise ValueError("answer language does not match Chinese question")
+        return
+    if not re.match(
             r"(?:what|who|when|where|which|why|how|is|are|was|were|has|have|had|do|does|did|can|could|would|should|will|please|summarize|explain|describe)\b", question.strip(), re.I):
         return
     if re.search(r"\b(?:Chinese|Mandarin|quote|translate|translation)\b", question, re.I):
@@ -476,7 +481,8 @@ class AnswerService:
                            "its first sentence is one short direct conclusion of at most 25 words (50 CJK characters), "
                            "with no list or semicolon; keep every other fact, citation and paragraph rule.")
             if self.last_diagnostics["failures"][-1] == "language_validation_failed":
-                system += " The previous response used the wrong language. Answer this English question in English; preserve names and citation IDs."
+                language = "Chinese" if re.search(r"[\u4e00-\u9fff]", question) and _OUTPUT_LANGUAGE.get() != "en" else "English"
+                system += f" The previous response used the wrong language. Answer this {language} question in {language}; preserve names and citation IDs."
             if tool_handler is not None and not tool_state["called"]:
                 system += " A format repair does not disable the tool. If missing history/status needs expansion, return the exact tool action JSON, without Markdown fences or answer fields."
             system += " Repair the previous format failure. An insufficient answer must have NO numeric citation markers; an answered response must list exactly its authorised markers. An answered response longer than 80 words (200 characters for Chinese, Japanese or Korean text) MUST separate its direct answer and explanation with a blank line encoded as two JSON newline escapes. Short answers may be one paragraph. Return complete JSON."
