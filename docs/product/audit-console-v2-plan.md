@@ -1,6 +1,6 @@
 # 四类审计工作台方案
 
-2026-10-16；REQ-006/audit_console_four_domains、REQ-008。authority=team_decision，status=in_progress。2026-10-16用户已确认本方案，进入实现与部署验收。
+2026-10-16；REQ-006/audit_console_four_domains、REQ-008。authority=team_decision，status=implemented。2026-10-16用户已确认本方案，已完成实现、部署和自动/浏览器验证；新版跨类AI最终复验被服务商402阻断，待恢复模型额度后补验及用户体验验收。
 
 ## 已确认的目标
 
@@ -89,7 +89,7 @@ AI失败时保留已经查出的事件和条件，提供重试。AI回复只读�
 本轮范围是上述审计工作台和必要后端补齐；不重构业务知识问答或重建语料索引。
 
 
-## 实现记录（2026-10-16，部署验收进行中）
+## 实现记录（2026-10-16）
 
 - 管理员GET /api/audit与POST /api/audit/ask使用完整历史事件投影；compliance沿用原业务权限/版本复核。普通员工仍禁止审计。
 - contextledger/audit/console.py从同一已验证哈希链快照构建临时SQLite查询索引，执行参数化筛选、精确COUNT/GROUP BY和稳定游标分页；不维护第二份持久化日志。目录只补显示标签，标注current directory，不伪造历史标题。
@@ -98,7 +98,7 @@ AI失败时保留已经查出的事件和条件，提供重试。AI回复只读�
 - 资料任务补齐source/title、旧/新版本、任务与结果，原文不可用事件记录requested_document_id；404仍不推断为已确认越权。
 - AI使用最多20份分类型代表明细和40k字符，SQL统计覆盖全部匹配事件，统计引用[Q1]、事件引用[E序号]；确定性约束识别人名、来源/项目、类型和SGT时间范围。AI未配置/失败保留实际列表与统计。
 - 四区独立筛选；Information access与Permission changes默认展开，Document updates与Unauthorised attempts默认折叠。AI引用打开事件详情，旧合规界面保留；前端JS v16、CSS v8。构建源frontend/stitch/audit-console.html和build.cjs同步。
-- 自动回归与实际部署结果待下方补充；原身份、成员、来源限制与原审计记录保留。
+- 自动回归与实际部署结果见下方；原身份、成员、来源限制与原审计记录保留。
 
 
 ### 026f552f第一轮线上验收
@@ -109,8 +109,23 @@ AI失败时保留已经查出的事件和条件，提供重试。AI回复只读�
 - 通过真实更新队列发布一份明确标注的隔离验收资料demo:audit-console-acceptance-20261016，ACL为空且密级Restricted；白名单外OrgForge资料摘要不变。该记录不参与员工检索。
 - 四类及跨类AI均实际调用glm-5.3-flash并回答：fb9a466b-738e-43ab-8d48-98dd182b1a9b、d7736a40-2c5e-4678-8740-d48adf9f31ec、7c8dba01-8ab6-45ad-af79-2db95033d270、0d4febd1-5bda-48f4-afb8-379fb21f859d、17e4dc53-6109-41f9-aac7-017d8afb5a36。运行结果保留audit-console/verification.json。
 - 人工检查AI内容发现跨类全局outcome计数可能误当访问计数，且有UTC/SGT描述混用；已补SQL按category分组的结果/操作者统计、明确SGT起止和事件时间、明细数量与页面数量分离、输出语言及查询范围约束。AI的Q1引用可展开完整统计。质量补丁与真实模型复验进行中。
-- 原生浏览器已刷新至新页面并进入Audit Trail；Mac随后锁定，最终折叠/引用交互视觉验收等待解锁。此处不宣称浏览器最终验收完成。
+- 首轮浏览器验收因Mac锁定暂停；用户解锁后已继续完成，结果见最终验收记录。
 
 ### 跨类明细与时间补充
 
 真实模型复核发现长访问明细可能耗尽40k预算，遗漏权限明细；改为按类别轮流取样，并限制模型资源投影仅含ID/名称/版本等必要快照。原始完整事件仍可在页面查看。模型事件仅提供已转换好的SGT显示时间，去除重复UTC时间输入；补长事件跨类回归。
+
+### 6397861a最终部署与技术验收
+
+- 当前17866服务为releases/audit-console-final-20261016，代码6397861a，PID883221；备份before-audit-console-final-20261016T060815Z。重启前后身份/绑定/成员/来源限制、项目目录和canonical摘要均一致。
+- 本地399 unittest、407 pytest + 162 subtests通过；服务器407 pytest + 162 subtests通过。project_sync --check、两份前端JS语法检查、git diff --check通过。
+- 原生Chrome验证：主要两区默认展开、更新/越权默认折叠；两个次要区域可展开/收起；获取信息的未命中关键词显示0条且不影响权限区，清空后恢复；权限详情展示操作者/目标、项目前后值、epoch；历史问答/资料版本可查看。E事件引用打开对应记录，Q1展开SQL分类统计。
+- 中文页面实测“今天谁修改了 Jax 的权限，具体改了什么？”成功返回真实GLM回答及事件引用。英文权限询问亦有真实模型成功记录7795930f-0a82-4729-80f5-afce5f3a69d9；另有两次英文回复未通过引用校验，已回退查询结果，不将其计为成功回答。此类失败保留查询条件/列表/精确统计，可重试。
+- 运行时验收结果存于preview/audit-console/，不提交审计日志或验收数据。原1491条日志在初次升级前后逐条一致，后续升级继续校验原前缀；未修改旧事件。旧日志原本截断的回答或缺失的before/after无法补造。
+- 浏览器截图保留在本机/tmp/contextledger-audit-ai.png、/tmp/contextledger-audit-permission.png、/tmp/contextledger-audit-four-domains.png；截图为真实界面，无合成结果。未合并main。
+
+### 最终AI服务限制（2026-10-16）
+
+- v4真实成功：获取信息003c1ee0-6ffd-48d9-b299-9f118a3db992；英文权限7795930f-0a82-4729-80f5-afce5f3a69d9及原生页面中文权限问题；资料更新2171dd0c-e34d-494d-b5e1-1defb46b951d；越权b1ef60b6-9d69-40e9-9303-d69f17d3f0f8。资料更新明确显示13:32:17 SGT，与事件一致。
+- 跨类请求连续返回api_unavailable；只读诊断确认模型接口HTTP 402 Payment Required（54e92412-fc9c-4561-be57-25f15bd0c27c），已停止模型调用。未购买额度、切换供应商或修改凭据。需用户核查模型服务账户余额/额度；恢复后原配置可重试。
+- 89f5b9ee已有真实跨类成功，但当时存在明细预算导致权限样本缺失，6397861a已修轮流取样并通过长事件回归。不能把旧成功当作最新版跨类最终验收；该项明确待恢复后补验。当前四区查询、SQL统计、引用详情可用；AI不可用时保留确定性结果。
