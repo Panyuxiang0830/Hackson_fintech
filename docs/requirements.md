@@ -229,6 +229,28 @@
   - 测试：`tests/application/test_integration.py`
   - 文档：`docs/product/mvp-v0.md`, `docs/source/handbook-fintech-track.md`, `docs/architecture/unified-integration.md`, `docs/product/engineering-challenges.md`, `docs/product/workload.md`
 
+### 功能扩展 · 四类审计工作台与统一AI审计入口
+
+- 扩展键：`audit_console_four_domains`
+- 来源：User requested proposal first on 2026-10-16; implementation requires their confirmation
+- 权威级别：`team_decision`（独立于基础需求）
+- 状态：`planned`
+- 说明：方案阶段：以获取信息、权限变更为两个主要展开区，资料更新和越权事件默认折叠；顶部统一AI提问框可查询四类记录，各区独立筛选。管理员完整查看已记录的审计信息，不再用其业务原文权限遮蔽历史审计。补齐事件字段、目标员工查询、真实关键词、分页/聚合及AI结构化输入；用户确认前不修改业务代码、界面或线上权限。
+- 验收标准：
+
+  - 顶部AI审计问答覆盖四类日志，答案引用可点击的实际事件；SQL确定性查询/聚合提供事实和统计，模型解释结果，不把最近20条样本当整个时间段
+  - 获取信息与权限变更默认展开，资料更新与越权事件显示简洁摘要框，点击后展开对应筛选和记录；各区查询互不覆盖，采用统一时区与真实分页/总数
+  - 管理员审计页面与AI可读取完整已记录历史问题、回答、资料和权限变更字段；不因管理员没有对应业务资料权限而隐藏审计，不改变普通员工或非管理员的业务访问规则
+  - 区分搜索返回、回答证据和原文访问；权限变更记录操作者、目标员工、范围、前后值、结果、关联操作ID及目标权限版本，新版字段不伪造回填旧日志
+  - 按操作者和受影响员工分别查询；关键词、事件类型、来源/项目、资料和时间条件真实生效；资料更新可追踪任务/版本，异常分类由实际拒绝证据决定
+  - 只记录方案，用户确认后再实现和部署；已有哈希链与原日志保留，完成前后关键流程和真实模型验收
+
+- 影响范围：
+
+  - 代码：`contextledger/audit/store.py`, `contextledger/audit/query.py`, `contextledger/application/service.py`, `contextledger/interfaces/web.py`, `contextledger/answering/workflows.py`, `contextledger/interfaces/static/stitch/app.js`, `contextledger/interfaces/static/stitch/index.html`, `contextledger/interfaces/static/stitch/responsive.css`, `contextledger/storage/document_updates.py`
+  - 测试：`tests/application/test_integration.py`, `tests/application/test_llm_integration.py`, `tests/interfaces/test_stitch_api.py`, `tests/interfaces/test_stitch_frontend.py`, `tests/answering/test_llm_workflows.py`
+  - 文档：`docs/product/audit-console-v2-plan.md`
+
 ## REQ-007 · 防篡改审计链
 
 - 来源：FinTech track handbook
